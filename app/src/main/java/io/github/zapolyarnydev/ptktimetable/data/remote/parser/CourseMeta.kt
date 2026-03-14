@@ -1,0 +1,6 @@
+package io.github.zapolyarnydev.ptktimetable.data.remote.parser
+
+internal data class CourseMeta(
+    val number: Int?,
+    val title: String
+)
