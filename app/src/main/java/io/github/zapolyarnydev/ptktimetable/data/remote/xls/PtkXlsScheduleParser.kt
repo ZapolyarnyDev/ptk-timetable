@@ -105,8 +105,7 @@ class PtkXlsScheduleParser {
                 }
 
                 val resolvedWeekTypes = if (
-                    columns.size == 2 &&
-                    guessedWeekTypes.all { it.second == PtkWeekType.ALL }
+                    columns.size == 2 && guessedWeekTypes.all { it.second == PtkWeekType.ALL }
                 ) {
                     listOf(
                         columns[0] to PtkWeekType.UPPER,
@@ -260,7 +259,6 @@ class PtkXlsScheduleParser {
             "вс"
         )
 
-        val TIME_RANGE_REGEX =
-            Regex("\\b\\d{1,2}[.:]\\d{2}\\s*[-]\\s*\\d{1,2}[.:]\\d{2}\\b")
+        val TIME_RANGE_REGEX = Regex("\\b\\d{1,2}[.:]\\d{2}\\s*[-]\\s*\\d{1,2}[.:]\\d{2}\\b")
     }
 }
