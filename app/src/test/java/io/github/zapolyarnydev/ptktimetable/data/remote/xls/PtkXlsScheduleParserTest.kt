@@ -1,4 +1,4 @@
-package io.github.zapolyarnydev.ptktimetable.data.remote.parser
+package io.github.zapolyarnydev.ptktimetable.data.remote.xls
 
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -7,7 +7,7 @@ import java.lang.reflect.Method
 class PtkXlsScheduleParserTest {
 
     private val sut = ParserContract(
-        parserClassName = "io.github.zapolyarnydev.ptktimetable.data.remote.parser.PtkXlsScheduleParser",
+        parserClassName = "io.github.zapolyarnydev.ptktimetable.data.remote.xls.PtkXlsScheduleParser",
         parseMethodName = "parseSchedule"
     )
 

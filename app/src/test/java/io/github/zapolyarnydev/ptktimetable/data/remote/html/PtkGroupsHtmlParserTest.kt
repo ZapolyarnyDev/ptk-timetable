@@ -1,4 +1,4 @@
-package io.github.zapolyarnydev.ptktimetable.data.remote.parser
+package io.github.zapolyarnydev.ptktimetable.data.remote.html
 
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -7,7 +7,7 @@ import java.lang.reflect.Method
 class PtkGroupsHtmlParserTest {
 
     private val sut = ParserContract(
-        parserClassName = "io.github.zapolyarnydev.ptktimetable.data.remote.parser.PtkGroupsHtmlParser",
+        parserClassName = "io.github.zapolyarnydev.ptktimetable.data.remote.html.PtkGroupsHtmlParser",
         parseMethodName = "parseGroups"
     )
 

@@ -1,4 +1,4 @@
-package io.github.zapolyarnydev.ptktimetable.data.remote.parser
+package io.github.zapolyarnydev.ptktimetable.data.model
 
 data class PtkGroupInfo(
     val collegeName: String,

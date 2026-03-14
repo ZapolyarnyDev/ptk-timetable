@@ -1,5 +1,7 @@
-package io.github.zapolyarnydev.ptktimetable.data.remote.parser
+package io.github.zapolyarnydev.ptktimetable.data.remote.html
 
+import io.github.zapolyarnydev.ptktimetable.data.model.PtkGroupInfo
+import io.github.zapolyarnydev.ptktimetable.data.remote.xls.CourseMeta
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import java.util.Locale

@@ -1,5 +1,7 @@
-package io.github.zapolyarnydev.ptktimetable.data.remote.parser
+package io.github.zapolyarnydev.ptktimetable.data.remote.xls
 
+import io.github.zapolyarnydev.ptktimetable.data.model.PtkRawLesson
+import io.github.zapolyarnydev.ptktimetable.data.model.PtkWeekType
 import org.apache.poi.hssf.usermodel.HSSFWorkbook
 import org.apache.poi.ss.usermodel.CellType
 import org.apache.poi.ss.usermodel.DataFormatter
