@@ -56,6 +56,7 @@ dependencies {
     implementation(libs.jsoup)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.okhttp)
+    implementation(libs.apache.poi)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
