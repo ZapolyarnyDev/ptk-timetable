@@ -46,6 +46,41 @@ class PtkXlsScheduleParserTest {
     }
 
     @Test
+    fun `parseSchedule detects upper and lower week lessons for split cells`() {
+        val xlsBytes = loadXls("xls/3991 3992 3993 3994.xls")
+
+        val lessons = sut.parse(xlsBytes, "3993")
+        val weekTypes = lessons.map { it.weekType }.toSet()
+
+        assertTrue("Expected at least one upper-week lesson", weekTypes.contains("UPPER"))
+        assertTrue("Expected at least one lower-week lesson", weekTypes.contains("LOWER"))
+    }
+
+    @Test
+    fun `parseSchedule matches expected thursday structure for group 3993`() {
+        val xlsBytes = loadXls("xls/3991 3992 3993 3994.xls")
+        val lessons = sut.parse(xlsBytes, "3993")
+
+        val thursday = lessons.filter { it.dayOfWeek.contains("четверг", ignoreCase = true) }
+
+        val slot1 = thursday.filter { it.timeRange == "8.30-10.10" }
+        assertTrue(slot1.any { it.weekType == "UPPER" && it.rawText.contains("WordPress", ignoreCase = true) })
+        assertTrue(slot1.any { it.weekType == "LOWER" && it.rawText.contains("Тестирование", ignoreCase = true) })
+
+        val slot2 = thursday.filter { it.timeRange == "10.20-12.00" }
+        assertTrue(slot2.any { it.weekType == "ALL" && it.rawText.contains("Тестирование", ignoreCase = true) })
+
+        val slot3 = thursday.filter { it.timeRange == "12.45-14.25" }
+        assertTrue(slot3.any { it.weekType == "ALL" && it.rawText.contains("Java", ignoreCase = true) })
+
+        val slot4 = thursday.filter { it.timeRange == "14.35-16.15" }
+        assertTrue(slot4.any { it.weekType == "ALL" && it.rawText.contains("Проектирование", ignoreCase = true) })
+
+        val slot5 = thursday.filter { it.timeRange == "16.25-18.05" }
+        assertTrue(slot5.isEmpty())
+    }
+
+    @Test
     fun `parseSchedule returns empty when group is absent in workbook`() {
         val xlsBytes = loadXls("xls/3781 3782.xls")
 
@@ -64,7 +99,8 @@ class PtkXlsScheduleParserTest {
         val groupName: String,
         val dayOfWeek: String,
         val timeRange: String,
-        val rawText: String
+        val rawText: String,
+        val weekType: String
     )
 
     private class ParserContract(
@@ -107,7 +143,9 @@ class PtkXlsScheduleParserTest {
             val dayOfWeek = readString(raw, "dayOfWeek")
             val timeRange = readString(raw, "timeRange")
             val rawText = readString(raw, "rawText")
-            return LessonRef(groupName, dayOfWeek, timeRange, rawText)
+            val weekType = readProperty(raw, "weekType")?.toString()
+                ?: throw AssertionError("Property `weekType` must not be null")
+            return LessonRef(groupName, dayOfWeek, timeRange, rawText, weekType)
         }
 
         private fun readString(raw: Any, property: String): String {

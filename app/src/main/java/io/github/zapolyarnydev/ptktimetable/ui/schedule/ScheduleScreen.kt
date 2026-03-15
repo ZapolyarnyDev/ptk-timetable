@@ -193,7 +193,7 @@ private fun LessonsState(
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
-                                text = "Неделя: ${lesson.weekType}",
+                                text = "Неделя: ${lesson.weekType.titleRu}",
                                 style = MaterialTheme.typography.bodySmall
                             )
                             Text(text = lesson.rawText, style = MaterialTheme.typography.bodyMedium)

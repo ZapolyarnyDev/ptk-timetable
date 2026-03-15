@@ -1,7 +1,9 @@
 package io.github.zapolyarnydev.ptktimetable.data.model
 
-enum class PtkWeekType {
-    ALL,
-    UPPER,
-    LOWER
+enum class PtkWeekType(
+    val titleRu: String
+) {
+    ALL("обе недели"),
+    UPPER("верхняя"),
+    LOWER("нижняя")
 }

@@ -26,9 +26,10 @@ class PtkXlsScheduleParser {
             }
         }
 
-        return lessons.distinctBy {
+        val distinct = lessons.distinctBy {
             "${it.groupName}|${it.dayOfWeek}|${it.timeRange}|${it.rawText}|${it.weekType}"
         }
+        return removeAllWhenSpecificWeeksExist(distinct)
     }
 
     private fun parseSheet(
@@ -36,39 +37,55 @@ class PtkXlsScheduleParser {
         normalizedGroupName: String,
         formatter: DataFormatter
     ): List<PtkRawLesson> {
-        val groupColumns = findGroupColumns(sheet, normalizedGroupName, formatter)
-        if (groupColumns.isEmpty()) return emptyList()
+        val layout = findGroupLayout(sheet, normalizedGroupName, formatter) ?: return emptyList()
+        val timeRows = collectTimeRows(sheet, layout.timeColumn, formatter)
+        if (timeRows.isEmpty()) return emptyList()
 
-        val startRow = groupColumns.minOf { it.headerRow } + 1
         val result = mutableListOf<PtkRawLesson>()
         var currentDay = ""
-        var currentTime = ""
 
-        for (rowIndex in startRow..sheet.lastRowNum) {
-            val dayCandidate = normalize(getCellText(sheet, rowIndex, DAY_COLUMN, formatter))
-            if (isDayOfWeek(dayCandidate)) {
-                currentDay = dayCandidate
+        timeRows.forEachIndexed { index, rowIndex ->
+            val timeRange = normalize(getCellText(sheet, rowIndex, layout.timeColumn, formatter))
+            if (!isTimeRange(timeRange)) return@forEachIndexed
+
+            val dayCandidate = normalize(getCellText(sheet, rowIndex, layout.dayColumn, formatter))
+            if (isDayOfWeek(dayCandidate)) currentDay = dayCandidate
+            if (currentDay.isBlank()) return@forEachIndexed
+
+            val nextTimeRow = timeRows.getOrNull(index + 1) ?: (sheet.lastRowNum + 1)
+            val slotBottomRow = minOf(rowIndex + 1, nextTimeRow - 1)
+            val hasTwoRows = slotBottomRow > rowIndex
+
+            val topText = normalize(getCellText(sheet, rowIndex, layout.lessonColumn, formatter))
+            val bottomText = if (hasTwoRows) {
+                normalize(getCellText(sheet, slotBottomRow, layout.lessonColumn, formatter))
+            } else {
+                ""
             }
 
-            val timeCandidate = normalize(getCellText(sheet, rowIndex, TIME_COLUMN, formatter))
-            if (isTimeRange(timeCandidate)) {
-                currentTime = timeCandidate
+            val isSplitByRows = hasTwoRows && !isVerticallyMerged(
+                sheet = sheet,
+                rowIndex = rowIndex,
+                columnIndex = layout.lessonColumn,
+                targetRow = slotBottomRow
+            )
+
+            val lessonsForSlot = if (isSplitByRows) {
+                mapSplitRows(topText, bottomText)
+            } else {
+                mapSingleCell(topText, bottomText)
             }
 
-            if (currentDay.isBlank() || currentTime.isBlank()) continue
-
-            groupColumns.forEach { groupColumn ->
-                val rawLesson = normalize(getCellText(sheet, rowIndex, groupColumn.columnIndex, formatter))
-                if (rawLesson.isBlank()) return@forEach
-                if (rawLesson == normalizedGroupName) return@forEach
-                if (isHeaderNoise(rawLesson)) return@forEach
+            lessonsForSlot.forEach { (lessonText, weekType) ->
+                if (!hasLessonText(lessonText)) return@forEach
+                if (isHeaderNoise(lessonText)) return@forEach
 
                 result += PtkRawLesson(
                     groupName = normalizedGroupName,
                     dayOfWeek = currentDay,
-                    timeRange = currentTime,
-                    rawText = rawLesson,
-                    weekType = groupColumn.weekType
+                    timeRange = timeRange,
+                    rawText = lessonText,
+                    weekType = weekType
                 )
             }
         }
@@ -76,93 +93,84 @@ class PtkXlsScheduleParser {
         return result
     }
 
-    private fun findGroupColumns(
+    private fun findGroupLayout(
         sheet: Sheet,
         normalizedGroupName: String,
         formatter: DataFormatter
-    ): List<GroupColumn> {
-        val map = linkedMapOf<Int, GroupColumn>()
-        val maxRowToScan = minOf(sheet.lastRowNum, 120)
+    ): GroupLayout? {
+        val maxColumn = findMaxColumn(sheet)
+        val maxHeaderRow = minOf(sheet.lastRowNum, HEADER_SCAN_MAX_ROW)
+        val candidates = mutableListOf<BlockCandidate>()
 
-        for (rowIndex in 0..maxRowToScan) {
-            val row = sheet.getRow(rowIndex) ?: continue
-            val firstCell = if (row.firstCellNum >= 0) row.firstCellNum.toInt() else 0
-            val lastCell = if (row.lastCellNum >= 0) row.lastCellNum.toInt() else 0
+        var blockStart = 0
+        while (blockStart + 2 <= maxColumn) {
+            val dayColumn = blockStart
+            val timeColumn = blockStart + 1
+            val lessonColumn = blockStart + 2
 
-            for (columnIndex in firstCell..lastCell) {
-                val text = normalize(getCellText(sheet, rowIndex, columnIndex, formatter))
-                if (!containsGroupToken(text, normalizedGroupName)) continue
+            for (rowIndex in 0..maxHeaderRow) {
+                for (columnIndex in blockStart..lessonColumn) {
+                    val text = normalize(getCellText(sheet, rowIndex, columnIndex, formatter))
+                    if (!containsGroupToken(text, normalizedGroupName)) continue
 
-                val mergedRegion = findMergedRegion(sheet, rowIndex, columnIndex)
-                val columns = if (mergedRegion != null && mergedRegion.lastColumn > mergedRegion.firstColumn) {
-                    (mergedRegion.firstColumn..mergedRegion.lastColumn).toList()
-                } else {
-                    listOf(columnIndex)
-                }
-
-                val guessedWeekTypes = columns.map { col ->
-                    col to inferWeekType(sheet, rowIndex, col, formatter)
-                }
-
-                val resolvedWeekTypes = if (
-                    columns.size == 2 && guessedWeekTypes.all { it.second == PtkWeekType.ALL }
-                ) {
-                    listOf(
-                        columns[0] to PtkWeekType.UPPER,
-                        columns[1] to PtkWeekType.LOWER
+                    candidates += BlockCandidate(
+                        layout = GroupLayout(dayColumn, timeColumn, lessonColumn),
+                        rowIndex = rowIndex,
+                        exact = text == normalizedGroupName,
+                        tokenCount = tokenize(text).size
                     )
-                } else {
-                    guessedWeekTypes
-                }
-
-                resolvedWeekTypes.forEach { (col, weekType) ->
-                    val existing = map[col]
-                    if (existing == null || (existing.weekType == PtkWeekType.ALL && weekType != PtkWeekType.ALL)) {
-                        map[col] = GroupColumn(
-                            headerRow = rowIndex,
-                            columnIndex = col,
-                            weekType = weekType
-                        )
-                    }
                 }
             }
+
+            blockStart += 3
         }
 
-        return map.values.toList()
+        if (candidates.isEmpty()) return null
+
+        return candidates
+            .sortedWith(
+                compareByDescending<BlockCandidate> { it.exact }
+                    .thenBy { it.tokenCount }
+                    .thenBy { it.rowIndex }
+            )
+            .first()
+            .layout
     }
 
-    private fun inferWeekType(
+    private fun collectTimeRows(
         sheet: Sheet,
-        headerRowIndex: Int,
-        columnIndex: Int,
+        timeColumn: Int,
         formatter: DataFormatter
-    ): PtkWeekType {
-        val checkRows = (headerRowIndex - 1..headerRowIndex + 2)
-        checkRows.forEach { rowIndex ->
-            if (rowIndex < 0) return@forEach
-            val value = normalize(getCellText(sheet, rowIndex, columnIndex, formatter))
-            val fromValue = detectWeekType(value)
-            if (fromValue != PtkWeekType.ALL) return fromValue
-        }
+    ): List<Int> {
+        val rows = mutableListOf<Int>()
+        for (rowIndex in 0..sheet.lastRowNum) {
+            val merged = findMergedRegion(sheet, rowIndex, timeColumn)
+            if (merged != null && merged.firstRow < rowIndex) continue
 
-        val neighbors = listOf(columnIndex - 1, columnIndex + 1)
-        neighbors.forEach { neighborColumn ->
-            if (neighborColumn < 0) return@forEach
-            val value = normalize(getCellText(sheet, headerRowIndex + 1, neighborColumn, formatter))
-            val fromValue = detectWeekType(value)
-            if (fromValue != PtkWeekType.ALL) return fromValue
+            val value = normalize(getCellText(sheet, rowIndex, timeColumn, formatter))
+            if (isTimeRange(value)) rows += rowIndex
         }
-
-        return PtkWeekType.ALL
+        return rows
     }
 
-    private fun detectWeekType(text: String): PtkWeekType {
-        val normalized = text.lowercase(Locale.ROOT).replace('ё', 'е')
+    private fun mapSplitRows(topText: String, bottomText: String): List<Pair<String, PtkWeekType>> {
+        val topHasLesson = hasLessonText(topText)
+        val bottomHasLesson = hasLessonText(bottomText)
+
         return when {
-            normalized.contains("верх") || normalized.contains("нечет") -> PtkWeekType.UPPER
-            normalized.contains("ниж") || normalized.contains("чет") -> PtkWeekType.LOWER
-            else -> PtkWeekType.ALL
+            topHasLesson && bottomHasLesson -> listOf(
+                topText to PtkWeekType.UPPER,
+                bottomText to PtkWeekType.LOWER
+            )
+            topHasLesson -> listOf(topText to PtkWeekType.UPPER)
+            bottomHasLesson -> listOf(bottomText to PtkWeekType.LOWER)
+            else -> emptyList()
         }
+    }
+
+    private fun mapSingleCell(topText: String, bottomText: String): List<Pair<String, PtkWeekType>> {
+        val firstText = listOf(topText, bottomText).firstOrNull { hasLessonText(it) } ?: return emptyList()
+        return listOf(firstText to PtkWeekType.ALL)
     }
 
     private fun getCellText(
@@ -204,6 +212,26 @@ class PtkXlsScheduleParser {
         return null
     }
 
+    private fun isVerticallyMerged(
+        sheet: Sheet,
+        rowIndex: Int,
+        columnIndex: Int,
+        targetRow: Int
+    ): Boolean {
+        val region = findMergedRegion(sheet, rowIndex, columnIndex) ?: return false
+        return region.firstRow <= targetRow && region.lastRow >= targetRow
+    }
+
+    private fun findMaxColumn(sheet: Sheet): Int {
+        var max = 0
+        for (r in 0..sheet.lastRowNum) {
+            val row = sheet.getRow(r) ?: continue
+            val last = row.lastCellNum.toInt() - 1
+            if (last > max) max = last
+        }
+        return max
+    }
+
     private fun isDayOfWeek(value: String): Boolean {
         val normalized = value.lowercase(Locale.ROOT).replace('ё', 'е')
         return DAY_KEYWORDS.any { normalized.contains(it) }
@@ -215,32 +243,58 @@ class PtkXlsScheduleParser {
     }
 
     private fun isHeaderNoise(value: String): Boolean {
-        val normalized = value.lowercase(Locale.ROOT)
-        return normalized.contains("занятия") || normalized.contains("день недели")
+        val normalized = value.lowercase(Locale.ROOT).replace('ё', 'е')
+        return normalized.contains("занятия") ||
+            normalized.contains("день недели") ||
+            normalized.contains("зам директора")
     }
 
     private fun containsGroupToken(cellText: String, normalizedGroupName: String): Boolean {
-        if (cellText == normalizedGroupName) return true
-        val tokens = cellText
-            .lowercase(Locale.ROOT)
+        if (normalize(cellText) == normalizedGroupName) return true
+        return tokenize(cellText).any { it == normalizedGroupName }
+    }
+
+    private fun tokenize(text: String): List<String> {
+        return text.lowercase(Locale.ROOT)
             .split(Regex("[^\\p{L}\\p{Nd}]+"))
             .filter { it.isNotBlank() }
-        return tokens.any { it == normalizedGroupName }
+    }
+
+    private fun hasLessonText(value: String): Boolean {
+        val normalized = normalize(value)
+        if (normalized.isBlank()) return false
+        return !DASH_ONLY_REGEX.matches(normalized)
     }
 
     private fun normalize(value: String): String {
         return value.replace(Regex("\\s+"), " ").trim()
     }
 
-    private data class GroupColumn(
-        val headerRow: Int,
-        val columnIndex: Int,
-        val weekType: PtkWeekType
+    private fun removeAllWhenSpecificWeeksExist(lessons: List<PtkRawLesson>): List<PtkRawLesson> {
+        val grouped = lessons.groupBy { "${it.groupName}|${it.dayOfWeek}|${it.timeRange}|${it.rawText}" }
+        return grouped.values.flatMap { sameSlot ->
+            val hasSpecific = sameSlot.any { it.weekType == PtkWeekType.UPPER || it.weekType == PtkWeekType.LOWER }
+            if (hasSpecific) sameSlot.filterNot { it.weekType == PtkWeekType.ALL } else sameSlot
+        }
+    }
+
+    private data class GroupLayout(
+        val dayColumn: Int,
+        val timeColumn: Int,
+        val lessonColumn: Int
+    )
+
+    private data class BlockCandidate(
+        val layout: GroupLayout,
+        val rowIndex: Int,
+        val exact: Boolean,
+        val tokenCount: Int
     )
 
     private companion object {
-        const val DAY_COLUMN = 0
-        const val TIME_COLUMN = 1
+        const val HEADER_SCAN_MAX_ROW = 20
+        val TIME_RANGE_REGEX = Regex("\\b\\d{1,2}[.:]\\d{2}\\s*[-]\\s*\\d{1,2}[.:]\\d{2}\\b")
+        val DASH_ONLY_REGEX = Regex("^[-—–]+$")
 
         val DAY_KEYWORDS = listOf(
             "понедельник",
@@ -258,7 +312,5 @@ class PtkXlsScheduleParser {
             "сб",
             "вс"
         )
-
-        val TIME_RANGE_REGEX = Regex("\\b\\d{1,2}[.:]\\d{2}\\s*[-]\\s*\\d{1,2}[.:]\\d{2}\\b")
     }
 }
