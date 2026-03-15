@@ -97,11 +97,17 @@ class ScheduleViewModel(
     val state: StateFlow<ScheduleUiState> = _state.asStateFlow()
 
     init {
-        loadCatalog(preserveCourseSelection = false)
+        loadCatalog(
+            preserveCourseSelection = false,
+            restoreLastSelectedGroupOnLaunch = true
+        )
     }
 
     fun loadGroups() {
-        loadCatalog(preserveCourseSelection = true)
+        loadCatalog(
+            preserveCourseSelection = true,
+            restoreLastSelectedGroupOnLaunch = false
+        )
     }
 
     fun refreshCurrent() {
@@ -114,7 +120,10 @@ class ScheduleViewModel(
                 preserveUiSelection = true
             )
         } else {
-            loadCatalog(preserveCourseSelection = true)
+            loadCatalog(
+                preserveCourseSelection = true,
+                restoreLastSelectedGroupOnLaunch = false
+            )
         }
     }
 
@@ -194,7 +203,10 @@ class ScheduleViewModel(
         _state.update { it.copy(selectedDay = days[nextIndex]) }
     }
 
-    private fun loadCatalog(preserveCourseSelection: Boolean) {
+    private fun loadCatalog(
+        preserveCourseSelection: Boolean,
+        restoreLastSelectedGroupOnLaunch: Boolean
+    ) {
         val previous = state.value
         viewModelScope.launch(Dispatchers.IO) {
             _state.update { it.copy(isLoading = true, errorMessage = null) }
@@ -206,6 +218,52 @@ class ScheduleViewModel(
                 Pair(groups, currentWeekType)
             }.onSuccess { (groups, currentWeekType) ->
                 val courses = buildCourseItems(groups)
+
+                val restoredGroup = if (restoreLastSelectedGroupOnLaunch) {
+                    val lastSelectedGroupName = runCatching {
+                        preferencesStore.getLastSelectedGroupName()
+                    }.getOrNull()?.trim().orEmpty()
+                    groups.firstOrNull { it.groupName == lastSelectedGroupName }
+                } else {
+                    null
+                }
+
+                if (restoreLastSelectedGroupOnLaunch && restoredGroup != null) {
+                    val restoredCourse = courses.firstOrNull { it.course == restoredGroup.course }
+                    val restoredCourseGroups = groups
+                        .filter { it.course == restoredGroup.course }
+                        .sortedBy { it.groupName }
+
+                    _state.update {
+                        it.copy(
+                            isLoading = true,
+                            step = ScheduleStep.SCHEDULE,
+                            groups = groups,
+                            courses = courses,
+                            selectedCourse = restoredCourse,
+                            courseGroups = restoredCourseGroups,
+                            selectedGroup = restoredGroup,
+                            lessons = emptyList(),
+                            availableDays = emptyList(),
+                            selectedDay = null,
+                            weekFilter = defaultWeekFilter(currentWeekType),
+                            currentWeekType = currentWeekType,
+                            groupsUpdatedAt = nowProvider(),
+                            errorMessage = null
+                        )
+                    }
+                    openGroupInternal(
+                        group = restoredGroup,
+                        saveAsLastSelected = false,
+                        preserveUiSelection = false
+                    )
+                    return@onSuccess
+                }
+
+                if (restoreLastSelectedGroupOnLaunch) {
+                    runCatching { preferencesStore.setLastSelectedGroupName(null) }
+                }
+
                 val selectedCourse = if (preserveCourseSelection) {
                     val prevCourse = previous.selectedCourse?.course
                     courses.firstOrNull { it.course == prevCourse }
