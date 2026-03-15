@@ -215,7 +215,13 @@ class ScheduleViewModel(
 
     fun selectDate(date: LocalDate) {
         val normalized = date
-        _state.update { it.copy(selectedDate = normalized, errorMessage = null) }
+        _state.update {
+            it.copy(
+                selectedDate = normalized,
+                selectedDay = dayOfWeekToScheduleDay(normalized.dayOfWeek),
+                errorMessage = null
+            )
+        }
         if (state.value.mode == ScheduleMode.BY_DATE) {
             refreshDateModeLessons(normalized)
         }
@@ -424,6 +430,12 @@ class ScheduleViewModel(
                     beforeLoading.currentWeekType
                 }
 
+                val selectedDayForUi = if (beforeLoading.mode == ScheduleMode.BY_DATE) {
+                    dayOfWeekToScheduleDay(selectedDate.dayOfWeek)
+                } else {
+                    selectedDay
+                }
+
                 val lessons = if (beforeLoading.mode == ScheduleMode.BY_DATE) {
                     buildDateLessonsFromTemplates(
                         templates = templates,
@@ -442,7 +454,7 @@ class ScheduleViewModel(
                         selectedDate = selectedDate,
                         lessons = lessons,
                         availableDays = availableDays,
-                        selectedDay = selectedDay,
+                        selectedDay = selectedDayForUi,
                         weekFilter = weekFilter,
                         selectedDateWeekType = selectedDateWeekType,
                         scheduleUpdatedAt = nowProvider(),
@@ -557,6 +569,7 @@ class ScheduleViewModel(
                 } else {
                     it.copy(
                         lessons = lessons,
+                        selectedDay = dayOfWeekToScheduleDay(date.dayOfWeek),
                         selectedDateWeekType = selectedDateWeekType,
                         errorMessage = null
                     )
