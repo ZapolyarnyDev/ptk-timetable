@@ -5,7 +5,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkCurrentWeekType
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkGroupInfo
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkRawLesson
+import io.github.zapolyarnydev.ptktimetable.data.model.PtkWeekType
+import io.github.zapolyarnydev.ptktimetable.data.normalize.LessonTextNormalizer
 import io.github.zapolyarnydev.ptktimetable.data.repository.PtkScheduleRepository
 import io.github.zapolyarnydev.ptktimetable.data.repository.ScheduleRepository
 import kotlinx.coroutines.Dispatchers
@@ -15,17 +16,28 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+data class ScheduleLessonItem(
+    val dayOfWeek: String,
+    val timeRange: String,
+    val weekType: PtkWeekType,
+    val subject: String,
+    val teacher: String?,
+    val classroom: String?,
+    val rawText: String
+)
+
 data class ScheduleUiState(
     val isLoading: Boolean = false,
     val groups: List<PtkGroupInfo> = emptyList(),
     val selectedGroup: PtkGroupInfo? = null,
-    val lessons: List<PtkRawLesson> = emptyList(),
+    val lessons: List<ScheduleLessonItem> = emptyList(),
     val currentWeekType: PtkCurrentWeekType = PtkCurrentWeekType.UNKNOWN,
     val errorMessage: String? = null
 )
 
 class ScheduleViewModel(
-    private val repository: ScheduleRepository
+    private val repository: ScheduleRepository,
+    private val lessonTextNormalizer: LessonTextNormalizer = LessonTextNormalizer()
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ScheduleUiState(isLoading = true))
@@ -62,7 +74,19 @@ class ScheduleViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             _state.update { it.copy(isLoading = true, errorMessage = null, selectedGroup = group) }
             runCatching { repository.getScheduleForGroup(group.groupName) }
-                .onSuccess { lessons ->
+                .onSuccess { rawLessons ->
+                    val lessons = rawLessons.map { raw ->
+                        val normalized = lessonTextNormalizer.normalize(raw.rawText)
+                        ScheduleLessonItem(
+                            dayOfWeek = raw.dayOfWeek,
+                            timeRange = raw.timeRange,
+                            weekType = raw.weekType,
+                            subject = normalized.subject,
+                            teacher = normalized.teacher,
+                            classroom = normalized.classroom,
+                            rawText = raw.rawText
+                        )
+                    }
                     _state.update {
                         it.copy(
                             isLoading = false,

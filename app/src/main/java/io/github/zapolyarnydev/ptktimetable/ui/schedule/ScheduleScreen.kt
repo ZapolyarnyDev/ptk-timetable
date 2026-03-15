@@ -27,11 +27,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkCurrentWeekType
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkGroupInfo
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkRawLesson
+import kotlinx.coroutines.flow.StateFlow
 
 @Composable
 fun ScheduleScreen(
-    state: kotlinx.coroutines.flow.StateFlow<ScheduleUiState>,
+    state: StateFlow<ScheduleUiState>,
     onRetry: () -> Unit,
     onGroupClick: (PtkGroupInfo) -> Unit,
     onBack: () -> Unit
@@ -155,7 +155,7 @@ private fun GroupsState(
 @Composable
 private fun LessonsState(
     padding: PaddingValues,
-    lessons: List<PtkRawLesson>,
+    lessons: List<ScheduleLessonItem>,
     onBack: () -> Unit
 ) {
     Column(
@@ -184,7 +184,10 @@ private fun LessonsState(
                 contentPadding = PaddingValues(12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(lessons, key = { "${it.dayOfWeek}_${it.timeRange}_${it.rawText}_${it.weekType}" }) { lesson ->
+                items(
+                    lessons,
+                    key = { "${it.dayOfWeek}_${it.timeRange}_${it.rawText}_${it.weekType}" }
+                ) { lesson ->
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Text(
@@ -196,7 +199,17 @@ private fun LessonsState(
                                 text = "Неделя: ${lesson.weekType.titleRu}",
                                 style = MaterialTheme.typography.bodySmall
                             )
-                            Text(text = lesson.rawText, style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                text = lesson.subject.ifBlank { lesson.rawText },
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                            lesson.teacher?.let {
+                                Text(text = it, style = MaterialTheme.typography.bodyMedium)
+                            }
+                            lesson.classroom?.let {
+                                Text(text = it, style = MaterialTheme.typography.bodySmall)
+                            }
                         }
                     }
                 }
