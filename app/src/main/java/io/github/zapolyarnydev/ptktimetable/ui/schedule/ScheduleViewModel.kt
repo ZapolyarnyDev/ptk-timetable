@@ -4,10 +4,13 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import io.github.zapolyarnydev.ptktimetable.data.local.LessonNote
+import io.github.zapolyarnydev.ptktimetable.data.local.LessonNotesStore
 import io.github.zapolyarnydev.ptktimetable.data.local.UserPreferencesStore
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkCurrentWeekType
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkGroupInfo
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkWeekType
+import io.github.zapolyarnydev.ptktimetable.data.notification.LessonReminderScheduler
 import io.github.zapolyarnydev.ptktimetable.data.repository.DomainTimetableRepositoryAdapter
 import io.github.zapolyarnydev.ptktimetable.data.repository.PortalBackedWeekResolver
 import io.github.zapolyarnydev.ptktimetable.data.repository.PtkScheduleRepository
@@ -25,7 +28,9 @@ import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 enum class ScheduleStep {
@@ -80,6 +85,23 @@ data class ScheduleLessonItem(
     val rawText: String
 )
 
+data class ScheduleNoteItem(
+    val noteId: String,
+    val groupName: String,
+    val date: LocalDate,
+    val timeRange: String,
+    val weekType: PtkWeekType,
+    val subject: String,
+    val teacher: String?,
+    val classroom: String?,
+    val rawText: String,
+    val noteText: String,
+    val reminderEnabled: Boolean,
+    val reminderMinutes: Int?,
+    val remindAtEpochMillis: Long?,
+    val createdAtEpochMillis: Long
+)
+
 data class ScheduleUiState(
     val isLoading: Boolean = false,
     val step: ScheduleStep = ScheduleStep.COURSE_SELECTION,
@@ -96,6 +118,7 @@ data class ScheduleUiState(
     val weekFilter: ScheduleWeekFilter = ScheduleWeekFilter.ALL,
     val currentWeekType: PtkCurrentWeekType = PtkCurrentWeekType.UNKNOWN,
     val selectedDateWeekType: PtkCurrentWeekType = PtkCurrentWeekType.UNKNOWN,
+    val notes: List<ScheduleNoteItem> = emptyList(),
     val groupsUpdatedAt: Instant? = null,
     val scheduleUpdatedAt: Instant? = null,
     val errorMessage: String? = null
@@ -105,6 +128,8 @@ class ScheduleViewModel(
     private val timetableRepository: TimetableRepository,
     private val weekResolver: WeekResolver,
     private val preferencesStore: UserPreferencesStore,
+    private val notesStore: LessonNotesStore,
+    private val reminderScheduler: LessonReminderScheduler,
     private val nowProvider: () -> Instant = { Instant.now() },
     private val todayProvider: () -> LocalDate = { LocalDate.now() }
 ) : ViewModel() {
@@ -120,6 +145,7 @@ class ScheduleViewModel(
     private var loadedTemplates: List<LessonTemplate> = emptyList()
 
     init {
+        refreshNotes()
         loadCatalog(
             preserveCourseSelection = false,
             restoreLastSelectedGroupOnLaunch = true
@@ -253,6 +279,229 @@ class ScheduleViewModel(
 
     fun selectWeekFilter(filter: ScheduleWeekFilter) {
         _state.update { it.copy(weekFilter = filter, errorMessage = null) }
+    }
+
+    fun saveNoteForLesson(
+        lesson: ScheduleLessonItem,
+        noteText: String
+    ) {
+        val current = state.value
+        val group = current.selectedGroup ?: return
+        if (current.mode != ScheduleMode.BY_DATE) return
+        val date = current.selectedDate
+
+        if (!canEditNote(date, lesson.timeRange)) {
+            _state.update { it.copy(errorMessage = "Заметки доступны только для текущих и будущих пар") }
+            return
+        }
+
+        val trimmedText = noteText.trim()
+        if (trimmedText.isBlank()) {
+            _state.update { it.copy(errorMessage = "Введите текст заметки") }
+            return
+        }
+
+        val noteId = buildNoteId(
+            groupName = group.groupName,
+            date = date,
+            lesson = lesson
+        )
+
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                val nowMillis = nowProvider().toEpochMilli()
+                val existing = notesStore.getAll().firstOrNull { it.id == noteId }
+
+                val note = LessonNote(
+                    id = noteId,
+                    groupName = group.groupName,
+                    date = date,
+                    timeRange = lesson.timeRange,
+                    weekType = lesson.weekType.name,
+                    subject = lesson.subject,
+                    teacher = lesson.teacher,
+                    classroom = lesson.classroom,
+                    rawText = lesson.rawText,
+                    noteText = trimmedText,
+                    reminderEnabled = existing?.reminderEnabled == true,
+                    reminderMinutes = existing?.reminderMinutes,
+                    remindAtEpochMillis = existing?.remindAtEpochMillis,
+                    createdAtEpochMillis = nowMillis
+                )
+
+                notesStore.upsert(note)
+                if (note.reminderEnabled && note.remindAtEpochMillis != null && note.remindAtEpochMillis > nowMillis) {
+                    scheduleReminder(note = note, lesson = lesson)
+                } else {
+                    reminderScheduler.cancel(note.id)
+                }
+
+                refreshNotesInternal()
+                _state.update { it.copy(errorMessage = null) }
+            }.onFailure { error ->
+                _state.update { it.copy(errorMessage = error.message ?: "Не удалось сохранить заметку") }
+            }
+        }
+    }
+
+    fun setReminderForLesson(
+        lesson: ScheduleLessonItem,
+        enabled: Boolean,
+        reminderMinutes: Int
+    ) {
+        val current = state.value
+        val group = current.selectedGroup ?: return
+        if (current.mode != ScheduleMode.BY_DATE) return
+        val date = current.selectedDate
+
+        if (!canEditNote(date, lesson.timeRange)) {
+            _state.update { it.copy(errorMessage = "Нельзя ставить уведомление на прошедшую пару") }
+            return
+        }
+
+        val noteId = buildNoteId(
+            groupName = group.groupName,
+            date = date,
+            lesson = lesson
+        )
+
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                val nowMillis = nowProvider().toEpochMilli()
+                val existing = notesStore.getAll().firstOrNull { it.id == noteId }
+                val startDateTime = parseLessonStartDateTime(date, lesson.timeRange)
+                val remindAtMillis = if (enabled && startDateTime != null) {
+                    startDateTime
+                        .minusMinutes(reminderMinutes.toLong())
+                        .atZone(ZoneId.systemDefault())
+                        .toInstant()
+                        .toEpochMilli()
+                } else {
+                    null
+                }
+
+                if (enabled && (remindAtMillis == null || remindAtMillis <= nowMillis)) {
+                    _state.update { it.copy(errorMessage = "Слишком поздно для уведомления, увеличьте время напоминания") }
+                    return@runCatching
+                }
+
+                val updated = LessonNote(
+                    id = noteId,
+                    groupName = group.groupName,
+                    date = date,
+                    timeRange = lesson.timeRange,
+                    weekType = lesson.weekType.name,
+                    subject = lesson.subject,
+                    teacher = lesson.teacher,
+                    classroom = lesson.classroom,
+                    rawText = lesson.rawText,
+                    noteText = existing?.noteText.orEmpty(),
+                    reminderEnabled = enabled,
+                    reminderMinutes = reminderMinutes.takeIf { enabled },
+                    remindAtEpochMillis = remindAtMillis?.takeIf { enabled },
+                    createdAtEpochMillis = existing?.createdAtEpochMillis ?: nowMillis
+                )
+
+                notesStore.upsert(updated)
+
+                if (enabled && updated.remindAtEpochMillis != null) {
+                    scheduleReminder(note = updated, lesson = lesson)
+                } else {
+                    reminderScheduler.cancel(noteId)
+                }
+
+                refreshNotesInternal()
+                _state.update { it.copy(errorMessage = null) }
+            }.onFailure { error ->
+                _state.update { it.copy(errorMessage = error.message ?: "Не удалось сохранить уведомление") }
+            }
+        }
+    }
+
+    fun deleteNoteForLesson(lesson: ScheduleLessonItem) {
+        val current = state.value
+        val group = current.selectedGroup ?: return
+        if (current.mode != ScheduleMode.BY_DATE) return
+        val date = current.selectedDate
+
+        val noteId = buildNoteId(
+            groupName = group.groupName,
+            date = date,
+            lesson = lesson
+        )
+
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                val existing = notesStore.getAll().firstOrNull { it.id == noteId }
+                if (existing != null && existing.reminderEnabled) {
+                    notesStore.upsert(existing.copy(noteText = ""))
+                } else {
+                    notesStore.remove(noteId)
+                    reminderScheduler.cancel(noteId)
+                }
+                refreshNotesInternal()
+                _state.update { it.copy(errorMessage = null) }
+            }.onFailure { error ->
+                _state.update { it.copy(errorMessage = error.message ?: "Не удалось удалить заметку") }
+            }
+        }
+    }
+
+    fun updateNoteById(
+        noteId: String,
+        newText: String
+    ) {
+        val trimmed = newText.trim()
+        if (trimmed.isBlank()) {
+            _state.update { it.copy(errorMessage = "Текст заметки не может быть пустым") }
+            return
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                val all = notesStore.getAll()
+                val existing = all.firstOrNull { it.id == noteId } ?: return@runCatching
+                val updated = existing.copy(noteText = trimmed)
+                notesStore.upsert(updated)
+
+                if (updated.reminderEnabled && updated.remindAtEpochMillis != null && updated.remindAtEpochMillis > nowProvider().toEpochMilli()) {
+                    val lesson = ScheduleLessonItem(
+                        day = dayOfWeekToScheduleDay(updated.date.dayOfWeek),
+                        dayLabel = dayOfWeekToScheduleDay(updated.date.dayOfWeek).title,
+                        timeRange = updated.timeRange,
+                        weekType = runCatching { PtkWeekType.valueOf(updated.weekType) }.getOrDefault(PtkWeekType.ALL),
+                        subject = updated.subject,
+                        teacher = updated.teacher,
+                        classroom = updated.classroom,
+                        rawText = updated.rawText
+                    )
+                    scheduleReminder(updated, lesson)
+                }
+
+                refreshNotesInternal()
+                _state.update { it.copy(errorMessage = null) }
+            }.onFailure { error ->
+                _state.update { it.copy(errorMessage = error.message ?: "Не удалось обновить заметку") }
+            }
+        }
+    }
+
+    fun deleteNoteById(noteId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                val existing = notesStore.getAll().firstOrNull { it.id == noteId }
+                if (existing != null && existing.reminderEnabled) {
+                    notesStore.upsert(existing.copy(noteText = ""))
+                } else {
+                    notesStore.remove(noteId)
+                    reminderScheduler.cancel(noteId)
+                }
+                refreshNotesInternal()
+                _state.update { it.copy(errorMessage = null) }
+            }.onFailure { error ->
+                _state.update { it.copy(errorMessage = error.message ?: "Не удалось удалить заметку") }
+            }
+        }
     }
 
     private fun shiftDay(by: Int) {
@@ -605,6 +854,104 @@ class ScheduleViewModel(
         }
     }
 
+    private fun refreshNotes() {
+        viewModelScope.launch(Dispatchers.IO) {
+            refreshNotesInternal()
+        }
+    }
+
+    private suspend fun refreshNotesInternal() {
+        runCatching {
+            notesStore.getAll()
+                .sortedWith(compareBy<LessonNote> { it.date }.thenBy { lessonSortKey(it.timeRange) }.thenBy { it.createdAtEpochMillis })
+                .mapNotNull { it.toUiNote() }
+        }.onSuccess { notes ->
+            _state.update { current -> current.copy(notes = notes) }
+        }.onFailure { error ->
+            _state.update { current ->
+                current.copy(
+                    notes = emptyList(),
+                    errorMessage = error.message ?: "Не удалось загрузить заметки"
+                )
+            }
+        }
+    }
+
+    private fun LessonNote.toUiNote(): ScheduleNoteItem? {
+        val weekType = runCatching { PtkWeekType.valueOf(weekType) }.getOrNull() ?: return null
+        return ScheduleNoteItem(
+            noteId = id,
+            groupName = groupName,
+            date = date,
+            timeRange = timeRange,
+            weekType = weekType,
+            subject = subject,
+            teacher = teacher,
+            classroom = classroom,
+            rawText = rawText,
+            noteText = noteText,
+            reminderEnabled = reminderEnabled,
+            reminderMinutes = reminderMinutes,
+            remindAtEpochMillis = remindAtEpochMillis,
+            createdAtEpochMillis = createdAtEpochMillis
+        )
+    }
+
+    private fun buildNoteId(
+        groupName: String,
+        date: LocalDate,
+        lesson: ScheduleLessonItem
+    ): String {
+        return LessonNotesStore.buildLessonNoteId(
+            groupName = groupName,
+            date = date,
+            timeRange = lesson.timeRange,
+            weekType = lesson.weekType.name,
+            rawText = lesson.rawText
+        )
+    }
+
+    private fun canEditNote(
+        date: LocalDate,
+        timeRange: String
+    ): Boolean {
+        val now = nowProvider().atZone(ZoneId.systemDefault()).toLocalDateTime()
+        val startDateTime = parseLessonStartDateTime(date, timeRange) ?: return false
+        return !startDateTime.isBefore(now)
+    }
+
+    private fun parseLessonStartDateTime(
+        date: LocalDate,
+        timeRange: String
+    ): LocalDateTime? {
+        val startTime = LessonNotesStore.parseStartTimeOrNull(timeRange) ?: return null
+        return LocalDateTime.of(date, startTime)
+    }
+
+    private fun scheduleReminder(
+        note: LessonNote,
+        lesson: ScheduleLessonItem
+    ) {
+        val trigger = note.remindAtEpochMillis ?: return
+        reminderScheduler.schedule(
+            noteId = note.id,
+            triggerAtMillis = trigger,
+            title = "Скоро пара: ${lesson.subject.ifBlank { "занятие" }}",
+            message = buildReminderMessage(note.groupName, note.date, lesson.timeRange, note.noteText)
+        )
+    }
+
+    private fun buildReminderMessage(
+        groupName: String,
+        date: LocalDate,
+        timeRange: String,
+        noteText: String?
+    ): String {
+        val base = "Группа $groupName, $timeRange, ${date.format(DATE_TITLE_FORMATTER)}"
+        val note = noteText?.trim().orEmpty()
+        return if (note.isNotBlank()) "$base\nЗаметка: $note" else base
+    }
+
     private fun buildCourseItems(groups: List<PtkGroupInfo>): List<CourseItem> {
         return groups
             .groupBy { it.course }
@@ -696,6 +1043,7 @@ class ScheduleViewModel(
 
     private companion object {
         val TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("H.mm")
+        val DATE_TITLE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
     }
 }
 
@@ -716,7 +1064,9 @@ class ScheduleViewModelFactory(
             return ScheduleViewModel(
                 timetableRepository = timetableRepository,
                 weekResolver = weekResolver,
-                preferencesStore = UserPreferencesStore(context.applicationContext)
+                preferencesStore = UserPreferencesStore(context.applicationContext),
+                notesStore = LessonNotesStore(context.applicationContext),
+                reminderScheduler = LessonReminderScheduler(context.applicationContext)
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")

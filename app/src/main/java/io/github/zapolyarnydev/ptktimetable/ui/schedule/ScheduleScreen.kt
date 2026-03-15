@@ -1,6 +1,8 @@
 ﻿package io.github.zapolyarnydev.ptktimetable.ui.schedule
 
 import android.app.DatePickerDialog
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -11,6 +13,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -30,10 +33,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.Schedule
@@ -50,11 +55,16 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -65,6 +75,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -104,7 +115,12 @@ fun ScheduleScreen(
     onPreviousDate: () -> Unit,
     onNextDate: () -> Unit,
     onGoToToday: () -> Unit,
-    onSelectWeekFilter: (ScheduleWeekFilter) -> Unit
+    onSelectWeekFilter: (ScheduleWeekFilter) -> Unit,
+    onSaveLessonNote: (ScheduleLessonItem, String) -> Unit,
+    onSetLessonReminder: (ScheduleLessonItem, Boolean, Int) -> Unit,
+    onDeleteLessonNote: (ScheduleLessonItem) -> Unit,
+    onUpdateNoteById: (String, String) -> Unit,
+    onDeleteNoteById: (String) -> Unit
 ) {
     val uiState by state.collectAsStateWithLifecycle()
     ScheduleScreenContent(
@@ -123,7 +139,12 @@ fun ScheduleScreen(
         onPreviousDate = onPreviousDate,
         onNextDate = onNextDate,
         onGoToToday = onGoToToday,
-        onSelectWeekFilter = onSelectWeekFilter
+        onSelectWeekFilter = onSelectWeekFilter,
+        onSaveLessonNote = onSaveLessonNote,
+        onSetLessonReminder = onSetLessonReminder,
+        onDeleteLessonNote = onDeleteLessonNote,
+        onUpdateNoteById = onUpdateNoteById,
+        onDeleteNoteById = onDeleteNoteById
     )
 }
 
@@ -145,7 +166,12 @@ private fun ScheduleScreenContent(
     onPreviousDate: () -> Unit,
     onNextDate: () -> Unit,
     onGoToToday: () -> Unit,
-    onSelectWeekFilter: (ScheduleWeekFilter) -> Unit
+    onSelectWeekFilter: (ScheduleWeekFilter) -> Unit,
+    onSaveLessonNote: (ScheduleLessonItem, String) -> Unit,
+    onSetLessonReminder: (ScheduleLessonItem, Boolean, Int) -> Unit,
+    onDeleteLessonNote: (ScheduleLessonItem) -> Unit,
+    onUpdateNoteById: (String, String) -> Unit,
+    onDeleteNoteById: (String) -> Unit
 ) {
     Scaffold(containerColor = White) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {
@@ -179,7 +205,12 @@ private fun ScheduleScreenContent(
                     onPreviousDate = onPreviousDate,
                     onNextDate = onNextDate,
                     onGoToToday = onGoToToday,
-                    onSelectWeekFilter = onSelectWeekFilter
+                    onSelectWeekFilter = onSelectWeekFilter,
+                    onSaveLessonNote = onSaveLessonNote,
+                    onSetLessonReminder = onSetLessonReminder,
+                    onDeleteLessonNote = onDeleteLessonNote,
+                    onUpdateNoteById = onUpdateNoteById,
+                    onDeleteNoteById = onDeleteNoteById
                 )
             }
 
@@ -356,10 +387,44 @@ private fun ScheduleState(
     onPreviousDate: () -> Unit,
     onNextDate: () -> Unit,
     onGoToToday: () -> Unit,
-    onSelectWeekFilter: (ScheduleWeekFilter) -> Unit
+    onSelectWeekFilter: (ScheduleWeekFilter) -> Unit,
+    onSaveLessonNote: (ScheduleLessonItem, String) -> Unit,
+    onSetLessonReminder: (ScheduleLessonItem, Boolean, Int) -> Unit,
+    onDeleteLessonNote: (ScheduleLessonItem) -> Unit,
+    onUpdateNoteById: (String, String) -> Unit,
+    onDeleteNoteById: (String) -> Unit
 ) {
+    var editingLesson by remember { mutableStateOf<ScheduleLessonItem?>(null) }
+    var reminderLesson by remember { mutableStateOf<ScheduleLessonItem?>(null) }
+    var editingNoteId by remember { mutableStateOf<String?>(null) }
+    var showNotesDialog by remember { mutableStateOf(false) }
+
     val filteredLessons = filterLessons(state)
     val timeSlots = buildTimeSlots(filteredLessons)
+    val activeGroup = state.selectedGroup?.groupName
+    val notesForGroup = state.notes.filter { note ->
+        activeGroup.isNullOrBlank() || note.groupName == activeGroup
+    }
+    val lessonEntryMap = notesForGroup.associateBy { note ->
+        noteLessonKey(
+            date = note.date,
+            timeRange = note.timeRange,
+            weekType = note.weekType,
+            subject = note.subject,
+            rawText = note.rawText
+        )
+    }
+    val noteTextMap = notesForGroup
+        .filter { it.noteText.isNotBlank() }
+        .associateBy { note ->
+            noteLessonKey(
+                date = note.date,
+                timeRange = note.timeRange,
+                weekType = note.weekType,
+                subject = note.subject,
+                rawText = note.rawText
+            )
+        }
     val dayIndex = state.availableDays.indexOf(state.selectedDay).takeIf { it >= 0 } ?: 0
     val canGoPrev = if (state.mode == ScheduleMode.BY_DAY) dayIndex > 0 else true
     val canGoNext = if (state.mode == ScheduleMode.BY_DAY) dayIndex < state.availableDays.lastIndex else true
@@ -461,9 +526,101 @@ private fun ScheduleState(
                         state.selectedDateWeekType
                     } else {
                         state.currentWeekType
-                    }
+                    },
+                    date = state.selectedDate,
+                    isDateMode = state.mode == ScheduleMode.BY_DATE,
+                    noteMap = noteTextMap,
+                    reminderMap = lessonEntryMap,
+                    onAddOrEditNote = { lesson -> editingLesson = lesson },
+                    onAddOrEditReminder = { lesson -> reminderLesson = lesson }
                 )
             }
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = 26.dp, end = 18.dp),
+        contentAlignment = Alignment.BottomEnd
+    ) {
+        Surface(
+            modifier = Modifier
+                .size(52.dp)
+                .clickable { showNotesDialog = true },
+            shape = CircleShape,
+            color = NovsuBlue,
+            border = BorderStroke(0.8.dp, NovsuBlue)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.Notes,
+                    contentDescription = "Все заметки",
+                    tint = White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+    }
+
+    if (showNotesDialog) {
+        NotesOverviewDialog(
+            notes = state.notes.filter { it.noteText.isNotBlank() },
+            onDismiss = { showNotesDialog = false },
+            onEdit = { noteId ->
+                editingNoteId = noteId
+                showNotesDialog = false
+            }
+        )
+    }
+
+    editingLesson?.let { lesson ->
+        val note = noteTextMap[noteLessonKey(state.selectedDate, lesson.timeRange, lesson.weekType, lesson.subject, lesson.rawText)]
+        LessonNoteDialog(
+            lesson = lesson,
+            note = note,
+            canEdit = state.mode == ScheduleMode.BY_DATE && isLessonEditableNowOrFuture(state.selectedDate, lesson.timeRange),
+            onDismiss = { editingLesson = null },
+            onSave = { text ->
+                onSaveLessonNote(lesson, text)
+                editingLesson = null
+            },
+            onDelete = {
+                onDeleteLessonNote(lesson)
+                editingLesson = null
+            }
+        )
+    }
+
+    reminderLesson?.let { lesson ->
+        val note = lessonEntryMap[noteLessonKey(state.selectedDate, lesson.timeRange, lesson.weekType, lesson.subject, lesson.rawText)]
+        ReminderDialog(
+            lesson = lesson,
+            note = note,
+            canEdit = state.mode == ScheduleMode.BY_DATE && isLessonEditableNowOrFuture(state.selectedDate, lesson.timeRange),
+            onDismiss = { reminderLesson = null },
+            onSave = { enabled, minutes ->
+                onSetLessonReminder(lesson, enabled, minutes)
+                reminderLesson = null
+            }
+        )
+    }
+
+    editingNoteId?.let { noteId ->
+        val note = state.notes.firstOrNull { it.noteId == noteId }
+        if (note != null) {
+            NoteEditByIdDialog(
+                note = note,
+                onDismiss = { editingNoteId = null },
+                onSave = { text ->
+                    onUpdateNoteById(noteId, text)
+                    editingNoteId = null
+                },
+                onDelete = {
+                    onDeleteNoteById(noteId)
+                    editingNoteId = null
+                }
+            )
         }
     }
 }
@@ -631,11 +788,26 @@ private fun DayNavigatorPanel(
 @Composable
 private fun LessonTableCard(
     timeSlots: List<TimeSlotUi>,
-    currentWeekType: PtkCurrentWeekType
+    currentWeekType: PtkCurrentWeekType,
+    date: LocalDate,
+    isDateMode: Boolean,
+    noteMap: Map<String, ScheduleNoteItem>,
+    reminderMap: Map<String, ScheduleNoteItem>,
+    onAddOrEditNote: (ScheduleLessonItem) -> Unit,
+    onAddOrEditReminder: (ScheduleLessonItem) -> Unit
 ) {
     SectionCard(padding = 0.dp) {
         timeSlots.forEachIndexed { index, slot ->
-            LessonTableRow(slot, currentWeekType)
+            LessonTableRow(
+                slot = slot,
+                currentWeekType = currentWeekType,
+                date = date,
+                isDateMode = isDateMode,
+                noteMap = noteMap,
+                reminderMap = reminderMap,
+                onAddOrEditNote = onAddOrEditNote,
+                onAddOrEditReminder = onAddOrEditReminder
+            )
             if (index < timeSlots.lastIndex) {
                 HorizontalDivider(thickness = 0.8.dp, color = BorderSubtle)
             }
@@ -646,15 +818,23 @@ private fun LessonTableCard(
 @Composable
 private fun LessonTableRow(
     slot: TimeSlotUi,
-    currentWeekType: PtkCurrentWeekType
+    currentWeekType: PtkCurrentWeekType,
+    date: LocalDate,
+    isDateMode: Boolean,
+    noteMap: Map<String, ScheduleNoteItem>,
+    reminderMap: Map<String, ScheduleNoteItem>,
+    onAddOrEditNote: (ScheduleLessonItem) -> Unit,
+    onAddOrEditReminder: (ScheduleLessonItem) -> Unit
 ) {
     val (startTime, endTime) = splitTimeRange(slot.timeRange)
     val timeIndent = 22.dp
+    val isCurrentSlot = isDateMode && isCurrentLessonSlot(date, slot.timeRange)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 78.dp)
+            .background(if (isCurrentSlot) NovsuBlueSoft.copy(alpha = 0.35f) else Color.Transparent)
     ) {
         Column(
             modifier = Modifier
@@ -703,12 +883,24 @@ private fun LessonTableRow(
             if (slot.isSplitByWeek) {
                 SplitWeekCell(
                     slot = slot,
-                    currentWeekType = currentWeekType
+                    currentWeekType = currentWeekType,
+                    date = date,
+                    isDateMode = isDateMode,
+                    noteMap = noteMap,
+                    reminderMap = reminderMap,
+                    onAddOrEditNote = onAddOrEditNote,
+                    onAddOrEditReminder = onAddOrEditReminder
                 )
             } else {
                 LessonTextBlock(
                     lessons = slot.allLessons,
-                    currentWeekType = currentWeekType
+                    currentWeekType = currentWeekType,
+                    date = date,
+                    isDateMode = isDateMode,
+                    noteMap = noteMap,
+                    reminderMap = reminderMap,
+                    onAddOrEditNote = onAddOrEditNote,
+                    onAddOrEditReminder = onAddOrEditReminder
                 )
             }
         }
@@ -718,21 +910,39 @@ private fun LessonTableRow(
 @Composable
 private fun SplitWeekCell(
     slot: TimeSlotUi,
-    currentWeekType: PtkCurrentWeekType
+    currentWeekType: PtkCurrentWeekType,
+    date: LocalDate,
+    isDateMode: Boolean,
+    noteMap: Map<String, ScheduleNoteItem>,
+    reminderMap: Map<String, ScheduleNoteItem>,
+    onAddOrEditNote: (ScheduleLessonItem) -> Unit,
+    onAddOrEditReminder: (ScheduleLessonItem) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         WeekHalfBlock(
             title = "Верхняя",
             lessons = slot.upperLessons,
             weekType = PtkWeekType.UPPER,
-            currentWeekType = currentWeekType
+            currentWeekType = currentWeekType,
+            date = date,
+            isDateMode = isDateMode,
+            noteMap = noteMap,
+            reminderMap = reminderMap,
+            onAddOrEditNote = onAddOrEditNote,
+            onAddOrEditReminder = onAddOrEditReminder
         )
         DashedHorizontalDivider()
         WeekHalfBlock(
             title = "Нижняя",
             lessons = slot.lowerLessons,
             weekType = PtkWeekType.LOWER,
-            currentWeekType = currentWeekType
+            currentWeekType = currentWeekType,
+            date = date,
+            isDateMode = isDateMode,
+            noteMap = noteMap,
+            reminderMap = reminderMap,
+            onAddOrEditNote = onAddOrEditNote,
+            onAddOrEditReminder = onAddOrEditReminder
         )
     }
 }
@@ -742,7 +952,13 @@ private fun WeekHalfBlock(
     title: String,
     lessons: List<ScheduleLessonItem>,
     weekType: PtkWeekType,
-    currentWeekType: PtkCurrentWeekType
+    currentWeekType: PtkCurrentWeekType,
+    date: LocalDate,
+    isDateMode: Boolean,
+    noteMap: Map<String, ScheduleNoteItem>,
+    reminderMap: Map<String, ScheduleNoteItem>,
+    onAddOrEditNote: (ScheduleLessonItem) -> Unit,
+    onAddOrEditReminder: (ScheduleLessonItem) -> Unit
 ) {
     val isCurrent = weekTypeMatchesCurrent(weekType, currentWeekType)
     val titleAlpha = if (isCurrent) 1f else 0.45f
@@ -763,7 +979,13 @@ private fun WeekHalfBlock(
         } else {
             LessonTextBlock(
                 lessons = lessons,
-                currentWeekType = currentWeekType
+                currentWeekType = currentWeekType,
+                date = date,
+                isDateMode = isDateMode,
+                noteMap = noteMap,
+                reminderMap = reminderMap,
+                onAddOrEditNote = onAddOrEditNote,
+                onAddOrEditReminder = onAddOrEditReminder
             )
         }
     }
@@ -772,12 +994,20 @@ private fun WeekHalfBlock(
 @Composable
 private fun LessonTextBlock(
     lessons: List<ScheduleLessonItem>,
-    currentWeekType: PtkCurrentWeekType
+    currentWeekType: PtkCurrentWeekType,
+    date: LocalDate,
+    isDateMode: Boolean,
+    noteMap: Map<String, ScheduleNoteItem>,
+    reminderMap: Map<String, ScheduleNoteItem>,
+    onAddOrEditNote: (ScheduleLessonItem) -> Unit,
+    onAddOrEditReminder: (ScheduleLessonItem) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         lessons.forEachIndexed { index, lesson ->
             val isCurrent = weekTypeMatchesCurrent(lesson.weekType, currentWeekType)
             val textAlpha = if (isCurrent) 1f else 0.45f
+            val note = noteMap[noteLessonKey(date, lesson.timeRange, lesson.weekType, lesson.subject, lesson.rawText)]
+            val reminder = reminderMap[noteLessonKey(date, lesson.timeRange, lesson.weekType, lesson.subject, lesson.rawText)]
             val mainText = lesson.subject.ifBlank { lesson.rawText }
             val details = listOfNotNull(
                 lesson.teacher?.takeIf { it.isNotBlank() },
@@ -785,12 +1015,45 @@ private fun LessonTextBlock(
             ).joinToString(", ")
 
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = mainText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = InkPrimary.copy(alpha = textAlpha),
-                    fontWeight = FontWeight.SemiBold
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Text(
+                        text = mainText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = InkPrimary.copy(alpha = textAlpha),
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = { onAddOrEditNote(lesson) },
+                            enabled = isDateMode,
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.Notes,
+                                contentDescription = "Заметка",
+                                tint = if (note != null) NovsuBlue.copy(alpha = textAlpha) else InkSecondary.copy(alpha = 0.6f),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        IconButton(
+                            onClick = { onAddOrEditReminder(lesson) },
+                            enabled = isDateMode,
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.NotificationsActive,
+                                contentDescription = "Напоминание",
+                                tint = if (reminder?.reminderEnabled == true) NovsuBlue.copy(alpha = textAlpha) else InkSecondary.copy(alpha = 0.35f),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
                 if (details.isNotBlank()) {
                     Text(
                         text = details,
@@ -798,10 +1061,338 @@ private fun LessonTextBlock(
                         color = InkSecondary.copy(alpha = textAlpha)
                     )
                 }
+                if (note != null) {
+                    Text(
+                        text = "Заметка: ${note.noteText}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = NovsuBlue.copy(alpha = textAlpha),
+                        maxLines = 2
+                    )
+                }
             }
 
             if (index < lessons.lastIndex) {
                 HorizontalDivider(thickness = 0.8.dp, color = BorderSubtle.copy(alpha = 0.9f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun LessonNoteDialog(
+    lesson: ScheduleLessonItem,
+    note: ScheduleNoteItem?,
+    canEdit: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit,
+    onDelete: () -> Unit
+) {
+    var noteText by remember(note?.noteId) { mutableStateOf(note?.noteText.orEmpty()) }
+    AppModalDialog(
+        title = "Заметка к занятию",
+        subtitle = "",
+        onDismiss = onDismiss
+    ) {
+        Text(
+            text = "${lesson.day.title}, ${lesson.timeRange}",
+            style = MaterialTheme.typography.bodySmall,
+            color = InkSecondary
+        )
+        Spacer(Modifier.height(10.dp))
+        OutlinedTextField(
+            value = noteText,
+            onValueChange = { noteText = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Текст заметки") },
+            enabled = canEdit,
+            minLines = 4
+        )
+        if (!canEdit) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "Редактирование доступно только для будущих пар в режиме «По дате».",
+                style = MaterialTheme.typography.bodySmall,
+                color = InkSecondary
+            )
+        }
+        Spacer(Modifier.height(14.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (note != null && canEdit) {
+                OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+                    Text("Отмена", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                OutlinedButton(
+                    onClick = onDelete,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Удалить", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            } else {
+                OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+                    Text("Отмена", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Button(
+            onClick = { onSave(noteText) },
+            enabled = canEdit && noteText.isNotBlank(),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Сохранить", maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+@Composable
+private fun NotesOverviewDialog(
+    notes: List<ScheduleNoteItem>,
+    onDismiss: () -> Unit,
+    onEdit: (String) -> Unit
+) {
+    AppModalDialog(
+        title = "Все заметки",
+        subtitle = "Нажмите на заметку, чтобы отредактировать её текст.",
+        onDismiss = onDismiss
+    ) {
+        if (notes.isEmpty()) {
+            Text(
+                text = "Пока нет заметок",
+                style = MaterialTheme.typography.bodyMedium,
+                color = InkSecondary
+            )
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 280.dp, max = 380.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(notes, key = { it.noteId }) { note ->
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onEdit(note.noteId) },
+                        color = White,
+                        border = BorderStroke(0.8.dp, BorderSubtle),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Text(
+                                text = "${formatDateTitle(note.date)} • ${note.timeRange}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = InkSecondary
+                            )
+                            Text(
+                                text = note.subject.ifBlank { "Пара" },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = InkPrimary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = note.noteText.ifBlank { "Без текста заметки" },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = NovsuBlue
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+            Text("Закрыть")
+        }
+    }
+}
+
+@Composable
+private fun ReminderDialog(
+    lesson: ScheduleLessonItem,
+    note: ScheduleNoteItem?,
+    canEdit: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (Boolean, Int) -> Unit
+) {
+    var enabled by remember(note?.noteId) { mutableStateOf(note?.reminderEnabled == true) }
+    var minutesText by remember(note?.noteId) { mutableStateOf((note?.reminderMinutes ?: 10).toString()) }
+    val quickOptions = listOf(5, 10, 15, 30, 60)
+    val parsedMinutes = minutesText.toIntOrNull()?.coerceIn(1, 360)
+    AppModalDialog(
+        title = "Напоминание о паре",
+        subtitle = "Настройте время уведомления. Если к паре есть заметка, она будет показана в тексте уведомления.",
+        onDismiss = onDismiss
+    ) {
+        Text(
+            text = "${lesson.day.title}, ${lesson.timeRange}",
+            style = MaterialTheme.typography.bodySmall,
+            color = InkSecondary
+        )
+        Spacer(Modifier.height(10.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Включить уведомление",
+                style = MaterialTheme.typography.bodyMedium,
+                color = InkPrimary
+            )
+            Switch(
+                checked = enabled,
+                onCheckedChange = { enabled = it },
+                enabled = canEdit
+            )
+        }
+        if (enabled) {
+            OutlinedTextField(
+                value = minutesText,
+                onValueChange = { minutesText = it.filter(Char::isDigit).take(3) },
+                label = { Text("Минут до начала") },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = canEdit,
+                singleLine = true
+            )
+            Spacer(Modifier.height(8.dp))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(quickOptions, key = { it }) { item ->
+                    WeekChip(
+                        selected = parsedMinutes == item,
+                        label = "$item мин",
+                        icon = Icons.Outlined.Tune,
+                        onClick = { minutesText = item.toString() }
+                    )
+                }
+            }
+        }
+        if (!canEdit) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "Уведомления доступны только для будущих пар в режиме «По дате».",
+                style = MaterialTheme.typography.bodySmall,
+                color = InkSecondary
+            )
+        }
+        Spacer(Modifier.height(14.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+                Text("Отмена")
+            }
+            Button(
+                onClick = { onSave(enabled, parsedMinutes ?: 10) },
+                enabled = canEdit && (!enabled || parsedMinutes != null),
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Сохранить")
+            }
+        }
+    }
+}
+
+@Composable
+private fun NoteEditByIdDialog(
+    note: ScheduleNoteItem,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit,
+    onDelete: () -> Unit
+) {
+    var text by remember(note.noteId) { mutableStateOf(note.noteText) }
+    AppModalDialog(
+        title = "Редактирование заметки",
+        subtitle = "${formatDateTitle(note.date)} • ${note.timeRange}",
+        onDismiss = onDismiss
+    ) {
+        OutlinedTextField(
+            value = text,
+            onValueChange = { text = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Текст заметки") },
+            minLines = 4
+        )
+        Spacer(Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+                Text("Отмена", maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            OutlinedButton(
+                onClick = onDelete,
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.error)
+            ) {
+                Text("Удалить", maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Button(
+            onClick = { onSave(text) },
+            enabled = text.isNotBlank(),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Сохранить", maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+@Composable
+private fun AppModalDialog(
+    title: String,
+    subtitle: String,
+    onDismiss: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(InkPrimary.copy(alpha = 0.28f))
+                .padding(horizontal = 18.dp, vertical = 28.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 320.dp, max = 560.dp),
+                color = White,
+                shape = RoundedCornerShape(18.dp),
+                border = BorderStroke(0.8.dp, BorderSubtle)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    content = {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleLarge,
+                            color = InkPrimary,
+                            fontFamily = HeadingFontFamily
+                        )
+                        if (subtitle.isNotBlank()) {
+                            Text(
+                                text = subtitle,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = InkSecondary
+                            )
+                        }
+                        Spacer(Modifier.height(6.dp))
+                        content()
+                    }
+                )
             }
         }
     }
@@ -1256,6 +1847,59 @@ private fun splitTimeRange(timeRange: String): Pair<String, String> {
     return start to end
 }
 
+private fun noteLessonKey(
+    date: LocalDate,
+    timeRange: String,
+    weekType: PtkWeekType,
+    subject: String,
+    rawText: String
+): String {
+    return listOf(
+        date.toString(),
+        timeRange.trim(),
+        weekType.name,
+        subject.trim(),
+        rawText.trim().hashCode().toString()
+    ).joinToString("|")
+}
+
+private fun isLessonEditableNowOrFuture(
+    date: LocalDate,
+    timeRange: String
+): Boolean {
+    val start = splitTimeRange(timeRange).first
+    val match = Regex("(\\d{1,2})[.:](\\d{2})").find(start) ?: return false
+    val h = match.groupValues[1].toIntOrNull() ?: return false
+    val m = match.groupValues[2].toIntOrNull() ?: return false
+    val startDateTime = runCatching { java.time.LocalDateTime.of(date, java.time.LocalTime.of(h, m)) }.getOrNull()
+        ?: return false
+    return !startDateTime.isBefore(java.time.LocalDateTime.now())
+}
+
+private fun isCurrentLessonSlot(
+    date: LocalDate,
+    timeRange: String
+): Boolean {
+    val now = java.time.LocalDateTime.now()
+    if (now.toLocalDate() != date) return false
+    val (startRaw, endRaw) = splitTimeRange(timeRange)
+    val startMatch = Regex("(\\d{1,2})[.:](\\d{2})").find(startRaw) ?: return false
+    val endMatch = Regex("(\\d{1,2})[.:](\\d{2})").find(endRaw) ?: return false
+    val start = runCatching {
+        java.time.LocalDateTime.of(
+            date,
+            java.time.LocalTime.of(startMatch.groupValues[1].toInt(), startMatch.groupValues[2].toInt())
+        )
+    }.getOrNull() ?: return false
+    val end = runCatching {
+        java.time.LocalDateTime.of(
+            date,
+            java.time.LocalTime.of(endMatch.groupValues[1].toInt(), endMatch.groupValues[2].toInt())
+        )
+    }.getOrNull() ?: return false
+    return !now.isBefore(start) && now.isBefore(end)
+}
+
 private fun formatDateTitle(date: LocalDate): String {
     return DateTimeFormatter.ofPattern("dd.MM.yyyy", Locale.forLanguageTag("ru"))
         .format(date)
@@ -1272,12 +1916,3 @@ private fun formatInstant(value: Instant): String {
         .withZone(ZoneId.systemDefault())
         .format(value)
 }
-
-
-
-
-
-
-
-
-
