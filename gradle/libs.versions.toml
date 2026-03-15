@@ -14,6 +14,7 @@ composeBom = "2025.03.00"
 jsoup = "1.21.1"
 ktor = "3.1.3"
 apachePoi = "5.4.1"
+datastore = "1.1.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -39,6 +40,7 @@ jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
 ktor-client-core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
 ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
 apache-poi = { group = "org.apache.poi", name = "poi", version.ref = "apachePoi" }
+androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

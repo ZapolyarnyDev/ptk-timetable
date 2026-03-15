@@ -53,28 +53,13 @@ class PtkXlsScheduleParser {
             if (currentDay.isBlank()) return@forEachIndexed
 
             val nextTimeRow = timeRows.getOrNull(index + 1) ?: (sheet.lastRowNum + 1)
-            val slotBottomRow = minOf(rowIndex + 1, nextTimeRow - 1)
-            val hasTwoRows = slotBottomRow > rowIndex
-
-            val topText = normalize(getCellText(sheet, rowIndex, layout.lessonColumn, formatter))
-            val bottomText = if (hasTwoRows) {
-                normalize(getCellText(sheet, slotBottomRow, layout.lessonColumn, formatter))
-            } else {
-                ""
-            }
-
-            val isSplitByRows = hasTwoRows && !isVerticallyMerged(
+            val lessonsForSlot = mapSlotLessons(
                 sheet = sheet,
+                lessonColumn = layout.lessonColumn,
                 rowIndex = rowIndex,
-                columnIndex = layout.lessonColumn,
-                targetRow = slotBottomRow
+                nextTimeRow = nextTimeRow,
+                formatter = formatter
             )
-
-            val lessonsForSlot = if (isSplitByRows) {
-                mapSplitRows(topText, bottomText)
-            } else {
-                mapSingleCell(topText, bottomText)
-            }
 
             lessonsForSlot.forEach { (lessonText, weekType) ->
                 if (!hasLessonText(lessonText)) return@forEach
@@ -91,6 +76,31 @@ class PtkXlsScheduleParser {
         }
 
         return result
+    }
+
+    private fun mapSlotLessons(
+        sheet: Sheet,
+        lessonColumn: Int,
+        rowIndex: Int,
+        nextTimeRow: Int,
+        formatter: DataFormatter
+    ): List<Pair<String, PtkWeekType>> {
+        val rawSegments = mutableListOf<String>()
+        for (lessonRow in rowIndex until nextTimeRow) {
+            val text = normalize(getCellText(sheet, lessonRow, lessonColumn, formatter))
+            if (text.isBlank()) continue
+            if (rawSegments.lastOrNull() == text) continue
+            rawSegments += text
+        }
+
+        val scheduleSegments = rawSegments.filterNot { isHeaderNoise(it) }
+        if (scheduleSegments.isEmpty()) return emptyList()
+
+        return if (scheduleSegments.size >= 2) {
+            mapSplitRows(scheduleSegments[0], scheduleSegments[1])
+        } else {
+            mapSingleCell(scheduleSegments.first(), "")
+        }
     }
 
     private fun findGroupLayout(
@@ -212,16 +222,6 @@ class PtkXlsScheduleParser {
         return null
     }
 
-    private fun isVerticallyMerged(
-        sheet: Sheet,
-        rowIndex: Int,
-        columnIndex: Int,
-        targetRow: Int
-    ): Boolean {
-        val region = findMergedRegion(sheet, rowIndex, columnIndex) ?: return false
-        return region.firstRow <= targetRow && region.lastRow >= targetRow
-    }
-
     private fun findMaxColumn(sheet: Sheet): Int {
         var max = 0
         for (r in 0..sheet.lastRowNum) {
@@ -239,11 +239,18 @@ class PtkXlsScheduleParser {
 
     private fun isTimeRange(value: String): Boolean {
         if (value.isBlank()) return false
-        return TIME_RANGE_REGEX.containsMatchIn(value.replace('—', '-').replace('–', '-'))
+        val normalized = value.replace('—', '-').replace('–', '-')
+        return TIME_RANGE_REGEX.containsMatchIn(normalized)
     }
 
     private fun isHeaderNoise(value: String): Boolean {
-        val normalized = value.lowercase(Locale.ROOT).replace('ё', 'е')
+        val normalized = value.lowercase(Locale.ROOT)
+            .replace('ё', 'е')
+            .replace(".", "")
+            .replace(",", " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+
         return normalized.contains("занятия") ||
             normalized.contains("день недели") ||
             normalized.contains("зам директора")

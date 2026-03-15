@@ -13,10 +13,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            val vm: ScheduleViewModel = viewModel(factory = ScheduleViewModelFactory())
+            val vm: ScheduleViewModel = viewModel(
+                factory = ScheduleViewModelFactory(applicationContext)
+            )
             ScheduleScreen(
                 state = vm.state,
-                onRetry = vm::loadGroups,
+                onRetry = vm::refreshCurrent,
+                onRefresh = vm::refreshCurrent,
                 onGroupClick = vm::openGroup,
                 onBack = vm::backToGroups
             )

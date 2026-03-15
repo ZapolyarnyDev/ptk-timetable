@@ -28,11 +28,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkCurrentWeekType
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkGroupInfo
 import kotlinx.coroutines.flow.StateFlow
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 fun ScheduleScreen(
     state: StateFlow<ScheduleUiState>,
     onRetry: () -> Unit,
+    onRefresh: () -> Unit,
     onGroupClick: (PtkGroupInfo) -> Unit,
     onBack: () -> Unit
 ) {
@@ -40,6 +45,7 @@ fun ScheduleScreen(
     ScheduleScreenContent(
         state = uiState,
         onRetry = onRetry,
+        onRefresh = onRefresh,
         onGroupClick = onGroupClick,
         onBack = onBack
     )
@@ -50,6 +56,7 @@ fun ScheduleScreen(
 private fun ScheduleScreenContent(
     state: ScheduleUiState,
     onRetry: () -> Unit,
+    onRefresh: () -> Unit,
     onGroupClick: (PtkGroupInfo) -> Unit,
     onBack: () -> Unit
 ) {
@@ -71,12 +78,16 @@ private fun ScheduleScreenContent(
                 padding = padding,
                 groups = state.groups,
                 weekType = state.currentWeekType,
-                onGroupClick = onGroupClick
+                groupsUpdatedAt = state.groupsUpdatedAt,
+                onGroupClick = onGroupClick,
+                onRefresh = onRefresh
             )
             else -> LessonsState(
                 padding = padding,
                 lessons = state.lessons,
-                onBack = onBack
+                scheduleUpdatedAt = state.scheduleUpdatedAt,
+                onBack = onBack,
+                onRefresh = onRefresh
             )
         }
     }
@@ -121,7 +132,9 @@ private fun GroupsState(
     padding: PaddingValues,
     groups: List<PtkGroupInfo>,
     weekType: PtkCurrentWeekType,
-    onGroupClick: (PtkGroupInfo) -> Unit
+    groupsUpdatedAt: Instant?,
+    onGroupClick: (PtkGroupInfo) -> Unit,
+    onRefresh: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -137,15 +150,45 @@ private fun GroupsState(
                 fontWeight = FontWeight.Medium
             )
         }
-        items(groups, key = { "${it.groupName}_${it.course}" }) { group ->
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onGroupClick(group) }
-            ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Text(text = "Группа ${group.groupName}", style = MaterialTheme.typography.titleMedium)
-                    Text(text = "${group.courseName} • ${group.collegeName}", style = MaterialTheme.typography.bodyMedium)
+        item {
+            groupsUpdatedAt?.let {
+                Text(
+                    text = "Обновлено: ${formatInstant(it)}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
+        item {
+            Row {
+                Button(onClick = onRefresh) {
+                    Text("Обновить группы")
+                }
+            }
+        }
+        if (groups.isEmpty()) {
+            item {
+                Text(
+                    text = "Группы не найдены",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        } else {
+            items(groups, key = { "${it.groupName}_${it.course}" }) { group ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onGroupClick(group) }
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Text(
+                            text = "Группа ${group.groupName}",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            text = "${group.courseName} • ${group.collegeName}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
                 }
             }
         }
@@ -156,17 +199,34 @@ private fun GroupsState(
 private fun LessonsState(
     padding: PaddingValues,
     lessons: List<ScheduleLessonItem>,
-    onBack: () -> Unit
+    scheduleUpdatedAt: Instant?,
+    onBack: () -> Unit,
+    onRefresh: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(padding)
     ) {
-        Row(modifier = Modifier.padding(12.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             Button(onClick = onBack) {
                 Text("К группам")
             }
+            Button(onClick = onRefresh) {
+                Text("Обновить")
+            }
+        }
+        scheduleUpdatedAt?.let {
+            Text(
+                text = "Обновлено: ${formatInstant(it)}",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(horizontal = 12.dp)
+            )
         }
         if (lessons.isEmpty()) {
             Column(
@@ -222,4 +282,10 @@ private fun weekTypeLabel(type: PtkCurrentWeekType): String = when (type) {
     PtkCurrentWeekType.UPPER -> "верхняя"
     PtkCurrentWeekType.LOWER -> "нижняя"
     PtkCurrentWeekType.UNKNOWN -> "не определена"
+}
+
+private fun formatInstant(value: Instant): String {
+    return DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm", Locale.forLanguageTag("ru"))
+        .withZone(ZoneId.systemDefault())
+        .format(value)
 }
