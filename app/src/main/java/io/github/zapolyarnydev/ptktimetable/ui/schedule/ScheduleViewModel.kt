@@ -557,6 +557,24 @@ class ScheduleViewModel(
     private fun refreshDateModeLessons(date: LocalDate) {
         if (loadedTemplates.isEmpty()) return
         viewModelScope.launch(Dispatchers.IO) {
+            val provisionalLessons = buildDateLessonsFromTemplates(
+                templates = loadedTemplates,
+                date = date,
+                selectedDateWeekType = PtkCurrentWeekType.UNKNOWN
+            )
+            _state.update {
+                if (it.selectedDate != date || it.mode != ScheduleMode.BY_DATE) {
+                    it
+                } else {
+                    it.copy(
+                        lessons = provisionalLessons,
+                        selectedDay = dayOfWeekToScheduleDay(date.dayOfWeek),
+                        selectedDateWeekType = PtkCurrentWeekType.UNKNOWN,
+                        errorMessage = null
+                    )
+                }
+            }
+
             val selectedDateWeekType = resolveWeekTypeForDate(date)
             val lessons = buildDateLessonsFromTemplates(
                 templates = loadedTemplates,
