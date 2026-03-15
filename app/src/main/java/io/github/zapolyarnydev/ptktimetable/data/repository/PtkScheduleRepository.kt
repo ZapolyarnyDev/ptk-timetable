@@ -8,6 +8,7 @@ import io.github.zapolyarnydev.ptktimetable.data.remote.html.PtkGroupsHtmlParser
 import io.github.zapolyarnydev.ptktimetable.data.remote.service.PortalService
 import io.github.zapolyarnydev.ptktimetable.data.remote.service.PortalServiceImpl
 import io.github.zapolyarnydev.ptktimetable.data.remote.xls.PtkXlsScheduleParser
+import java.time.LocalDate
 import java.util.Locale
 
 class PtkScheduleRepository(
@@ -35,8 +36,12 @@ class PtkScheduleRepository(
     }
 
     override suspend fun getCurrentWeekType(): PtkCurrentWeekType {
+        return getWeekTypeForDate(LocalDate.now())
+    }
+
+    override suspend fun getWeekTypeForDate(date: LocalDate): PtkCurrentWeekType {
         val html = portalService.fetchPortalHtml()
-        return currentWeekHtmlParser.parseCurrentWeekType(html)
+        return currentWeekHtmlParser.parseWeekTypeForDate(html, date)
     }
 
     private fun sameGroup(left: String, right: String): Boolean {

@@ -26,9 +26,14 @@ class MainActivity : ComponentActivity() {
                     onGroupSelect = vm::openGroup,
                     onBackToCourses = vm::backToCourses,
                     onBackToGroups = vm::backToGroups,
+                    onSelectMode = vm::selectMode,
                     onSelectDay = vm::selectDay,
                     onPreviousDay = vm::previousDay,
                     onNextDay = vm::nextDay,
+                    onSelectDate = vm::selectDate,
+                    onPreviousDate = vm::previousDate,
+                    onNextDate = vm::nextDate,
+                    onGoToToday = vm::goToToday,
                     onSelectWeekFilter = vm::selectWeekFilter
                 )
             }

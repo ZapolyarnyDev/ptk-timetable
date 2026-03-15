@@ -1,4 +1,4 @@
-package io.github.zapolyarnydev.ptktimetable.ui.schedule
+﻿package io.github.zapolyarnydev.ptktimetable.ui.schedule
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
@@ -8,9 +8,14 @@ import io.github.zapolyarnydev.ptktimetable.data.local.UserPreferencesStore
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkCurrentWeekType
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkGroupInfo
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkWeekType
-import io.github.zapolyarnydev.ptktimetable.data.normalize.LessonTextNormalizer
+import io.github.zapolyarnydev.ptktimetable.data.repository.DomainTimetableRepositoryAdapter
+import io.github.zapolyarnydev.ptktimetable.data.repository.PortalBackedWeekResolver
 import io.github.zapolyarnydev.ptktimetable.data.repository.PtkScheduleRepository
-import io.github.zapolyarnydev.ptktimetable.data.repository.ScheduleRepository
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.LessonTemplate
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.TimetableGroup
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekType
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.repository.TimetableRepository
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.service.WeekResolver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,12 +25,20 @@ import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
-import java.util.Locale
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 enum class ScheduleStep {
     COURSE_SELECTION,
     GROUP_SELECTION,
     SCHEDULE
+}
+
+enum class ScheduleMode(
+    val title: String
+) {
+    BY_DAY("По дням"),
+    BY_DATE("По дате")
 }
 
 enum class ScheduleDay(
@@ -75,26 +88,36 @@ data class ScheduleUiState(
     val selectedCourse: CourseItem? = null,
     val courseGroups: List<PtkGroupInfo> = emptyList(),
     val selectedGroup: PtkGroupInfo? = null,
+    val mode: ScheduleMode = ScheduleMode.BY_DAY,
+    val selectedDate: LocalDate = LocalDate.now(),
     val lessons: List<ScheduleLessonItem> = emptyList(),
     val availableDays: List<ScheduleDay> = emptyList(),
     val selectedDay: ScheduleDay? = null,
     val weekFilter: ScheduleWeekFilter = ScheduleWeekFilter.ALL,
     val currentWeekType: PtkCurrentWeekType = PtkCurrentWeekType.UNKNOWN,
+    val selectedDateWeekType: PtkCurrentWeekType = PtkCurrentWeekType.UNKNOWN,
     val groupsUpdatedAt: Instant? = null,
     val scheduleUpdatedAt: Instant? = null,
     val errorMessage: String? = null
 )
 
 class ScheduleViewModel(
-    private val repository: ScheduleRepository,
+    private val timetableRepository: TimetableRepository,
+    private val weekResolver: WeekResolver,
     private val preferencesStore: UserPreferencesStore,
-    private val lessonTextNormalizer: LessonTextNormalizer = LessonTextNormalizer(),
     private val nowProvider: () -> Instant = { Instant.now() },
     private val todayProvider: () -> LocalDate = { LocalDate.now() }
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(ScheduleUiState(isLoading = true))
+    private val _state = MutableStateFlow(
+        ScheduleUiState(
+            isLoading = true,
+            selectedDate = todayProvider()
+        )
+    )
     val state: StateFlow<ScheduleUiState> = _state.asStateFlow()
+
+    private var loadedTemplates: List<LessonTemplate> = emptyList()
 
     init {
         loadCatalog(
@@ -150,6 +173,7 @@ class ScheduleViewModel(
     }
 
     fun backToCourses() {
+        loadedTemplates = emptyList()
         _state.update {
             it.copy(
                 step = ScheduleStep.COURSE_SELECTION,
@@ -165,6 +189,7 @@ class ScheduleViewModel(
     }
 
     fun backToGroups() {
+        loadedTemplates = emptyList()
         _state.update {
             it.copy(
                 step = ScheduleStep.GROUP_SELECTION,
@@ -175,6 +200,37 @@ class ScheduleViewModel(
                 errorMessage = null
             )
         }
+    }
+
+    fun selectMode(mode: ScheduleMode) {
+        val current = state.value
+        if (current.mode == mode) return
+        _state.update { it.copy(mode = mode, errorMessage = null) }
+        if (mode == ScheduleMode.BY_DATE) {
+            refreshDateModeLessons(current.selectedDate)
+        } else {
+            rebuildLessonsFromLoadedTemplates()
+        }
+    }
+
+    fun selectDate(date: LocalDate) {
+        val normalized = date
+        _state.update { it.copy(selectedDate = normalized, errorMessage = null) }
+        if (state.value.mode == ScheduleMode.BY_DATE) {
+            refreshDateModeLessons(normalized)
+        }
+    }
+
+    fun previousDate() {
+        selectDate(state.value.selectedDate.minusDays(1))
+    }
+
+    fun nextDate() {
+        selectDate(state.value.selectedDate.plusDays(1))
+    }
+
+    fun goToToday() {
+        selectDate(todayProvider())
     }
 
     fun selectDay(day: ScheduleDay) {
@@ -212,9 +268,10 @@ class ScheduleViewModel(
             _state.update { it.copy(isLoading = true, errorMessage = null) }
 
             runCatching {
-                val groups = repository.getGroups()
+                val groups = timetableRepository.getGroups()
+                    .map { it.toUiGroup() }
                     .sortedWith(compareBy<PtkGroupInfo> { it.course }.thenBy { it.groupName })
-                val currentWeekType = repository.getCurrentWeekType()
+                val currentWeekType = resolveCurrentWeekType()
                 Pair(groups, currentWeekType)
             }.onSuccess { (groups, currentWeekType) ->
                 val courses = buildCourseItems(groups)
@@ -248,6 +305,7 @@ class ScheduleViewModel(
                             selectedDay = null,
                             weekFilter = defaultWeekFilter(currentWeekType),
                             currentWeekType = currentWeekType,
+                            selectedDateWeekType = currentWeekType,
                             groupsUpdatedAt = nowProvider(),
                             errorMessage = null
                         )
@@ -292,6 +350,7 @@ class ScheduleViewModel(
                         selectedDay = null,
                         weekFilter = defaultWeekFilter(currentWeekType),
                         currentWeekType = currentWeekType,
+                        selectedDateWeekType = currentWeekType,
                         groupsUpdatedAt = nowProvider(),
                         errorMessage = null
                     )
@@ -328,23 +387,16 @@ class ScheduleViewModel(
                     runCatching { preferencesStore.setLastSelectedGroupName(group.groupName) }
                 }
 
-                repository.getScheduleForGroup(group.groupName)
-                    .map { raw ->
-                        val day = parseDay(raw.dayOfWeek)
-                        val normalized = lessonTextNormalizer.normalize(raw.rawText)
-                        ScheduleLessonItem(
-                            day = day,
-                            dayLabel = day.title,
-                            timeRange = raw.timeRange,
-                            weekType = raw.weekType,
-                            subject = normalized.subject,
-                            teacher = normalized.teacher,
-                            classroom = normalized.classroom,
-                            rawText = raw.rawText
-                        )
-                    }
-            }.onSuccess { lessons ->
-                val availableDays = lessons.map { it.day }
+                timetableRepository.getTemplatesByGroup(group.groupName)
+            }.onSuccess { templates ->
+                loadedTemplates = templates
+
+                val allLessons = templates
+                    .map { it.toScheduleLessonItem() }
+                    .sortedBy { lessonSortKey(it.timeRange) }
+
+                val availableDays = allLessons
+                    .map { it.day }
                     .distinct()
                     .sortedBy { it.order }
 
@@ -353,10 +405,33 @@ class ScheduleViewModel(
                     previousSelectedDay = beforeLoading.selectedDay,
                     availableDays = availableDays
                 )
+
+                val selectedDate = if (preserveUiSelection) {
+                    beforeLoading.selectedDate
+                } else {
+                    todayProvider()
+                }
+
                 val weekFilter = if (preserveUiSelection) {
                     beforeLoading.weekFilter
                 } else {
                     defaultWeekFilter(beforeLoading.currentWeekType)
+                }
+
+                val selectedDateWeekType = if (beforeLoading.mode == ScheduleMode.BY_DATE) {
+                    resolveWeekTypeForDate(selectedDate)
+                } else {
+                    beforeLoading.currentWeekType
+                }
+
+                val lessons = if (beforeLoading.mode == ScheduleMode.BY_DATE) {
+                    buildDateLessonsFromTemplates(
+                        templates = templates,
+                        date = selectedDate,
+                        selectedDateWeekType = selectedDateWeekType
+                    )
+                } else {
+                    allLessons
                 }
 
                 _state.update {
@@ -364,15 +439,18 @@ class ScheduleViewModel(
                         isLoading = false,
                         step = ScheduleStep.SCHEDULE,
                         selectedGroup = group,
+                        selectedDate = selectedDate,
                         lessons = lessons,
                         availableDays = availableDays,
                         selectedDay = selectedDay,
                         weekFilter = weekFilter,
+                        selectedDateWeekType = selectedDateWeekType,
                         scheduleUpdatedAt = nowProvider(),
                         errorMessage = null
                     )
                 }
             }.onFailure { error ->
+                loadedTemplates = emptyList()
                 _state.update {
                     it.copy(
                         isLoading = false,
@@ -388,6 +466,114 @@ class ScheduleViewModel(
         }
     }
 
+    private fun rebuildLessonsFromLoadedTemplates() {
+        if (loadedTemplates.isEmpty()) return
+
+        val current = state.value
+        val allLessons = loadedTemplates
+            .map { it.toScheduleLessonItem() }
+            .sortedBy { lessonSortKey(it.timeRange) }
+
+        val availableDays = allLessons
+            .map { it.day }
+            .distinct()
+            .sortedBy { it.order }
+
+        val selectedDay = if (current.mode == ScheduleMode.BY_DATE) {
+            dayOfWeekToScheduleDay(current.selectedDate.dayOfWeek)
+        } else {
+            current.selectedDay?.takeIf { it in availableDays }
+                ?: availableDays.firstOrNull()
+        }
+
+        val lessons = if (current.mode == ScheduleMode.BY_DATE) {
+            buildDateLessonsFromTemplates(
+                templates = loadedTemplates,
+                date = current.selectedDate,
+                selectedDateWeekType = current.selectedDateWeekType
+            )
+        } else {
+            allLessons
+        }
+
+        _state.update {
+            it.copy(
+                lessons = lessons,
+                availableDays = availableDays,
+                selectedDay = selectedDay,
+                errorMessage = null
+            )
+        }
+    }
+
+    private suspend fun resolveCurrentWeekType(): PtkCurrentWeekType {
+        val weekInfo = runCatching { weekResolver.resolve(todayProvider()) }.getOrNull()
+        return when (weekInfo?.isUpper) {
+            true -> PtkCurrentWeekType.UPPER
+            false -> PtkCurrentWeekType.LOWER
+            null -> PtkCurrentWeekType.UNKNOWN
+        }
+    }
+
+    private fun buildDateLessonsFromTemplates(
+        templates: List<LessonTemplate>,
+        date: LocalDate,
+        selectedDateWeekType: PtkCurrentWeekType
+    ): List<ScheduleLessonItem> {
+        val targetDay = dayOfWeekToScheduleDay(date.dayOfWeek)
+        val isUpperWeek = when (selectedDateWeekType) {
+            PtkCurrentWeekType.UPPER -> true
+            PtkCurrentWeekType.LOWER -> false
+            PtkCurrentWeekType.UNKNOWN -> null
+        }
+
+        return templates
+            .asSequence()
+            .filter { it.dayOfWeek == date.dayOfWeek }
+            .filter { template ->
+                when (template.weekType) {
+                    WeekType.ALL -> true
+                    WeekType.UPPER -> isUpperWeek != false
+                    WeekType.LOWER -> isUpperWeek != true
+                }
+            }
+            .map { template -> template.toScheduleLessonItem(overrideDay = targetDay) }
+            .sortedBy { lessonSortKey(it.timeRange) }
+            .toList()
+    }
+
+    private fun refreshDateModeLessons(date: LocalDate) {
+        if (loadedTemplates.isEmpty()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            val selectedDateWeekType = resolveWeekTypeForDate(date)
+            val lessons = buildDateLessonsFromTemplates(
+                templates = loadedTemplates,
+                date = date,
+                selectedDateWeekType = selectedDateWeekType
+            )
+            _state.update {
+                if (it.selectedDate != date || it.mode != ScheduleMode.BY_DATE) {
+                    it
+                } else {
+                    it.copy(
+                        lessons = lessons,
+                        selectedDateWeekType = selectedDateWeekType,
+                        errorMessage = null
+                    )
+                }
+            }
+        }
+    }
+
+    private suspend fun resolveWeekTypeForDate(date: LocalDate): PtkCurrentWeekType {
+        val weekInfo = runCatching { weekResolver.resolve(date) }.getOrNull()
+        return when (weekInfo?.isUpper) {
+            true -> PtkCurrentWeekType.UPPER
+            false -> PtkCurrentWeekType.LOWER
+            null -> PtkCurrentWeekType.UNKNOWN
+        }
+    }
+
     private fun buildCourseItems(groups: List<PtkGroupInfo>): List<CourseItem> {
         return groups
             .groupBy { it.course }
@@ -396,20 +582,6 @@ class ScheduleViewModel(
                 CourseItem(course = course, title = title)
             }
             .sortedBy { it.course }
-    }
-
-    private fun parseDay(rawDay: String): ScheduleDay {
-        val normalized = rawDay.lowercase(Locale.ROOT).replace('ё', 'е').trim()
-        return when {
-            normalized.contains("понедельник") || normalized == "пн" -> ScheduleDay.MONDAY
-            normalized.contains("вторник") || normalized == "вт" -> ScheduleDay.TUESDAY
-            normalized.contains("среда") || normalized == "ср" -> ScheduleDay.WEDNESDAY
-            normalized.contains("четверг") || normalized == "чт" -> ScheduleDay.THURSDAY
-            normalized.contains("пятница") || normalized == "пт" -> ScheduleDay.FRIDAY
-            normalized.contains("суббота") || normalized == "сб" -> ScheduleDay.SATURDAY
-            normalized.contains("воскресенье") || normalized == "вс" -> ScheduleDay.SUNDAY
-            else -> ScheduleDay.UNKNOWN
-        }
     }
 
     private fun resolveSelectedDay(
@@ -422,7 +594,12 @@ class ScheduleViewModel(
             return previousSelectedDay
         }
 
-        val today = when (todayProvider().dayOfWeek) {
+        val today = dayOfWeekToScheduleDay(todayProvider().dayOfWeek)
+        return availableDays.firstOrNull { it == today } ?: availableDays.first()
+    }
+
+    private fun dayOfWeekToScheduleDay(dayOfWeek: DayOfWeek): ScheduleDay {
+        return when (dayOfWeek) {
             DayOfWeek.MONDAY -> ScheduleDay.MONDAY
             DayOfWeek.TUESDAY -> ScheduleDay.TUESDAY
             DayOfWeek.WEDNESDAY -> ScheduleDay.WEDNESDAY
@@ -431,8 +608,6 @@ class ScheduleViewModel(
             DayOfWeek.SATURDAY -> ScheduleDay.SATURDAY
             DayOfWeek.SUNDAY -> ScheduleDay.SUNDAY
         }
-
-        return availableDays.firstOrNull { it == today } ?: availableDays.first()
     }
 
     private fun defaultWeekFilter(currentWeekType: PtkCurrentWeekType): ScheduleWeekFilter {
@@ -442,6 +617,55 @@ class ScheduleViewModel(
             PtkCurrentWeekType.UNKNOWN -> ScheduleWeekFilter.ALL
         }
     }
+
+    private fun lessonSortKey(timeRange: String): Int {
+        val normalized = timeRange.replace('—', '-').replace('–', '-')
+        val match = Regex("(\\d{1,2})[.:](\\d{2})").find(normalized) ?: return Int.MAX_VALUE
+        val hours = match.groupValues[1].toIntOrNull() ?: return Int.MAX_VALUE
+        val minutes = match.groupValues[2].toIntOrNull() ?: return Int.MAX_VALUE
+        return hours * 60 + minutes
+    }
+
+    private fun TimetableGroup.toUiGroup(): PtkGroupInfo {
+        return PtkGroupInfo(
+            collegeName = collegeName,
+            course = course,
+            courseName = courseName,
+            groupName = groupName,
+            xlsUrl = sourceUrl
+        )
+    }
+
+    private fun LessonTemplate.toScheduleLessonItem(
+        overrideDay: ScheduleDay = dayOfWeekToScheduleDay(dayOfWeek)
+    ): ScheduleLessonItem {
+        return ScheduleLessonItem(
+            day = overrideDay,
+            dayLabel = overrideDay.title,
+            timeRange = formatTimeRange(startTime, endTime),
+            weekType = weekType.toUiWeekType(),
+            subject = subject,
+            teacher = teacher,
+            classroom = room,
+            rawText = rawText
+        )
+    }
+
+    private fun WeekType.toUiWeekType(): PtkWeekType {
+        return when (this) {
+            WeekType.ALL -> PtkWeekType.ALL
+            WeekType.UPPER -> PtkWeekType.UPPER
+            WeekType.LOWER -> PtkWeekType.LOWER
+        }
+    }
+
+    private fun formatTimeRange(start: LocalTime, end: LocalTime): String {
+        return "${TIME_FORMATTER.format(start)}-${TIME_FORMATTER.format(end)}"
+    }
+
+    private companion object {
+        val TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("H.mm")
+    }
 }
 
 class ScheduleViewModelFactory(
@@ -450,9 +674,17 @@ class ScheduleViewModelFactory(
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ScheduleViewModel::class.java)) {
+            val baseRepository = PtkScheduleRepository()
+            val weekResolver = PortalBackedWeekResolver(baseRepository)
+            val timetableRepository = DomainTimetableRepositoryAdapter(
+                scheduleRepository = baseRepository,
+                weekResolver = weekResolver
+            )
+
             @Suppress("UNCHECKED_CAST")
             return ScheduleViewModel(
-                repository = PtkScheduleRepository(),
+                timetableRepository = timetableRepository,
+                weekResolver = weekResolver,
                 preferencesStore = UserPreferencesStore(context.applicationContext)
             ) as T
         }

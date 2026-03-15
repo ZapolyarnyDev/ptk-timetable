@@ -1,5 +1,6 @@
 ﻿package io.github.zapolyarnydev.ptktimetable.ui.schedule
 
+import android.app.DatePickerDialog
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -62,6 +63,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -80,6 +82,7 @@ import io.github.zapolyarnydev.ptktimetable.ui.theme.SurfaceMuted
 import io.github.zapolyarnydev.ptktimetable.ui.theme.White
 import kotlinx.coroutines.flow.StateFlow
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -93,9 +96,14 @@ fun ScheduleScreen(
     onGroupSelect: (PtkGroupInfo) -> Unit,
     onBackToCourses: () -> Unit,
     onBackToGroups: () -> Unit,
+    onSelectMode: (ScheduleMode) -> Unit,
     onSelectDay: (ScheduleDay) -> Unit,
     onPreviousDay: () -> Unit,
     onNextDay: () -> Unit,
+    onSelectDate: (LocalDate) -> Unit,
+    onPreviousDate: () -> Unit,
+    onNextDate: () -> Unit,
+    onGoToToday: () -> Unit,
     onSelectWeekFilter: (ScheduleWeekFilter) -> Unit
 ) {
     val uiState by state.collectAsStateWithLifecycle()
@@ -107,9 +115,14 @@ fun ScheduleScreen(
         onGroupSelect = onGroupSelect,
         onBackToCourses = onBackToCourses,
         onBackToGroups = onBackToGroups,
+        onSelectMode = onSelectMode,
         onSelectDay = onSelectDay,
         onPreviousDay = onPreviousDay,
         onNextDay = onNextDay,
+        onSelectDate = onSelectDate,
+        onPreviousDate = onPreviousDate,
+        onNextDate = onNextDate,
+        onGoToToday = onGoToToday,
         onSelectWeekFilter = onSelectWeekFilter
     )
 }
@@ -124,9 +137,14 @@ private fun ScheduleScreenContent(
     onGroupSelect: (PtkGroupInfo) -> Unit,
     onBackToCourses: () -> Unit,
     onBackToGroups: () -> Unit,
+    onSelectMode: (ScheduleMode) -> Unit,
     onSelectDay: (ScheduleDay) -> Unit,
     onPreviousDay: () -> Unit,
     onNextDay: () -> Unit,
+    onSelectDate: (LocalDate) -> Unit,
+    onPreviousDate: () -> Unit,
+    onNextDate: () -> Unit,
+    onGoToToday: () -> Unit,
     onSelectWeekFilter: (ScheduleWeekFilter) -> Unit
 ) {
     Scaffold(containerColor = White) { padding ->
@@ -153,9 +171,14 @@ private fun ScheduleScreenContent(
                     state = state,
                     onRefresh = onRefresh,
                     onBackToGroups = onBackToGroups,
+                    onSelectMode = onSelectMode,
                     onSelectDay = onSelectDay,
                     onPreviousDay = onPreviousDay,
                     onNextDay = onNextDay,
+                    onSelectDate = onSelectDate,
+                    onPreviousDate = onPreviousDate,
+                    onNextDate = onNextDate,
+                    onGoToToday = onGoToToday,
                     onSelectWeekFilter = onSelectWeekFilter
                 )
             }
@@ -228,12 +251,7 @@ private fun CourseSelectionState(
 
         item {
             InfoPanel {
-                MetaRow(
-                    icon = Icons.Outlined.CalendarMonth,
-                    text = "Текущая неделя: ${weekTypeLabel(state.currentWeekType)}"
-                )
                 state.groupsUpdatedAt?.let {
-                    Spacer(Modifier.height(6.dp))
                     MetaRow(
                         icon = Icons.Outlined.Update,
                         text = "Обновлено: ${formatInstant(it)}",
@@ -330,16 +348,21 @@ private fun ScheduleState(
     state: ScheduleUiState,
     onRefresh: () -> Unit,
     onBackToGroups: () -> Unit,
+    onSelectMode: (ScheduleMode) -> Unit,
     onSelectDay: (ScheduleDay) -> Unit,
     onPreviousDay: () -> Unit,
     onNextDay: () -> Unit,
+    onSelectDate: (LocalDate) -> Unit,
+    onPreviousDate: () -> Unit,
+    onNextDate: () -> Unit,
+    onGoToToday: () -> Unit,
     onSelectWeekFilter: (ScheduleWeekFilter) -> Unit
 ) {
     val filteredLessons = filterLessons(state)
     val timeSlots = buildTimeSlots(filteredLessons)
     val dayIndex = state.availableDays.indexOf(state.selectedDay).takeIf { it >= 0 } ?: 0
-    val canGoPrev = dayIndex > 0
-    val canGoNext = dayIndex < state.availableDays.lastIndex
+    val canGoPrev = if (state.mode == ScheduleMode.BY_DAY) dayIndex > 0 else true
+    val canGoNext = if (state.mode == ScheduleMode.BY_DAY) dayIndex < state.availableDays.lastIndex else true
 
     LazyColumn(
         modifier = Modifier
@@ -362,6 +385,20 @@ private fun ScheduleState(
                         icon = Icons.Outlined.Groups,
                         text = state.selectedGroup?.let { "Группа ${it.groupName}" } ?: "Группа не выбрана"
                     )
+                    Spacer(Modifier.height(6.dp))
+                    val activeWeekType = if (state.mode == ScheduleMode.BY_DATE) {
+                        state.selectedDateWeekType
+                    } else {
+                        state.currentWeekType
+                    }
+                    MetaRow(
+                        icon = Icons.Outlined.CalendarMonth,
+                        text = if (state.mode == ScheduleMode.BY_DATE) {
+                            "Неделя на дату: ${weekTypeLabel(activeWeekType)}"
+                        } else {
+                            "Текущая неделя: ${weekTypeLabel(activeWeekType)}"
+                        }
+                    )
                     state.scheduleUpdatedAt?.let {
                         Spacer(Modifier.height(6.dp))
                         MetaRow(
@@ -381,13 +418,20 @@ private fun ScheduleState(
         item {
             Box(modifier = Modifier.padding(horizontal = 16.dp)) {
                 DayNavigatorPanel(
+                    mode = state.mode,
                     selectedDayTitle = state.selectedDay?.title ?: "День не выбран",
+                    selectedDate = state.selectedDate,
                     dayIndex = dayIndex,
                     totalDays = state.availableDays.size,
                     canGoPrev = canGoPrev,
                     canGoNext = canGoNext,
+                    onSelectMode = onSelectMode,
                     onPreviousDay = onPreviousDay,
                     onNextDay = onNextDay,
+                    onSelectDate = onSelectDate,
+                    onPreviousDate = onPreviousDate,
+                    onNextDate = onNextDate,
+                    onGoToToday = onGoToToday,
                     availableDays = state.availableDays,
                     selectedDay = state.selectedDay,
                     weekFilter = state.weekFilter,
@@ -411,7 +455,14 @@ private fun ScheduleState(
                     )
                 }
             } else {
-                LessonTableCard(timeSlots = timeSlots)
+                LessonTableCard(
+                    timeSlots = timeSlots,
+                    currentWeekType = if (state.mode == ScheduleMode.BY_DATE) {
+                        state.selectedDateWeekType
+                    } else {
+                        state.currentWeekType
+                    }
+                )
             }
         }
     }
@@ -419,78 +470,158 @@ private fun ScheduleState(
 
 @Composable
 private fun DayNavigatorPanel(
+    mode: ScheduleMode,
     selectedDayTitle: String,
+    selectedDate: LocalDate,
     dayIndex: Int,
     totalDays: Int,
     canGoPrev: Boolean,
     canGoNext: Boolean,
+    onSelectMode: (ScheduleMode) -> Unit,
     onPreviousDay: () -> Unit,
     onNextDay: () -> Unit,
+    onSelectDate: (LocalDate) -> Unit,
+    onPreviousDate: () -> Unit,
+    onNextDate: () -> Unit,
+    onGoToToday: () -> Unit,
     availableDays: List<ScheduleDay>,
     selectedDay: ScheduleDay?,
     weekFilter: ScheduleWeekFilter,
     onSelectDay: (ScheduleDay) -> Unit,
     onSelectWeekFilter: (ScheduleWeekFilter) -> Unit
 ) {
+    val context = LocalContext.current
+
     SectionCard {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            NavArrowButton(
-                icon = Icons.AutoMirrored.Outlined.ArrowBack,
-                enabled = canGoPrev,
-                onClick = onPreviousDay
-            )
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = selectedDayTitle,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = InkPrimary,
-                    fontFamily = HeadingFontFamily
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(ScheduleMode.entries, key = { it.name }) { item ->
+                WeekChip(
+                    selected = item == mode,
+                    label = item.title,
+                    icon = if (item == ScheduleMode.BY_DAY) Icons.Outlined.Schedule else Icons.Outlined.CalendarMonth,
+                    onClick = { onSelectMode(item) }
                 )
-                if (totalDays > 0) {
+            }
+        }
+
+        Spacer(Modifier.height(10.dp))
+
+        if (mode == ScheduleMode.BY_DAY) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                NavArrowButton(
+                    icon = Icons.AutoMirrored.Outlined.ArrowBack,
+                    enabled = canGoPrev,
+                    onClick = onPreviousDay
+                )
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     Text(
-                        text = "день ${dayIndex + 1} из $totalDays",
+                        text = selectedDayTitle,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = InkPrimary,
+                        fontFamily = HeadingFontFamily
+                    )
+                    if (totalDays > 0) {
+                        Text(
+                            text = "день ${dayIndex + 1} из $totalDays",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = InkSecondary
+                        )
+                    }
+                }
+                NavArrowButton(
+                    icon = Icons.AutoMirrored.Outlined.ArrowForward,
+                    enabled = canGoNext,
+                    onClick = onNextDay
+                )
+            }
+
+            Spacer(Modifier.height(10.dp))
+            if (availableDays.isNotEmpty()) {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(availableDays, key = { it.name }) { day ->
+                        WeekChip(
+                            selected = day == selectedDay,
+                            label = day.shortTitle,
+                            icon = Icons.Outlined.Schedule,
+                            onClick = { onSelectDay(day) }
+                        )
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+            }
+
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(ScheduleWeekFilter.entries, key = { it.name }) { filter ->
+                    WeekChip(
+                        selected = filter == weekFilter,
+                        label = filter.title,
+                        icon = Icons.Outlined.Tune,
+                        onClick = { onSelectWeekFilter(filter) }
+                    )
+                }
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                NavArrowButton(
+                    icon = Icons.AutoMirrored.Outlined.ArrowBack,
+                    enabled = true,
+                    onClick = onPreviousDate
+                )
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = formatDateTitle(selectedDate),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = InkPrimary,
+                        fontFamily = HeadingFontFamily
+                    )
+                    Text(
+                        text = selectedDayTitle,
                         style = MaterialTheme.typography.bodySmall,
                         color = InkSecondary
                     )
                 }
+                NavArrowButton(
+                    icon = Icons.AutoMirrored.Outlined.ArrowForward,
+                    enabled = true,
+                    onClick = onNextDate
+                )
             }
-            NavArrowButton(
-                icon = Icons.AutoMirrored.Outlined.ArrowForward,
-                enabled = canGoNext,
-                onClick = onNextDay
-            )
-        }
 
-        Spacer(Modifier.height(10.dp))
-        if (availableDays.isNotEmpty()) {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(availableDays, key = { it.name }) { day ->
-                    WeekChip(
-                        selected = day == selectedDay,
-                        label = day.shortTitle,
-                        icon = Icons.Outlined.Schedule,
-                        onClick = { onSelectDay(day) }
-                    )
-                }
-            }
-            Spacer(Modifier.height(8.dp))
-        }
-
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(ScheduleWeekFilter.entries, key = { it.name }) { filter ->
-                WeekChip(
-                    selected = filter == weekFilter,
-                    label = filter.title,
-                    icon = Icons.Outlined.Tune,
-                    onClick = { onSelectWeekFilter(filter) }
+            Spacer(Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedActionButton(
+                    text = "Сегодня",
+                    onClick = onGoToToday
+                )
+                OutlinedActionButton(
+                    text = "Выбрать дату",
+                    onClick = {
+                        DatePickerDialog(
+                            context,
+                            { _, year, month, dayOfMonth ->
+                                onSelectDate(LocalDate.of(year, month + 1, dayOfMonth))
+                            },
+                            selectedDate.year,
+                            selectedDate.monthValue - 1,
+                            selectedDate.dayOfMonth
+                        ).show()
+                    }
                 )
             }
         }
@@ -498,10 +629,13 @@ private fun DayNavigatorPanel(
 }
 
 @Composable
-private fun LessonTableCard(timeSlots: List<TimeSlotUi>) {
+private fun LessonTableCard(
+    timeSlots: List<TimeSlotUi>,
+    currentWeekType: PtkCurrentWeekType
+) {
     SectionCard(padding = 0.dp) {
         timeSlots.forEachIndexed { index, slot ->
-            LessonTableRow(slot)
+            LessonTableRow(slot, currentWeekType)
             if (index < timeSlots.lastIndex) {
                 HorizontalDivider(thickness = 0.8.dp, color = BorderSubtle)
             }
@@ -510,7 +644,10 @@ private fun LessonTableCard(timeSlots: List<TimeSlotUi>) {
 }
 
 @Composable
-private fun LessonTableRow(slot: TimeSlotUi) {
+private fun LessonTableRow(
+    slot: TimeSlotUi,
+    currentWeekType: PtkCurrentWeekType
+) {
     val (startTime, endTime) = splitTimeRange(slot.timeRange)
     val timeIndent = 22.dp
 
@@ -564,51 +701,83 @@ private fun LessonTableRow(slot: TimeSlotUi) {
                 .padding(horizontal = 12.dp, vertical = 10.dp)
         ) {
             if (slot.isSplitByWeek) {
-                SplitWeekCell(slot = slot)
+                SplitWeekCell(
+                    slot = slot,
+                    currentWeekType = currentWeekType
+                )
             } else {
-                LessonTextBlock(lessons = slot.allLessons)
+                LessonTextBlock(
+                    lessons = slot.allLessons,
+                    currentWeekType = currentWeekType
+                )
             }
         }
     }
 }
 
 @Composable
-private fun SplitWeekCell(slot: TimeSlotUi) {
+private fun SplitWeekCell(
+    slot: TimeSlotUi,
+    currentWeekType: PtkCurrentWeekType
+) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        WeekHalfBlock(title = "Верхняя", lessons = slot.upperLessons)
+        WeekHalfBlock(
+            title = "Верхняя",
+            lessons = slot.upperLessons,
+            weekType = PtkWeekType.UPPER,
+            currentWeekType = currentWeekType
+        )
         DashedHorizontalDivider()
-        WeekHalfBlock(title = "Нижняя", lessons = slot.lowerLessons)
+        WeekHalfBlock(
+            title = "Нижняя",
+            lessons = slot.lowerLessons,
+            weekType = PtkWeekType.LOWER,
+            currentWeekType = currentWeekType
+        )
     }
 }
 
 @Composable
 private fun WeekHalfBlock(
     title: String,
-    lessons: List<ScheduleLessonItem>
+    lessons: List<ScheduleLessonItem>,
+    weekType: PtkWeekType,
+    currentWeekType: PtkCurrentWeekType
 ) {
+    val isCurrent = weekTypeMatchesCurrent(weekType, currentWeekType)
+    val titleAlpha = if (isCurrent) 1f else 0.45f
+
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             text = title,
             style = MaterialTheme.typography.labelLarge,
-            color = NovsuBlue,
+            color = NovsuBlue.copy(alpha = titleAlpha),
             fontFamily = MainFontFamily
         )
         if (lessons.isEmpty()) {
             Text(
                 text = "-",
                 style = MaterialTheme.typography.bodyMedium,
-                color = InkSecondary
+                color = InkSecondary.copy(alpha = titleAlpha)
             )
         } else {
-            LessonTextBlock(lessons = lessons)
+            LessonTextBlock(
+                lessons = lessons,
+                currentWeekType = currentWeekType
+            )
         }
     }
 }
 
 @Composable
-private fun LessonTextBlock(lessons: List<ScheduleLessonItem>) {
+private fun LessonTextBlock(
+    lessons: List<ScheduleLessonItem>,
+    currentWeekType: PtkCurrentWeekType
+) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         lessons.forEachIndexed { index, lesson ->
+            val isCurrent = weekTypeMatchesCurrent(lesson.weekType, currentWeekType)
+            val textAlpha = if (isCurrent) 1f else 0.45f
             val mainText = lesson.subject.ifBlank { lesson.rawText }
             val details = listOfNotNull(
                 lesson.teacher?.takeIf { it.isNotBlank() },
@@ -619,14 +788,14 @@ private fun LessonTextBlock(lessons: List<ScheduleLessonItem>) {
                 Text(
                     text = mainText,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = InkPrimary,
+                    color = InkPrimary.copy(alpha = textAlpha),
                     fontWeight = FontWeight.SemiBold
                 )
                 if (details.isNotBlank()) {
                     Text(
                         text = details,
                         style = MaterialTheme.typography.bodySmall,
-                        color = InkSecondary
+                        color = InkSecondary.copy(alpha = textAlpha)
                     )
                 }
             }
@@ -634,6 +803,21 @@ private fun LessonTextBlock(lessons: List<ScheduleLessonItem>) {
             if (index < lessons.lastIndex) {
                 HorizontalDivider(thickness = 0.8.dp, color = BorderSubtle.copy(alpha = 0.9f))
             }
+        }
+    }
+}
+
+private fun weekTypeMatchesCurrent(
+    lessonWeekType: PtkWeekType,
+    currentWeekType: PtkCurrentWeekType
+): Boolean {
+    return when (currentWeekType) {
+        PtkCurrentWeekType.UNKNOWN -> true
+        PtkCurrentWeekType.UPPER -> {
+            lessonWeekType == PtkWeekType.UPPER || lessonWeekType == PtkWeekType.ALL
+        }
+        PtkCurrentWeekType.LOWER -> {
+            lessonWeekType == PtkWeekType.LOWER || lessonWeekType == PtkWeekType.ALL
         }
     }
 }
@@ -1029,6 +1213,13 @@ private fun buildTimeSlots(lessons: List<ScheduleLessonItem>): List<TimeSlotUi> 
 }
 
 private fun filterLessons(state: ScheduleUiState): List<ScheduleLessonItem> {
+    if (state.mode == ScheduleMode.BY_DATE) {
+        return state.lessons
+            .asSequence()
+            .sortedBy { lessonSortKey(it.timeRange) }
+            .toList()
+    }
+
     val selectedDay = state.selectedDay ?: return emptyList()
     return state.lessons
         .asSequence()
@@ -1065,6 +1256,11 @@ private fun splitTimeRange(timeRange: String): Pair<String, String> {
     return start to end
 }
 
+private fun formatDateTitle(date: LocalDate): String {
+    return DateTimeFormatter.ofPattern("dd.MM.yyyy", Locale.forLanguageTag("ru"))
+        .format(date)
+}
+
 private fun weekTypeLabel(type: PtkCurrentWeekType): String = when (type) {
     PtkCurrentWeekType.UPPER -> "верхняя"
     PtkCurrentWeekType.LOWER -> "нижняя"
@@ -1076,3 +1272,12 @@ private fun formatInstant(value: Instant): String {
         .withZone(ZoneId.systemDefault())
         .format(value)
 }
+
+
+
+
+
+
+
+
+
