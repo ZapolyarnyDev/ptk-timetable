@@ -130,33 +130,74 @@ private fun ScheduleScreenContent(
     onSelectWeekFilter: (ScheduleWeekFilter) -> Unit
 ) {
     Scaffold(containerColor = White) { padding ->
-        when (state.step) {
-            ScheduleStep.COURSE_SELECTION -> CourseSelectionState(
-                padding = padding,
-                state = state,
-                onRefresh = onRefresh,
-                onRetry = onRetry,
-                onCourseSelect = onCourseSelect
-            )
+        Box(modifier = Modifier.fillMaxSize()) {
+            when (state.step) {
+                ScheduleStep.COURSE_SELECTION -> CourseSelectionState(
+                    padding = padding,
+                    state = state,
+                    onRefresh = onRefresh,
+                    onRetry = onRetry,
+                    onCourseSelect = onCourseSelect
+                )
 
-            ScheduleStep.GROUP_SELECTION -> GroupSelectionState(
-                padding = padding,
-                state = state,
-                onRefresh = onRefresh,
-                onBackToCourses = onBackToCourses,
-                onGroupSelect = onGroupSelect
-            )
+                ScheduleStep.GROUP_SELECTION -> GroupSelectionState(
+                    padding = padding,
+                    state = state,
+                    onRefresh = onRefresh,
+                    onBackToCourses = onBackToCourses,
+                    onGroupSelect = onGroupSelect
+                )
 
-            ScheduleStep.SCHEDULE -> ScheduleState(
-                padding = padding,
-                state = state,
-                onRefresh = onRefresh,
-                onBackToGroups = onBackToGroups,
-                onSelectDay = onSelectDay,
-                onPreviousDay = onPreviousDay,
-                onNextDay = onNextDay,
-                onSelectWeekFilter = onSelectWeekFilter
-            )
+                ScheduleStep.SCHEDULE -> ScheduleState(
+                    padding = padding,
+                    state = state,
+                    onRefresh = onRefresh,
+                    onBackToGroups = onBackToGroups,
+                    onSelectDay = onSelectDay,
+                    onPreviousDay = onPreviousDay,
+                    onNextDay = onNextDay,
+                    onSelectWeekFilter = onSelectWeekFilter
+                )
+            }
+
+            if (state.isLoading) {
+                LoadingOverlay()
+            }
+        }
+    }
+}
+
+@Composable
+private fun LoadingOverlay() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(InkPrimary.copy(alpha = 0.22f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Surface(
+            color = White,
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(0.8.dp, BorderSubtle),
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(22.dp),
+                    color = NovsuBlue,
+                    strokeWidth = 2.4.dp
+                )
+                Text(
+                    text = "Загружаем данные...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = InkPrimary
+                )
+            }
         }
     }
 }
