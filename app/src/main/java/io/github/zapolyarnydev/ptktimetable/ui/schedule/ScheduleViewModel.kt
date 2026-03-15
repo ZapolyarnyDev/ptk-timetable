@@ -17,11 +17,48 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.DayOfWeek
 import java.time.Instant
+import java.time.LocalDate
 import java.util.Locale
 
+enum class ScheduleStep {
+    COURSE_SELECTION,
+    GROUP_SELECTION,
+    SCHEDULE
+}
+
+enum class ScheduleDay(
+    val title: String,
+    val shortTitle: String,
+    val order: Int
+) {
+    MONDAY("Понедельник", "Пн", 1),
+    TUESDAY("Вторник", "Вт", 2),
+    WEDNESDAY("Среда", "Ср", 3),
+    THURSDAY("Четверг", "Чт", 4),
+    FRIDAY("Пятница", "Пт", 5),
+    SATURDAY("Суббота", "Сб", 6),
+    SUNDAY("Воскресенье", "Вс", 7),
+    UNKNOWN("Другое", "?", 99)
+}
+
+enum class ScheduleWeekFilter(
+    val title: String
+) {
+    ALL("Обе"),
+    UPPER("Верхняя"),
+    LOWER("Нижняя")
+}
+
+data class CourseItem(
+    val course: Int,
+    val title: String
+)
+
 data class ScheduleLessonItem(
-    val dayOfWeek: String,
+    val day: ScheduleDay,
+    val dayLabel: String,
     val timeRange: String,
     val weekType: PtkWeekType,
     val subject: String,
@@ -32,9 +69,16 @@ data class ScheduleLessonItem(
 
 data class ScheduleUiState(
     val isLoading: Boolean = false,
+    val step: ScheduleStep = ScheduleStep.COURSE_SELECTION,
     val groups: List<PtkGroupInfo> = emptyList(),
+    val courses: List<CourseItem> = emptyList(),
+    val selectedCourse: CourseItem? = null,
+    val courseGroups: List<PtkGroupInfo> = emptyList(),
     val selectedGroup: PtkGroupInfo? = null,
     val lessons: List<ScheduleLessonItem> = emptyList(),
+    val availableDays: List<ScheduleDay> = emptyList(),
+    val selectedDay: ScheduleDay? = null,
+    val weekFilter: ScheduleWeekFilter = ScheduleWeekFilter.ALL,
     val currentWeekType: PtkCurrentWeekType = PtkCurrentWeekType.UNKNOWN,
     val groupsUpdatedAt: Instant? = null,
     val scheduleUpdatedAt: Instant? = null,
@@ -45,77 +89,161 @@ class ScheduleViewModel(
     private val repository: ScheduleRepository,
     private val preferencesStore: UserPreferencesStore,
     private val lessonTextNormalizer: LessonTextNormalizer = LessonTextNormalizer(),
-    private val nowProvider: () -> Instant = { Instant.now() }
+    private val nowProvider: () -> Instant = { Instant.now() },
+    private val todayProvider: () -> LocalDate = { LocalDate.now() }
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ScheduleUiState(isLoading = true))
     val state: StateFlow<ScheduleUiState> = _state.asStateFlow()
 
     init {
-        loadGroups(restoreLastSelection = true)
+        loadCatalog(preserveCourseSelection = false)
     }
 
     fun loadGroups() {
-        loadGroups(restoreLastSelection = true)
+        loadCatalog(preserveCourseSelection = true)
     }
 
     fun refreshCurrent() {
-        val selected = state.value.selectedGroup
-        if (selected == null) {
-            loadGroups(restoreLastSelection = true)
+        val current = state.value
+        val selectedGroup = current.selectedGroup
+        if (selectedGroup != null) {
+            openGroupInternal(
+                group = selectedGroup,
+                saveAsLastSelected = false,
+                preserveUiSelection = true
+            )
         } else {
-            openGroupInternal(selected, saveAsLastSelected = false)
+            loadCatalog(preserveCourseSelection = true)
+        }
+    }
+
+    fun selectCourse(course: CourseItem) {
+        val groups = state.value.groups
+            .filter { it.course == course.course }
+            .sortedBy { it.groupName }
+        _state.update {
+            it.copy(
+                step = ScheduleStep.GROUP_SELECTION,
+                selectedCourse = course,
+                courseGroups = groups,
+                selectedGroup = null,
+                lessons = emptyList(),
+                availableDays = emptyList(),
+                selectedDay = null,
+                errorMessage = null
+            )
         }
     }
 
     fun openGroup(group: PtkGroupInfo) {
-        openGroupInternal(group, saveAsLastSelected = true)
+        openGroupInternal(group, saveAsLastSelected = true, preserveUiSelection = false)
+    }
+
+    fun backToCourses() {
+        _state.update {
+            it.copy(
+                step = ScheduleStep.COURSE_SELECTION,
+                selectedCourse = null,
+                courseGroups = emptyList(),
+                selectedGroup = null,
+                lessons = emptyList(),
+                availableDays = emptyList(),
+                selectedDay = null,
+                errorMessage = null
+            )
+        }
     }
 
     fun backToGroups() {
-        _state.update { it.copy(selectedGroup = null, lessons = emptyList(), errorMessage = null) }
+        _state.update {
+            it.copy(
+                step = ScheduleStep.GROUP_SELECTION,
+                selectedGroup = null,
+                lessons = emptyList(),
+                availableDays = emptyList(),
+                selectedDay = null,
+                errorMessage = null
+            )
+        }
     }
 
-    private fun loadGroups(restoreLastSelection: Boolean) {
+    fun selectDay(day: ScheduleDay) {
+        _state.update { it.copy(selectedDay = day, errorMessage = null) }
+    }
+
+    fun nextDay() {
+        shiftDay(by = 1)
+    }
+
+    fun previousDay() {
+        shiftDay(by = -1)
+    }
+
+    fun selectWeekFilter(filter: ScheduleWeekFilter) {
+        _state.update { it.copy(weekFilter = filter, errorMessage = null) }
+    }
+
+    private fun shiftDay(by: Int) {
+        val current = state.value
+        val days = current.availableDays
+        if (days.isEmpty()) return
+        val selected = current.selectedDay ?: days.first()
+        val index = days.indexOf(selected).takeIf { it >= 0 } ?: 0
+        val nextIndex = (index + by).coerceIn(0, days.lastIndex)
+        _state.update { it.copy(selectedDay = days[nextIndex]) }
+    }
+
+    private fun loadCatalog(preserveCourseSelection: Boolean) {
+        val previous = state.value
         viewModelScope.launch(Dispatchers.IO) {
-            _state.update {
-                it.copy(
-                    isLoading = true,
-                    errorMessage = null,
-                    selectedGroup = null,
-                    lessons = emptyList()
-                )
-            }
+            _state.update { it.copy(isLoading = true, errorMessage = null) }
 
             runCatching {
                 val groups = repository.getGroups()
                     .sortedWith(compareBy<PtkGroupInfo> { it.course }.thenBy { it.groupName })
                 val currentWeekType = repository.getCurrentWeekType()
-                val lastSelected = if (restoreLastSelection) {
-                    preferencesStore.getLastSelectedGroupName()
+                Pair(groups, currentWeekType)
+            }.onSuccess { (groups, currentWeekType) ->
+                val courses = buildCourseItems(groups)
+                val selectedCourse = if (preserveCourseSelection) {
+                    val prevCourse = previous.selectedCourse?.course
+                    courses.firstOrNull { it.course == prevCourse }
                 } else {
                     null
                 }
-                Triple(groups, currentWeekType, lastSelected)
-            }.onSuccess { (groups, weekType, lastSelectedGroupName) ->
+                val courseGroups = selectedCourse?.let { selected ->
+                    groups.filter { it.course == selected.course }.sortedBy { it.groupName }
+                }.orEmpty()
+
                 _state.update {
                     it.copy(
                         isLoading = false,
+                        step = if (selectedCourse != null) {
+                            ScheduleStep.GROUP_SELECTION
+                        } else {
+                            ScheduleStep.COURSE_SELECTION
+                        },
                         groups = groups,
-                        currentWeekType = weekType,
-                        groupsUpdatedAt = nowProvider()
+                        courses = courses,
+                        selectedCourse = selectedCourse,
+                        courseGroups = courseGroups,
+                        selectedGroup = null,
+                        lessons = emptyList(),
+                        availableDays = emptyList(),
+                        selectedDay = null,
+                        weekFilter = defaultWeekFilter(currentWeekType),
+                        currentWeekType = currentWeekType,
+                        groupsUpdatedAt = nowProvider(),
+                        errorMessage = null
                     )
-                }
-
-                if (!lastSelectedGroupName.isNullOrBlank()) {
-                    val restoredGroup = groups.firstOrNull { sameGroup(it.groupName, lastSelectedGroupName) }
-                    if (restoredGroup != null) {
-                        openGroupInternal(restoredGroup, saveAsLastSelected = false)
-                    }
                 }
             }.onFailure { error ->
                 _state.update {
-                    it.copy(isLoading = false, errorMessage = error.message ?: "Failed to load groups")
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = error.message ?: "Не удалось загрузить список групп"
+                    )
                 }
             }
         }
@@ -123,10 +251,19 @@ class ScheduleViewModel(
 
     private fun openGroupInternal(
         group: PtkGroupInfo,
-        saveAsLastSelected: Boolean
+        saveAsLastSelected: Boolean,
+        preserveUiSelection: Boolean
     ) {
+        val beforeLoading = state.value
         viewModelScope.launch(Dispatchers.IO) {
-            _state.update { it.copy(isLoading = true, errorMessage = null, selectedGroup = group) }
+            _state.update {
+                it.copy(
+                    isLoading = true,
+                    step = ScheduleStep.SCHEDULE,
+                    selectedGroup = group,
+                    errorMessage = null
+                )
+            }
 
             runCatching {
                 if (saveAsLastSelected) {
@@ -135,9 +272,11 @@ class ScheduleViewModel(
 
                 repository.getScheduleForGroup(group.groupName)
                     .map { raw ->
+                        val day = parseDay(raw.dayOfWeek)
                         val normalized = lessonTextNormalizer.normalize(raw.rawText)
                         ScheduleLessonItem(
-                            dayOfWeek = raw.dayOfWeek,
+                            day = day,
+                            dayLabel = day.title,
                             timeRange = raw.timeRange,
                             weekType = raw.weekType,
                             subject = normalized.subject,
@@ -147,29 +286,103 @@ class ScheduleViewModel(
                         )
                     }
             }.onSuccess { lessons ->
+                val availableDays = lessons.map { it.day }
+                    .distinct()
+                    .sortedBy { it.order }
+
+                val selectedDay = resolveSelectedDay(
+                    preserveUiSelection = preserveUiSelection,
+                    previousSelectedDay = beforeLoading.selectedDay,
+                    availableDays = availableDays
+                )
+                val weekFilter = if (preserveUiSelection) {
+                    beforeLoading.weekFilter
+                } else {
+                    defaultWeekFilter(beforeLoading.currentWeekType)
+                }
+
                 _state.update {
                     it.copy(
                         isLoading = false,
+                        step = ScheduleStep.SCHEDULE,
                         selectedGroup = group,
                         lessons = lessons,
-                        scheduleUpdatedAt = nowProvider()
+                        availableDays = availableDays,
+                        selectedDay = selectedDay,
+                        weekFilter = weekFilter,
+                        scheduleUpdatedAt = nowProvider(),
+                        errorMessage = null
                     )
                 }
             }.onFailure { error ->
                 _state.update {
                     it.copy(
                         isLoading = false,
+                        step = ScheduleStep.SCHEDULE,
                         selectedGroup = group,
-                        errorMessage = error.message ?: "Failed to load schedule",
-                        lessons = emptyList()
+                        lessons = emptyList(),
+                        availableDays = emptyList(),
+                        selectedDay = null,
+                        errorMessage = error.message ?: "Не удалось загрузить расписание"
                     )
                 }
             }
         }
     }
 
-    private fun sameGroup(left: String, right: String): Boolean {
-        return left.trim().lowercase(Locale.ROOT) == right.trim().lowercase(Locale.ROOT)
+    private fun buildCourseItems(groups: List<PtkGroupInfo>): List<CourseItem> {
+        return groups
+            .groupBy { it.course }
+            .map { (course, items) ->
+                val title = items.firstOrNull()?.courseName?.takeIf { it.isNotBlank() } ?: "$course курс"
+                CourseItem(course = course, title = title)
+            }
+            .sortedBy { it.course }
+    }
+
+    private fun parseDay(rawDay: String): ScheduleDay {
+        val normalized = rawDay.lowercase(Locale.ROOT).replace('ё', 'е').trim()
+        return when {
+            normalized.contains("понедельник") || normalized == "пн" -> ScheduleDay.MONDAY
+            normalized.contains("вторник") || normalized == "вт" -> ScheduleDay.TUESDAY
+            normalized.contains("среда") || normalized == "ср" -> ScheduleDay.WEDNESDAY
+            normalized.contains("четверг") || normalized == "чт" -> ScheduleDay.THURSDAY
+            normalized.contains("пятница") || normalized == "пт" -> ScheduleDay.FRIDAY
+            normalized.contains("суббота") || normalized == "сб" -> ScheduleDay.SATURDAY
+            normalized.contains("воскресенье") || normalized == "вс" -> ScheduleDay.SUNDAY
+            else -> ScheduleDay.UNKNOWN
+        }
+    }
+
+    private fun resolveSelectedDay(
+        preserveUiSelection: Boolean,
+        previousSelectedDay: ScheduleDay?,
+        availableDays: List<ScheduleDay>
+    ): ScheduleDay? {
+        if (availableDays.isEmpty()) return null
+        if (preserveUiSelection && previousSelectedDay != null && previousSelectedDay in availableDays) {
+            return previousSelectedDay
+        }
+
+        val today = when (todayProvider().dayOfWeek) {
+            DayOfWeek.MONDAY -> ScheduleDay.MONDAY
+            DayOfWeek.TUESDAY -> ScheduleDay.TUESDAY
+            DayOfWeek.WEDNESDAY -> ScheduleDay.WEDNESDAY
+            DayOfWeek.THURSDAY -> ScheduleDay.THURSDAY
+            DayOfWeek.FRIDAY -> ScheduleDay.FRIDAY
+            DayOfWeek.SATURDAY -> ScheduleDay.SATURDAY
+            DayOfWeek.SUNDAY -> ScheduleDay.SUNDAY
+        }
+
+        return availableDays.firstOrNull { it == today } ?: availableDays.first()
+    }
+
+    private fun defaultWeekFilter(currentWeekType: PtkCurrentWeekType): ScheduleWeekFilter {
+        return when (currentWeekType) {
+            PtkCurrentWeekType.UPPER -> ScheduleWeekFilter.UPPER
+            PtkCurrentWeekType.LOWER -> ScheduleWeekFilter.LOWER
+            PtkCurrentWeekType.UNKNOWN -> ScheduleWeekFilter.ALL
+        }
     }
 }
 

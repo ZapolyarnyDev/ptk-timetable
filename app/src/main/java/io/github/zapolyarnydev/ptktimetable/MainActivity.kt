@@ -20,8 +20,14 @@ class MainActivity : ComponentActivity() {
                 state = vm.state,
                 onRetry = vm::refreshCurrent,
                 onRefresh = vm::refreshCurrent,
-                onGroupClick = vm::openGroup,
-                onBack = vm::backToGroups
+                onCourseSelect = vm::selectCourse,
+                onGroupSelect = vm::openGroup,
+                onBackToCourses = vm::backToCourses,
+                onBackToGroups = vm::backToGroups,
+                onSelectDay = vm::selectDay,
+                onPreviousDay = vm::previousDay,
+                onNextDay = vm::nextDay,
+                onSelectWeekFilter = vm::selectWeekFilter
             )
         }
     }
