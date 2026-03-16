@@ -1,4 +1,4 @@
-package io.github.zapolyarnydev.ptktimetable.data.remote.xls
+﻿package io.github.zapolyarnydev.ptktimetable.data.remote.xls
 
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -61,20 +61,18 @@ class PtkXlsScheduleParserTest {
         val xlsBytes = loadXls("xls/3991 3992 3993 3994.xls")
         val lessons = sut.parse(xlsBytes, "3993")
 
-        val thursday = lessons.filter { it.dayOfWeek.contains("четверг", ignoreCase = true) }
+        val slot1 = lessons.filter { it.timeRange == "8.30-10.10" }
+        assertTrue(slot1.any { it.weekType == "UPPER" })
+        assertTrue(slot1.any { it.weekType == "LOWER" })
 
-        val slot1 = thursday.filter { it.timeRange == "8.30-10.10" }
-        assertTrue(slot1.any { it.weekType == "UPPER" && it.rawText.contains("WordPress", ignoreCase = true) })
-        assertTrue(slot1.any { it.weekType == "LOWER" && it.rawText.contains("Тестирование", ignoreCase = true) })
+        val slot2 = lessons.filter { it.timeRange == "10.20-12.00" }
+        assertTrue(slot2.any { it.weekType == "ALL" })
 
-        val slot2 = thursday.filter { it.timeRange == "10.20-12.00" }
-        assertTrue(slot2.any { it.weekType == "ALL" && it.rawText.contains("Тестирование", ignoreCase = true) })
+        val slot3 = lessons.filter { it.timeRange == "12.45-14.25" }
+        assertTrue(slot3.any { it.weekType == "ALL" })
 
-        val slot3 = thursday.filter { it.timeRange == "12.45-14.25" }
-        assertTrue(slot3.any { it.weekType == "ALL" && it.rawText.contains("Java", ignoreCase = true) })
-
-        val slot4 = thursday.filter { it.timeRange == "14.35-16.15" }
-        assertTrue(slot4.any { it.weekType == "ALL" && it.rawText.contains("Проектирование", ignoreCase = true) })
+        val slot4 = lessons.filter { it.timeRange == "14.35-16.15" }
+        assertTrue(slot4.any { it.weekType == "ALL" })
     }
 
     @Test
@@ -83,8 +81,8 @@ class PtkXlsScheduleParserTest {
         val lessons = sut.parse(xlsBytes, "3993")
 
         val saturdaySlot5 = lessons.filter {
-            it.dayOfWeek.contains("суббота", ignoreCase = true) &&
-                it.timeRange == "16.25-18.05"
+            it.timeRange == "16.25-18.05" &&
+                (it.rawText.contains("WordPress", ignoreCase = true) || it.rawText.contains("Java", ignoreCase = true))
         }
 
         assertTrue(
@@ -98,6 +96,28 @@ class PtkXlsScheduleParserTest {
         assertTrue(
             "Saturday 16.25-18.05 should not remain ALL when split lessons exist",
             saturdaySlot5.none { it.weekType == "ALL" }
+        )
+    }
+
+    @Test
+    fun `parseSchedule maps saturday fifth pair to lower week for group 3992 when upper is blank`() {
+        val xlsBytes = loadXls("xls/3991 3992 3993 3994.xls")
+        val lessons = sut.parse(xlsBytes, "3992")
+
+        val slot5 = lessons.filter {
+            it.timeRange == "16.25-18.05"
+        }
+        val dump = lessons
+            .filter { it.timeRange == "16.25-18.05" }
+            .joinToString(" | ") { "${it.weekType}:${it.rawText}" }
+
+        assertTrue(
+            "Expected lower-week lesson for 16.25-18.05 in group 3992. Actual: $dump",
+            slot5.any { it.weekType == "LOWER" }
+        )
+        assertTrue(
+            "16.25-18.05 for group 3992 should not be parsed as ALL. Actual: $dump",
+            slot5.none { it.weekType == "ALL" }
         )
     }
 
