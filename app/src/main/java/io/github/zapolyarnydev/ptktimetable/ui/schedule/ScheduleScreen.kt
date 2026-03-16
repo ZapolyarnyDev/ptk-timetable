@@ -486,6 +486,7 @@ private fun ScheduleState(
                     mode = state.mode,
                     selectedDayTitle = state.selectedDay?.title ?: "День не выбран",
                     selectedDate = state.selectedDate,
+                    currentWeekType = state.currentWeekType,
                     dayIndex = dayIndex,
                     totalDays = state.availableDays.size,
                     canGoPrev = canGoPrev,
@@ -527,6 +528,7 @@ private fun ScheduleState(
                     } else {
                         state.currentWeekType
                     },
+                    weekFilter = state.weekFilter,
                     date = state.selectedDate,
                     isDateMode = state.mode == ScheduleMode.BY_DATE,
                     noteMap = noteTextMap,
@@ -630,6 +632,7 @@ private fun DayNavigatorPanel(
     mode: ScheduleMode,
     selectedDayTitle: String,
     selectedDate: LocalDate,
+    currentWeekType: PtkCurrentWeekType,
     dayIndex: Int,
     totalDays: Int,
     canGoPrev: Boolean,
@@ -725,6 +728,15 @@ private fun DayNavigatorPanel(
                     )
                 }
             }
+            if (isWeekMismatchWarningNeeded(weekFilter, currentWeekType)) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Недели не совпадают: текущая ${weekTypeLabel(currentWeekType)}, " +
+                        "показано расписание для ${weekFilter.title.lowercase(Locale.forLanguageTag("ru"))}.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
         } else {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -789,6 +801,7 @@ private fun DayNavigatorPanel(
 private fun LessonTableCard(
     timeSlots: List<TimeSlotUi>,
     currentWeekType: PtkCurrentWeekType,
+    weekFilter: ScheduleWeekFilter,
     date: LocalDate,
     isDateMode: Boolean,
     noteMap: Map<String, ScheduleNoteItem>,
@@ -801,6 +814,7 @@ private fun LessonTableCard(
             LessonTableRow(
                 slot = slot,
                 currentWeekType = currentWeekType,
+                weekFilter = weekFilter,
                 date = date,
                 isDateMode = isDateMode,
                 noteMap = noteMap,
@@ -819,6 +833,7 @@ private fun LessonTableCard(
 private fun LessonTableRow(
     slot: TimeSlotUi,
     currentWeekType: PtkCurrentWeekType,
+    weekFilter: ScheduleWeekFilter,
     date: LocalDate,
     isDateMode: Boolean,
     noteMap: Map<String, ScheduleNoteItem>,
@@ -884,6 +899,7 @@ private fun LessonTableRow(
                 SplitWeekCell(
                     slot = slot,
                     currentWeekType = currentWeekType,
+                    weekFilter = weekFilter,
                     date = date,
                     isDateMode = isDateMode,
                     noteMap = noteMap,
@@ -911,6 +927,7 @@ private fun LessonTableRow(
 private fun SplitWeekCell(
     slot: TimeSlotUi,
     currentWeekType: PtkCurrentWeekType,
+    weekFilter: ScheduleWeekFilter,
     date: LocalDate,
     isDateMode: Boolean,
     noteMap: Map<String, ScheduleNoteItem>,
@@ -919,31 +936,63 @@ private fun SplitWeekCell(
     onAddOrEditReminder: (ScheduleLessonItem) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        WeekHalfBlock(
-            title = "Верхняя",
-            lessons = slot.upperLessons,
-            weekType = PtkWeekType.UPPER,
-            currentWeekType = currentWeekType,
-            date = date,
-            isDateMode = isDateMode,
-            noteMap = noteMap,
-            reminderMap = reminderMap,
-            onAddOrEditNote = onAddOrEditNote,
-            onAddOrEditReminder = onAddOrEditReminder
-        )
-        DashedHorizontalDivider()
-        WeekHalfBlock(
-            title = "Нижняя",
-            lessons = slot.lowerLessons,
-            weekType = PtkWeekType.LOWER,
-            currentWeekType = currentWeekType,
-            date = date,
-            isDateMode = isDateMode,
-            noteMap = noteMap,
-            reminderMap = reminderMap,
-            onAddOrEditNote = onAddOrEditNote,
-            onAddOrEditReminder = onAddOrEditReminder
-        )
+        when {
+            !isDateMode && weekFilter == ScheduleWeekFilter.UPPER -> {
+                WeekHalfBlock(
+                    title = "Верхняя",
+                    lessons = slot.upperLessons,
+                    weekType = PtkWeekType.UPPER,
+                    currentWeekType = currentWeekType,
+                    date = date,
+                    isDateMode = isDateMode,
+                    noteMap = noteMap,
+                    reminderMap = reminderMap,
+                    onAddOrEditNote = onAddOrEditNote,
+                    onAddOrEditReminder = onAddOrEditReminder
+                )
+            }
+            !isDateMode && weekFilter == ScheduleWeekFilter.LOWER -> {
+                WeekHalfBlock(
+                    title = "Нижняя",
+                    lessons = slot.lowerLessons,
+                    weekType = PtkWeekType.LOWER,
+                    currentWeekType = currentWeekType,
+                    date = date,
+                    isDateMode = isDateMode,
+                    noteMap = noteMap,
+                    reminderMap = reminderMap,
+                    onAddOrEditNote = onAddOrEditNote,
+                    onAddOrEditReminder = onAddOrEditReminder
+                )
+            }
+            else -> {
+                WeekHalfBlock(
+                    title = "Верхняя",
+                    lessons = slot.upperLessons,
+                    weekType = PtkWeekType.UPPER,
+                    currentWeekType = currentWeekType,
+                    date = date,
+                    isDateMode = isDateMode,
+                    noteMap = noteMap,
+                    reminderMap = reminderMap,
+                    onAddOrEditNote = onAddOrEditNote,
+                    onAddOrEditReminder = onAddOrEditReminder
+                )
+                DashedHorizontalDivider()
+                WeekHalfBlock(
+                    title = "Нижняя",
+                    lessons = slot.lowerLessons,
+                    weekType = PtkWeekType.LOWER,
+                    currentWeekType = currentWeekType,
+                    date = date,
+                    isDateMode = isDateMode,
+                    noteMap = noteMap,
+                    reminderMap = reminderMap,
+                    onAddOrEditNote = onAddOrEditNote,
+                    onAddOrEditReminder = onAddOrEditReminder
+                )
+            }
+        }
     }
 }
 
@@ -1909,6 +1958,18 @@ private fun weekTypeLabel(type: PtkCurrentWeekType): String = when (type) {
     PtkCurrentWeekType.UPPER -> "верхняя"
     PtkCurrentWeekType.LOWER -> "нижняя"
     PtkCurrentWeekType.UNKNOWN -> "не определена"
+}
+
+private fun isWeekMismatchWarningNeeded(
+    selectedFilter: ScheduleWeekFilter,
+    currentWeekType: PtkCurrentWeekType
+): Boolean {
+    if (selectedFilter == ScheduleWeekFilter.ALL) return false
+    return when (currentWeekType) {
+        PtkCurrentWeekType.UNKNOWN -> false
+        PtkCurrentWeekType.UPPER -> selectedFilter == ScheduleWeekFilter.LOWER
+        PtkCurrentWeekType.LOWER -> selectedFilter == ScheduleWeekFilter.UPPER
+    }
 }
 
 private fun formatInstant(value: Instant): String {
