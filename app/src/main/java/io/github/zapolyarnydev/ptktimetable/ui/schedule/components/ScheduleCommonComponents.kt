@@ -10,6 +10,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -83,13 +84,18 @@ import io.github.zapolyarnydev.ptktimetable.data.model.PtkCurrentWeekType
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkGroupInfo
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkWeekType
 import io.github.zapolyarnydev.ptktimetable.ui.theme.BorderSubtle
+import io.github.zapolyarnydev.ptktimetable.ui.theme.BorderStrong
 import io.github.zapolyarnydev.ptktimetable.ui.theme.HeadingFontFamily
 import io.github.zapolyarnydev.ptktimetable.ui.theme.InkPrimary
+import io.github.zapolyarnydev.ptktimetable.ui.theme.InkMuted
 import io.github.zapolyarnydev.ptktimetable.ui.theme.InkSecondary
 import io.github.zapolyarnydev.ptktimetable.ui.theme.MainFontFamily
 import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlue
+import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlueDark
 import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlueSoft
+import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlueSoftStrong
 import io.github.zapolyarnydev.ptktimetable.ui.theme.SurfaceMuted
+import io.github.zapolyarnydev.ptktimetable.ui.theme.SurfaceBlueTint
 import io.github.zapolyarnydev.ptktimetable.ui.theme.White
 import kotlinx.coroutines.flow.StateFlow
 import java.time.Instant
@@ -105,15 +111,22 @@ internal fun HeaderPanel(
     icon: ImageVector
 ) {
     SectionCard {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
-                    .size(38.dp)
+                    .size(42.dp)
                     .clip(CircleShape)
-                    .background(NovsuBlueSoft),
+                    .background(NovsuBlueSoftStrong)
+                    .drawBehind {
+                        drawCircle(
+                            color = NovsuBlue.copy(alpha = 0.18f),
+                            radius = size.minDimension / 2f,
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.dp.toPx())
+                        )
+                    },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(imageVector = icon, contentDescription = null, tint = NovsuBlue)
+                Icon(imageVector = icon, contentDescription = null, tint = NovsuBlueDark, modifier = Modifier.size(20.dp))
             }
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
@@ -147,8 +160,8 @@ internal fun SectionCard(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = White,
-        border = BorderStroke(0.8.dp, BorderSubtle),
-        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(0.9.dp, BorderSubtle),
+        shape = RoundedCornerShape(16.dp),
         tonalElevation = 0.dp,
         shadowElevation = 0.dp
     ) {
@@ -196,7 +209,7 @@ internal fun <T> SelectionListSection(
             text = title,
             style = MaterialTheme.typography.titleMedium,
             color = InkPrimary,
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
             fontFamily = HeadingFontFamily
         )
         HorizontalDivider(thickness = 0.8.dp, color = BorderSubtle)
@@ -226,18 +239,19 @@ internal fun SelectionRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .padding(horizontal = 14.dp, vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Box(
             modifier = Modifier
                 .size(38.dp)
-                .clip(CircleShape)
-                .background(NovsuBlueSoft),
+                .clip(RoundedCornerShape(12.dp))
+                .background(NovsuBlueSoft.copy(alpha = 0.7f))
+                .border(1.dp, BorderStrong, RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(imageVector = icon, contentDescription = null, tint = NovsuBlue, modifier = Modifier.size(20.dp))
+            Icon(imageVector = icon, contentDescription = null, tint = NovsuBlueDark, modifier = Modifier.size(18.dp))
         }
 
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -250,7 +264,7 @@ internal fun SelectionRow(
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = InkSecondary
+                color = InkMuted
             )
         }
 
@@ -297,17 +311,21 @@ internal fun PrimaryActionButton(
     text: String,
     onClick: () -> Unit,
     icon: ImageVector,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier
 ) {
     Button(
+        modifier = modifier,
         onClick = onClick,
         enabled = enabled,
-        colors = ButtonDefaults.buttonColors(containerColor = NovsuBlue, contentColor = White),
-        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
+        colors = ButtonDefaults.buttonColors(containerColor = NovsuBlueDark, contentColor = White),
+        shape = RoundedCornerShape(18.dp),
+        contentPadding = PaddingValues(horizontal = 17.dp, vertical = 11.dp),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp, disabledElevation = 0.dp)
     ) {
         Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(6.dp))
-        Text(text = text, fontFamily = MainFontFamily)
+        Text(text = text, style = MaterialTheme.typography.labelLarge, fontFamily = MainFontFamily)
     }
 }
 
@@ -315,16 +333,24 @@ internal fun PrimaryActionButton(
 internal fun OutlinedActionButton(
     text: String,
     onClick: () -> Unit,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier
 ) {
     OutlinedButton(
+        modifier = modifier,
         onClick = onClick,
         enabled = enabled,
-        border = BorderStroke(0.8.dp, NovsuBlue),
-        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp),
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = NovsuBlue)
+        border = BorderStroke(1.dp, BorderSubtle),
+        shape = RoundedCornerShape(18.dp),
+        contentPadding = PaddingValues(horizontal = 17.dp, vertical = 11.dp),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp, disabledElevation = 0.dp),
+        colors = ButtonDefaults.outlinedButtonColors(
+            contentColor = NovsuBlueDark,
+            containerColor = NovsuBlueSoft.copy(alpha = 0.55f),
+            disabledContentColor = InkMuted
+        )
     ) {
-        Text(text = text, fontFamily = MainFontFamily)
+        Text(text = text, style = MaterialTheme.typography.labelLarge, fontFamily = MainFontFamily)
     }
 }
 
@@ -336,16 +362,16 @@ internal fun NavArrowButton(
 ) {
     Surface(
         shape = RoundedCornerShape(12.dp),
-        color = if (enabled) NovsuBlueSoft else SurfaceMuted,
-        border = BorderStroke(0.8.dp, if (enabled) NovsuBlue else BorderSubtle),
+        color = White,
+        border = BorderStroke(1.dp, if (enabled) BorderStrong else BorderSubtle),
         tonalElevation = 0.dp,
         shadowElevation = 0.dp
     ) {
-        IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(40.dp)) {
+        IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(42.dp)) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (enabled) NovsuBlue else InkSecondary,
+                tint = if (enabled) NovsuBlueDark else InkSecondary,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -357,26 +383,40 @@ internal fun WeekChip(
     selected: Boolean,
     label: String,
     icon: ImageVector,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    containerColor: Color = White,
+    selectedContainerColor: Color = NovsuBlueSoftStrong,
+    labelColor: Color = InkSecondary,
+    selectedLabelColor: Color = InkPrimary,
+    iconColor: Color = InkSecondary,
+    selectedLeadingIconColor: Color = NovsuBlueDark,
+    borderColor: Color = BorderSubtle,
+    selectedBorderColor: Color = NovsuBlueDark
 ) {
     FilterChip(
         selected = selected,
         onClick = onClick,
-        label = { Text(label, fontFamily = MainFontFamily) },
+        label = {
+            Text(
+                label,
+                fontFamily = MainFontFamily,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
+            )
+        },
         leadingIcon = { Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(16.dp)) },
         border = FilterChipDefaults.filterChipBorder(
             enabled = true,
             selected = selected,
-            borderColor = BorderSubtle,
-            selectedBorderColor = NovsuBlue
+            borderColor = borderColor,
+            selectedBorderColor = selectedBorderColor
         ),
         colors = FilterChipDefaults.filterChipColors(
-            containerColor = White,
-            selectedContainerColor = NovsuBlueSoft,
-            selectedLabelColor = NovsuBlue,
-            labelColor = InkSecondary,
-            iconColor = InkSecondary,
-            selectedLeadingIconColor = NovsuBlue
+            containerColor = containerColor,
+            selectedContainerColor = selectedContainerColor,
+            selectedLabelColor = selectedLabelColor,
+            labelColor = labelColor,
+            iconColor = iconColor,
+            selectedLeadingIconColor = selectedLeadingIconColor
         ),
         elevation = FilterChipDefaults.filterChipElevation(0.dp, 0.dp, 0.dp, 0.dp, 0.dp, 0.dp)
     )

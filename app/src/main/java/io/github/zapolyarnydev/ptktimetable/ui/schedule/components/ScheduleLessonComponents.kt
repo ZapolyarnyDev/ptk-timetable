@@ -83,12 +83,16 @@ import io.github.zapolyarnydev.ptktimetable.data.model.PtkCurrentWeekType
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkGroupInfo
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkWeekType
 import io.github.zapolyarnydev.ptktimetable.ui.theme.BorderSubtle
+import io.github.zapolyarnydev.ptktimetable.ui.theme.BorderStrong
 import io.github.zapolyarnydev.ptktimetable.ui.theme.HeadingFontFamily
 import io.github.zapolyarnydev.ptktimetable.ui.theme.InkPrimary
+import io.github.zapolyarnydev.ptktimetable.ui.theme.InkMuted
 import io.github.zapolyarnydev.ptktimetable.ui.theme.InkSecondary
 import io.github.zapolyarnydev.ptktimetable.ui.theme.MainFontFamily
 import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlue
+import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlueDark
 import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlueSoft
+import io.github.zapolyarnydev.ptktimetable.ui.theme.SurfaceBlueTint
 import io.github.zapolyarnydev.ptktimetable.ui.theme.SurfaceMuted
 import io.github.zapolyarnydev.ptktimetable.ui.theme.White
 import kotlinx.coroutines.flow.StateFlow
@@ -149,12 +153,22 @@ internal fun LessonTableRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 78.dp)
-            .background(if (isCurrentSlot) NovsuBlueSoft.copy(alpha = 0.35f) else Color.Transparent)
+            .heightIn(min = 82.dp)
+            .background(if (isCurrentSlot) SurfaceBlueTint else Color.Transparent)
+            .drawBehind {
+                if (isCurrentSlot) {
+                    drawLine(
+                        color = NovsuBlueDark,
+                        start = Offset(0f, 0f),
+                        end = Offset(0f, size.height),
+                        strokeWidth = 3.dp.toPx()
+                    )
+                }
+            }
     ) {
         Column(
             modifier = Modifier
-                .width(96.dp)
+                .width(94.dp)
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
@@ -177,7 +191,7 @@ internal fun LessonTableRow(
                 Spacer(modifier = Modifier.width(timeIndent))
                 Text(
                     text = endTime,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.labelLarge,
                     color = InkPrimary,
                     fontFamily = HeadingFontFamily
                 )
@@ -187,8 +201,8 @@ internal fun LessonTableRow(
         Box(
             modifier = Modifier
                 .width(1.dp)
-                .heightIn(min = 78.dp)
-                .background(BorderSubtle)
+                .heightIn(min = 82.dp)
+                .background(BorderStrong)
         )
 
         Box(
@@ -311,20 +325,21 @@ internal fun WeekHalfBlock(
     onAddOrEditReminder: (ScheduleLessonItem) -> Unit
 ) {
     val isCurrent = weekTypeMatchesCurrent(weekType, currentWeekType)
-    val titleAlpha = if (isCurrent) 1f else 0.45f
+    val titleAlpha = if (isCurrent) 1f else 0.9f
 
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             text = title,
             style = MaterialTheme.typography.labelLarge,
             color = NovsuBlue.copy(alpha = titleAlpha),
-            fontFamily = MainFontFamily
+            fontFamily = MainFontFamily,
+            fontWeight = FontWeight.SemiBold
         )
         if (lessons.isEmpty()) {
             Text(
                 text = "-",
                 style = MaterialTheme.typography.bodyMedium,
-                color = InkSecondary.copy(alpha = titleAlpha)
+                color = InkMuted.copy(alpha = titleAlpha)
             )
         } else {
             LessonTextBlock(
@@ -355,7 +370,7 @@ internal fun LessonTextBlock(
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         lessons.forEachIndexed { index, lesson ->
             val isCurrent = weekTypeMatchesCurrent(lesson.weekType, currentWeekType)
-            val textAlpha = if (isCurrent) 1f else 0.45f
+            val textAlpha = if (isCurrent) 1f else 0.9f
             val note = noteMap[noteLessonKey(date, lesson.timeRange, lesson.weekType, lesson.subject, lesson.rawText)]
             val reminder = reminderMap[noteLessonKey(date, lesson.timeRange, lesson.weekType, lesson.subject, lesson.rawText)]
             val mainText = lesson.subject.ifBlank { lesson.rawText }
@@ -372,7 +387,7 @@ internal fun LessonTextBlock(
                 ) {
                     Text(
                         text = mainText,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodyLarge,
                         color = InkPrimary.copy(alpha = textAlpha),
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.weight(1f)
@@ -415,7 +430,7 @@ internal fun LessonTextBlock(
                     Text(
                         text = "Заметка: ${note.noteText}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = NovsuBlue.copy(alpha = textAlpha),
+                        color = NovsuBlueDark.copy(alpha = textAlpha),
                         maxLines = 2
                     )
                 }
@@ -428,7 +443,6 @@ internal fun LessonTextBlock(
     }
 }
 
-@Composable
 internal fun weekTypeMatchesCurrent(
     lessonWeekType: PtkWeekType,
     currentWeekType: PtkCurrentWeekType

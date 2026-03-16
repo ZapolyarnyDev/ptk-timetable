@@ -44,6 +44,8 @@ import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.Update
+import androidx.compose.material.icons.outlined.Badge
+import androidx.compose.material.icons.outlined.ViewModule
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -83,12 +85,15 @@ import io.github.zapolyarnydev.ptktimetable.data.model.PtkCurrentWeekType
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkGroupInfo
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkWeekType
 import io.github.zapolyarnydev.ptktimetable.ui.theme.BorderSubtle
+import io.github.zapolyarnydev.ptktimetable.ui.theme.BorderStrong
 import io.github.zapolyarnydev.ptktimetable.ui.theme.HeadingFontFamily
 import io.github.zapolyarnydev.ptktimetable.ui.theme.InkPrimary
 import io.github.zapolyarnydev.ptktimetable.ui.theme.InkSecondary
 import io.github.zapolyarnydev.ptktimetable.ui.theme.MainFontFamily
 import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlue
+import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlueDark
 import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlueSoft
+import io.github.zapolyarnydev.ptktimetable.ui.theme.SurfaceBlueTint
 import io.github.zapolyarnydev.ptktimetable.ui.theme.SurfaceMuted
 import io.github.zapolyarnydev.ptktimetable.ui.theme.White
 import kotlinx.coroutines.flow.StateFlow
@@ -226,13 +231,13 @@ private fun LoadingOverlay() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(InkPrimary.copy(alpha = 0.22f)),
+            .background(InkPrimary.copy(alpha = 0.26f)),
         contentAlignment = Alignment.Center
     ) {
         Surface(
-            color = White,
+            color = SurfaceBlueTint,
             shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(0.8.dp, BorderSubtle),
+            border = BorderStroke(1.dp, BorderStrong),
             tonalElevation = 0.dp,
             shadowElevation = 0.dp
         ) {
@@ -248,7 +253,7 @@ private fun LoadingOverlay() {
                 )
                 Text(
                     text = "Загружаем данные...",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyLarge,
                     color = InkPrimary
                 )
             }
@@ -291,7 +296,12 @@ private fun CourseSelectionState(
                 }
                 Spacer(Modifier.height(10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    PrimaryActionButton(text = "Обновить", icon = Icons.Outlined.Refresh, onClick = onRefresh)
+                    PrimaryActionButton(
+                        text = "Обновить",
+                        icon = Icons.Outlined.Refresh,
+                        onClick = onRefresh,
+                        modifier = Modifier.weight(1f)
+                    )
                     if (state.isLoading) InlineLoading()
                 }
                 state.errorMessage?.let {
@@ -312,7 +322,7 @@ private fun CourseSelectionState(
                 SelectionListSection(
                     title = "Курсы",
                     items = state.courses,
-                    icon = { Icons.Outlined.School },
+                    icon = { Icons.Outlined.ViewModule },
                     titleText = { it.title },
                     subtitleText = { "Курс №${it.course}" },
                     onClick = onCourseSelect
@@ -341,8 +351,17 @@ private fun GroupSelectionState(
         item {
             InfoPanel {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedActionButton(text = "К курсам", onClick = onBackToCourses)
-                    PrimaryActionButton(text = "Обновить", icon = Icons.Outlined.Refresh, onClick = onRefresh)
+                    OutlinedActionButton(
+                        text = "К курсам",
+                        onClick = onBackToCourses,
+                        modifier = Modifier.weight(1f)
+                    )
+                    PrimaryActionButton(
+                        text = "Обновить",
+                        icon = Icons.Outlined.Refresh,
+                        onClick = onRefresh,
+                        modifier = Modifier.weight(1f)
+                    )
                     if (state.isLoading) InlineLoading()
                 }
                 Spacer(Modifier.height(10.dp))
@@ -363,7 +382,7 @@ private fun GroupSelectionState(
                 SelectionListSection(
                     title = "Группы",
                     items = state.courseGroups,
-                    icon = { Icons.Outlined.Groups },
+                    icon = { Icons.Outlined.Badge },
                     titleText = { "Группа ${it.groupName}" },
                     subtitleText = { it.collegeName },
                     onClick = onGroupSelect
@@ -441,8 +460,17 @@ private fun ScheduleState(
             Box(modifier = Modifier.padding(horizontal = 16.dp)) {
                 InfoPanel {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        OutlinedActionButton(text = "К группам", onClick = onBackToGroups)
-                        PrimaryActionButton(text = "Обновить", icon = Icons.Outlined.Refresh, onClick = onRefresh)
+                        OutlinedActionButton(
+                            text = "К группам",
+                            onClick = onBackToGroups,
+                            modifier = Modifier.weight(1f)
+                        )
+                        PrimaryActionButton(
+                            text = "Обновить",
+                            icon = Icons.Outlined.Refresh,
+                            onClick = onRefresh,
+                            modifier = Modifier.weight(1f)
+                        )
                         if (state.isLoading) InlineLoading()
                     }
                     Spacer(Modifier.height(10.dp))
@@ -548,17 +576,17 @@ private fun ScheduleState(
     ) {
         Surface(
             modifier = Modifier
-                .size(52.dp)
+                .size(56.dp)
                 .clickable { showNotesDialog = true },
             shape = CircleShape,
-            color = NovsuBlue,
-            border = BorderStroke(0.8.dp, NovsuBlue)
+            color = White,
+            border = BorderStroke(1.dp, BorderStrong)
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Outlined.Notes,
                     contentDescription = "Все заметки",
-                    tint = White,
+                    tint = NovsuBlueDark,
                     modifier = Modifier.size(24.dp)
                 )
             }

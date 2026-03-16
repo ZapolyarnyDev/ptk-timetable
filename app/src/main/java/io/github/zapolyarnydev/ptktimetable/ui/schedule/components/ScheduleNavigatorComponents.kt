@@ -85,10 +85,13 @@ import io.github.zapolyarnydev.ptktimetable.data.model.PtkWeekType
 import io.github.zapolyarnydev.ptktimetable.ui.theme.BorderSubtle
 import io.github.zapolyarnydev.ptktimetable.ui.theme.HeadingFontFamily
 import io.github.zapolyarnydev.ptktimetable.ui.theme.InkPrimary
+import io.github.zapolyarnydev.ptktimetable.ui.theme.InkMuted
 import io.github.zapolyarnydev.ptktimetable.ui.theme.InkSecondary
 import io.github.zapolyarnydev.ptktimetable.ui.theme.MainFontFamily
 import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlue
+import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlueDark
 import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlueSoft
+import io.github.zapolyarnydev.ptktimetable.ui.theme.SurfaceBlueTint
 import io.github.zapolyarnydev.ptktimetable.ui.theme.SurfaceMuted
 import io.github.zapolyarnydev.ptktimetable.ui.theme.White
 import kotlinx.coroutines.flow.StateFlow
@@ -164,7 +167,7 @@ internal fun DayNavigatorPanel(
                         Text(
                             text = "день ${dayIndex + 1} из $totalDays",
                             style = MaterialTheme.typography.bodySmall,
-                            color = InkSecondary
+                            color = InkMuted
                         )
                     }
                 }
@@ -183,7 +186,13 @@ internal fun DayNavigatorPanel(
                             selected = day == selectedDay,
                             label = day.shortTitle,
                             icon = Icons.Outlined.Schedule,
-                            onClick = { onSelectDay(day) }
+                            onClick = { onSelectDay(day) },
+                            containerColor = NovsuBlueSoft.copy(alpha = 0.45f),
+                            selectedContainerColor = NovsuBlueSoft,
+                            labelColor = NovsuBlueDark,
+                            selectedLabelColor = NovsuBlueDark,
+                            iconColor = NovsuBlueDark,
+                            selectedLeadingIconColor = NovsuBlueDark
                         )
                     }
                 }
@@ -202,12 +211,20 @@ internal fun DayNavigatorPanel(
             }
             if (isWeekMismatchWarningNeeded(weekFilter, currentWeekType)) {
                 Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "Недели не совпадают: текущая ${weekTypeLabel(currentWeekType)}, " +
-                        "показано расписание для ${weekFilter.title.lowercase(Locale.forLanguageTag("ru"))}.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(SurfaceBlueTint)
+                        .padding(horizontal = 10.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = "Недели не совпадают: текущая ${weekTypeLabel(currentWeekType)}, " +
+                            "показано расписание для ${weekFilter.title.lowercase(Locale.forLanguageTag("ru"))}.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
             }
         } else {
             Row(
@@ -234,7 +251,7 @@ internal fun DayNavigatorPanel(
                     Text(
                         text = selectedDayTitle,
                         style = MaterialTheme.typography.bodySmall,
-                        color = InkSecondary
+                        color = InkMuted
                     )
                 }
                 NavArrowButton(
@@ -248,10 +265,12 @@ internal fun DayNavigatorPanel(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedActionButton(
                     text = "Сегодня",
-                    onClick = onGoToToday
+                    onClick = onGoToToday,
+                    modifier = Modifier.weight(1f)
                 )
                 OutlinedActionButton(
                     text = "Выбрать дату",
+                    modifier = Modifier.weight(1f),
                     onClick = {
                         DatePickerDialog(
                             context,

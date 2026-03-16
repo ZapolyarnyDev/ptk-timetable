@@ -83,12 +83,15 @@ import io.github.zapolyarnydev.ptktimetable.data.model.PtkCurrentWeekType
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkGroupInfo
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkWeekType
 import io.github.zapolyarnydev.ptktimetable.ui.theme.BorderSubtle
+import io.github.zapolyarnydev.ptktimetable.ui.theme.BorderStrong
 import io.github.zapolyarnydev.ptktimetable.ui.theme.HeadingFontFamily
 import io.github.zapolyarnydev.ptktimetable.ui.theme.InkPrimary
+import io.github.zapolyarnydev.ptktimetable.ui.theme.InkMuted
 import io.github.zapolyarnydev.ptktimetable.ui.theme.InkSecondary
 import io.github.zapolyarnydev.ptktimetable.ui.theme.MainFontFamily
 import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlue
 import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlueSoft
+import io.github.zapolyarnydev.ptktimetable.ui.theme.SurfaceBlueTint
 import io.github.zapolyarnydev.ptktimetable.ui.theme.SurfaceMuted
 import io.github.zapolyarnydev.ptktimetable.ui.theme.White
 import kotlinx.coroutines.flow.StateFlow
@@ -141,19 +144,28 @@ internal fun LessonNoteDialog(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             if (note != null && canEdit) {
-                OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(18.dp)
+                ) {
                     Text("Отмена", maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 OutlinedButton(
                     onClick = onDelete,
                     modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(18.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                     border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.error)
                 ) {
                     Text("Удалить", maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             } else {
-                OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp)
+                ) {
                     Text("Отмена", maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
@@ -162,7 +174,8 @@ internal fun LessonNoteDialog(
         Button(
             onClick = { onSave(noteText) },
             enabled = canEdit && noteText.isNotBlank(),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp)
         ) {
             Text("Сохранить", maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
@@ -225,7 +238,11 @@ internal fun NotesOverviewDialog(
             }
         }
         Spacer(Modifier.height(12.dp))
-        Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+        Button(
+            onClick = onDismiss,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp)
+        ) {
             Text("Закрыть")
         }
     }
@@ -304,13 +321,18 @@ internal fun ReminderDialog(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+            OutlinedButton(
+                onClick = onDismiss,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(18.dp)
+            ) {
                 Text("Отмена")
             }
             Button(
                 onClick = { onSave(enabled, parsedMinutes ?: 10) },
                 enabled = canEdit && (!enabled || parsedMinutes != null),
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(18.dp)
             ) {
                 Text("Сохранить")
             }
@@ -343,12 +365,17 @@ internal fun NoteEditByIdDialog(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+            OutlinedButton(
+                onClick = onDismiss,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(18.dp)
+            ) {
                 Text("Отмена", maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             OutlinedButton(
                 onClick = onDelete,
                 modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(18.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                 border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.error)
             ) {
@@ -359,7 +386,8 @@ internal fun NoteEditByIdDialog(
         Button(
             onClick = { onSave(text) },
             enabled = text.isNotBlank(),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp)
         ) {
             Text("Сохранить", maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
@@ -387,14 +415,14 @@ internal fun AppModalDialog(
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 320.dp, max = 560.dp),
-                color = White,
-                shape = RoundedCornerShape(18.dp),
-                border = BorderStroke(0.8.dp, BorderSubtle)
+                    .heightIn(min = 320.dp, max = 580.dp),
+                color = SurfaceBlueTint,
+                shape = RoundedCornerShape(20.dp),
+                border = BorderStroke(1.dp, BorderStrong)
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                     content = {
                         Text(
                             text = title,
@@ -406,10 +434,10 @@ internal fun AppModalDialog(
                             Text(
                                 text = subtitle,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = InkSecondary
+                                color = InkMuted
                             )
                         }
-                        Spacer(Modifier.height(6.dp))
+                        Spacer(Modifier.height(4.dp))
                         content()
                     }
                 )
