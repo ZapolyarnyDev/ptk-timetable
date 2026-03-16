@@ -3,6 +3,11 @@
 import android.app.DatePickerDialog
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -180,43 +185,55 @@ private fun ScheduleScreenContent(
 ) {
     Scaffold(containerColor = White) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {
-            when (state.step) {
-                ScheduleStep.COURSE_SELECTION -> CourseSelectionState(
-                    padding = padding,
-                    state = state,
-                    onRefresh = onRefresh,
-                    onRetry = onRetry,
-                    onCourseSelect = onCourseSelect
-                )
+            AnimatedContent(
+                targetState = state.step,
+                transitionSpec = {
+                    (fadeIn(animationSpec = tween(durationMillis = 170)) +
+                        slideInVertically(
+                            initialOffsetY = { fullHeight -> fullHeight / 12 },
+                            animationSpec = tween(durationMillis = 170)
+                        )) togetherWith fadeOut(animationSpec = tween(durationMillis = 110))
+                },
+                label = "scheduleStepAnimatedContent"
+            ) { step ->
+                when (step) {
+                    ScheduleStep.COURSE_SELECTION -> CourseSelectionState(
+                        padding = padding,
+                        state = state,
+                        onRefresh = onRefresh,
+                        onRetry = onRetry,
+                        onCourseSelect = onCourseSelect
+                    )
 
-                ScheduleStep.GROUP_SELECTION -> GroupSelectionState(
-                    padding = padding,
-                    state = state,
-                    onRefresh = onRefresh,
-                    onBackToCourses = onBackToCourses,
-                    onGroupSelect = onGroupSelect
-                )
+                    ScheduleStep.GROUP_SELECTION -> GroupSelectionState(
+                        padding = padding,
+                        state = state,
+                        onRefresh = onRefresh,
+                        onBackToCourses = onBackToCourses,
+                        onGroupSelect = onGroupSelect
+                    )
 
-                ScheduleStep.SCHEDULE -> ScheduleState(
-                    padding = padding,
-                    state = state,
-                    onRefresh = onRefresh,
-                    onBackToGroups = onBackToGroups,
-                    onSelectMode = onSelectMode,
-                    onSelectDay = onSelectDay,
-                    onPreviousDay = onPreviousDay,
-                    onNextDay = onNextDay,
-                    onSelectDate = onSelectDate,
-                    onPreviousDate = onPreviousDate,
-                    onNextDate = onNextDate,
-                    onGoToToday = onGoToToday,
-                    onSelectWeekFilter = onSelectWeekFilter,
-                    onSaveLessonNote = onSaveLessonNote,
-                    onSetLessonReminder = onSetLessonReminder,
-                    onDeleteLessonNote = onDeleteLessonNote,
-                    onUpdateNoteById = onUpdateNoteById,
-                    onDeleteNoteById = onDeleteNoteById
-                )
+                    ScheduleStep.SCHEDULE -> ScheduleState(
+                        padding = padding,
+                        state = state,
+                        onRefresh = onRefresh,
+                        onBackToGroups = onBackToGroups,
+                        onSelectMode = onSelectMode,
+                        onSelectDay = onSelectDay,
+                        onPreviousDay = onPreviousDay,
+                        onNextDay = onNextDay,
+                        onSelectDate = onSelectDate,
+                        onPreviousDate = onPreviousDate,
+                        onNextDate = onNextDate,
+                        onGoToToday = onGoToToday,
+                        onSelectWeekFilter = onSelectWeekFilter,
+                        onSaveLessonNote = onSaveLessonNote,
+                        onSetLessonReminder = onSetLessonReminder,
+                        onDeleteLessonNote = onDeleteLessonNote,
+                        onUpdateNoteById = onUpdateNoteById,
+                        onDeleteNoteById = onDeleteNoteById
+                    )
+                }
             }
 
             if (state.isLoading) {
@@ -558,6 +575,7 @@ private fun ScheduleState(
                     },
                     weekFilter = state.weekFilter,
                     date = state.selectedDate,
+                    selectedDay = state.selectedDay,
                     isDateMode = state.mode == ScheduleMode.BY_DATE,
                     noteMap = noteTextMap,
                     reminderMap = lessonEntryMap,
@@ -574,23 +592,15 @@ private fun ScheduleState(
             .padding(bottom = 26.dp, end = 18.dp),
         contentAlignment = Alignment.BottomEnd
     ) {
-        Surface(
-            modifier = Modifier
-                .size(56.dp)
-                .clickable { showNotesDialog = true },
-            shape = CircleShape,
-            color = White,
-            border = BorderStroke(1.dp, BorderStrong)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Outlined.Notes,
-                    contentDescription = "Все заметки",
-                    tint = NovsuBlueDark,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        }
+        OutlinedIconActionButton(
+            icon = Icons.AutoMirrored.Outlined.Notes,
+            contentDescription = "Все заметки",
+            onClick = { showNotesDialog = true },
+            modifier = Modifier.size(56.dp),
+            size = 56.dp,
+            iconSize = 24.dp,
+            tint = NovsuBlueDark
+        )
     }
 
     if (showNotesDialog) {

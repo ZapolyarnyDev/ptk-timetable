@@ -3,8 +3,14 @@
 import android.app.DatePickerDialog
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -12,6 +18,10 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
@@ -62,6 +72,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -72,6 +83,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -157,16 +169,18 @@ internal fun SectionCard(
     padding: Dp = 14.dp,
     content: @Composable () -> Unit
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = White,
-        border = BorderStroke(0.9.dp, BorderSubtle),
-        shape = RoundedCornerShape(16.dp),
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp
-    ) {
-        Column(modifier = Modifier.padding(padding)) {
-            content()
+    AnimatedReveal {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = White,
+            border = BorderStroke(0.9.dp, BorderSubtle),
+            shape = RoundedCornerShape(16.dp),
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp
+        ) {
+            Column(modifier = Modifier.padding(padding)) {
+                content()
+            }
         }
     }
 }
@@ -235,11 +249,40 @@ internal fun SelectionRow(
     subtitle: String,
     onClick: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val hovered by interactionSource.collectIsHoveredAsState()
+    val pressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.992f else 1f,
+        animationSpec = tween(durationMillis = 90),
+        label = "selectionRowScale"
+    )
+    val rowColor by animateColorAsState(
+        targetValue = when {
+            pressed -> NovsuBlueSoft.copy(alpha = 0.72f)
+            hovered -> NovsuBlueSoft.copy(alpha = 0.45f)
+            else -> White
+        },
+        animationSpec = tween(durationMillis = 130),
+        label = "selectionRowColor"
+    )
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 13.dp),
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(RoundedCornerShape(12.dp))
+            .background(rowColor)
+            .hoverable(interactionSource = interactionSource)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
@@ -314,10 +357,17 @@ internal fun PrimaryActionButton(
     enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressScale = rememberPressScale(interactionSource, enabled = enabled)
+
     Button(
-        modifier = modifier,
+        modifier = modifier.graphicsLayer {
+            scaleX = pressScale
+            scaleY = pressScale
+        },
         onClick = onClick,
         enabled = enabled,
+        interactionSource = interactionSource,
         colors = ButtonDefaults.buttonColors(containerColor = NovsuBlueDark, contentColor = White),
         shape = RoundedCornerShape(18.dp),
         contentPadding = PaddingValues(horizontal = 17.dp, vertical = 11.dp),
@@ -336,10 +386,17 @@ internal fun OutlinedActionButton(
     enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressScale = rememberPressScale(interactionSource, enabled = enabled)
+
     OutlinedButton(
-        modifier = modifier,
+        modifier = modifier.graphicsLayer {
+            scaleX = pressScale
+            scaleY = pressScale
+        },
         onClick = onClick,
         enabled = enabled,
+        interactionSource = interactionSource,
         border = BorderStroke(1.dp, BorderSubtle),
         shape = RoundedCornerShape(18.dp),
         contentPadding = PaddingValues(horizontal = 17.dp, vertical = 11.dp),
@@ -360,14 +417,38 @@ internal fun NavArrowButton(
     enabled: Boolean,
     onClick: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val hovered by interactionSource.collectIsHoveredAsState()
+    val pressScale = rememberPressScale(interactionSource, enabled = enabled)
+    val borderColor by animateColorAsState(
+        targetValue = when {
+            !enabled -> BorderSubtle
+            hovered -> NovsuBlue
+            else -> BorderStrong
+        },
+        animationSpec = tween(durationMillis = 130),
+        label = "navArrowBorder"
+    )
+
     Surface(
+        modifier = Modifier
+            .graphicsLayer {
+                scaleX = pressScale
+                scaleY = pressScale
+            }
+            .hoverable(interactionSource = interactionSource, enabled = enabled),
         shape = RoundedCornerShape(12.dp),
         color = White,
-        border = BorderStroke(1.dp, if (enabled) BorderStrong else BorderSubtle),
+        border = BorderStroke(1.dp, borderColor),
         tonalElevation = 0.dp,
         shadowElevation = 0.dp
     ) {
-        IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(42.dp)) {
+        IconButton(
+            onClick = onClick,
+            enabled = enabled,
+            interactionSource = interactionSource,
+            modifier = Modifier.size(42.dp)
+        ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
@@ -393,9 +474,38 @@ internal fun WeekChip(
     borderColor: Color = BorderSubtle,
     selectedBorderColor: Color = NovsuBlueDark
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val hovered by interactionSource.collectIsHoveredAsState()
+    val pressScale = rememberPressScale(interactionSource)
+    val resolvedContainerColor by animateColorAsState(
+        targetValue = when {
+            selected -> selectedContainerColor
+            hovered -> NovsuBlueSoft.copy(alpha = 0.55f)
+            else -> containerColor
+        },
+        animationSpec = tween(durationMillis = 130),
+        label = "weekChipContainer"
+    )
+    val resolvedBorderColor by animateColorAsState(
+        targetValue = when {
+            selected -> selectedBorderColor
+            hovered -> BorderStrong
+            else -> borderColor
+        },
+        animationSpec = tween(durationMillis = 130),
+        label = "weekChipBorder"
+    )
+
     FilterChip(
+        modifier = Modifier
+            .graphicsLayer {
+                scaleX = pressScale
+                scaleY = pressScale
+            }
+            .hoverable(interactionSource = interactionSource),
         selected = selected,
         onClick = onClick,
+        interactionSource = interactionSource,
         label = {
             Text(
                 label,
@@ -407,11 +517,11 @@ internal fun WeekChip(
         border = FilterChipDefaults.filterChipBorder(
             enabled = true,
             selected = selected,
-            borderColor = borderColor,
+            borderColor = resolvedBorderColor,
             selectedBorderColor = selectedBorderColor
         ),
         colors = FilterChipDefaults.filterChipColors(
-            containerColor = containerColor,
+            containerColor = resolvedContainerColor,
             selectedContainerColor = selectedContainerColor,
             selectedLabelColor = selectedLabelColor,
             labelColor = labelColor,
@@ -420,6 +530,128 @@ internal fun WeekChip(
         ),
         elevation = FilterChipDefaults.filterChipElevation(0.dp, 0.dp, 0.dp, 0.dp, 0.dp, 0.dp)
     )
+}
+
+@Composable
+internal fun rememberPressScale(
+    interactionSource: MutableInteractionSource,
+    enabled: Boolean = true,
+    pressedScale: Float = 0.98f
+): Float {
+    val pressed by interactionSource.collectIsPressedAsState()
+    return animateFloatAsState(
+        targetValue = if (enabled && pressed) pressedScale else 1f,
+        animationSpec = tween(durationMillis = 90),
+        label = "pressScale"
+    ).value
+}
+
+@Composable
+internal fun AnimatedReveal(
+    key: Any? = Unit,
+    content: @Composable () -> Unit
+) {
+    var visible by remember(key) { mutableStateOf(false) }
+    LaunchedEffect(key) {
+        visible = true
+    }
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(animationSpec = tween(durationMillis = 180)) +
+            slideInVertically(
+                initialOffsetY = { fullHeight -> fullHeight / 10 },
+                animationSpec = tween(durationMillis = 180)
+            ),
+        exit = fadeOut(animationSpec = tween(durationMillis = 110)),
+        label = "animatedReveal"
+    ) {
+        content()
+    }
+}
+
+@Composable
+internal fun OutlinedIconActionButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    active: Boolean = false,
+    tint: Color = NovsuBlueDark,
+    inactiveTint: Color = InkSecondary.copy(alpha = 0.55f),
+    size: Dp = 28.dp,
+    iconSize: Dp = 16.dp
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val hovered by interactionSource.collectIsHoveredAsState()
+    val pressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (enabled && pressed) 0.92f else 1f,
+        animationSpec = tween(durationMillis = 90),
+        label = "iconActionScale"
+    )
+    val containerColor by animateColorAsState(
+        targetValue = when {
+            !enabled -> White
+            pressed -> NovsuBlueSoft.copy(alpha = 0.75f)
+            active -> NovsuBlueSoft.copy(alpha = 0.62f)
+            hovered -> NovsuBlueSoft.copy(alpha = 0.46f)
+            else -> White
+        },
+        animationSpec = tween(durationMillis = 120),
+        label = "iconActionContainer"
+    )
+    val borderColor by animateColorAsState(
+        targetValue = when {
+            !enabled -> BorderSubtle.copy(alpha = 0.8f)
+            active -> NovsuBlue
+            hovered -> BorderStrong
+            else -> BorderStrong
+        },
+        animationSpec = tween(durationMillis = 120),
+        label = "iconActionBorder"
+    )
+    val iconTint by animateColorAsState(
+        targetValue = if (enabled) tint else inactiveTint,
+        animationSpec = tween(durationMillis = 120),
+        label = "iconActionTint"
+    )
+
+    Surface(
+        modifier = modifier
+            .size(size)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .hoverable(interactionSource = interactionSource, enabled = enabled),
+        shape = CircleShape,
+        color = containerColor,
+        border = BorderStroke(1.dp, borderColor),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(CircleShape)
+                .clickable(
+                    enabled = enabled,
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = iconTint,
+                modifier = Modifier.size(iconSize)
+            )
+        }
+    }
 }
 
 @Composable
