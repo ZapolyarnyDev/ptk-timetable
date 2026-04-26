@@ -53,7 +53,10 @@ class DomainTimetableRepositoryAdapter(
         return scheduleRepository.getScheduleForGroup(groupName)
             .mapNotNull { raw ->
                 val dayOfWeek = parseDayOfWeek(raw.dayOfWeek) ?: return@mapNotNull null
-                val (startTime, endTime) = parseTimeRange(raw.timeRange)
+                val (startTime, endTime) = parseTimeRange(
+                    rawValue = raw.timeRange,
+                    dayOfWeek = dayOfWeek
+                )
                 val normalized = textNormalizer.normalize(raw.rawText)
                 val weekType = raw.weekType.toDomainWeekType()
                 val safeSubject = normalized.subject.ifBlank { raw.rawText.trim() }
@@ -133,12 +136,33 @@ class DomainTimetableRepositoryAdapter(
         }
     }
 
-    private fun parseTimeRange(rawValue: String): Pair<LocalTime, LocalTime> {
+    private fun parseTimeRange(
+        rawValue: String,
+        dayOfWeek: DayOfWeek
+    ): Pair<LocalTime, LocalTime> {
+        saturdayOverride(rawValue, dayOfWeek)?.let { return it }
         val normalized = rawValue.replace('—', '-').replace('–', '-')
         val matches = TIME_REGEX.findAll(normalized).toList()
         val start = matches.firstOrNull()?.toLocalTime() ?: LocalTime.of(0, 0)
         val end = matches.getOrNull(1)?.toLocalTime() ?: start.plusMinutes(DEFAULT_LESSON_MINUTES)
         return start to end
+    }
+
+    private fun saturdayOverride(
+        rawValue: String,
+        dayOfWeek: DayOfWeek
+    ): Pair<LocalTime, LocalTime>? {
+        if (dayOfWeek != DayOfWeek.SATURDAY) return null
+        return SATURDAY_TIME_OVERRIDES[normalizeTimeKey(rawValue)]
+    }
+
+    private fun normalizeTimeKey(rawValue: String): String {
+        return rawValue
+            .trim()
+            .replace('—', '-')
+            .replace('–', '-')
+            .replace(':', '.')
+            .replace(" ", "")
     }
 
     private fun kotlin.text.MatchResult.toLocalTime(): LocalTime {
@@ -200,5 +224,12 @@ class DomainTimetableRepositoryAdapter(
     private companion object {
         val TIME_REGEX = Regex("(\\d{1,2})[.:](\\d{2})")
         const val DEFAULT_LESSON_MINUTES = 100L
+        val SATURDAY_TIME_OVERRIDES = mapOf(
+            "8.30-10.10" to (LocalTime.of(8, 30) to LocalTime.of(9, 30)),
+            "10.20-12.00" to (LocalTime.of(9, 40) to LocalTime.of(10, 40)),
+            "12.45-14.25" to (LocalTime.of(10, 50) to LocalTime.of(11, 50)),
+            "14.35-16.15" to (LocalTime.of(12, 0) to LocalTime.of(13, 0)),
+            "16.25-18.05" to (LocalTime.of(13, 10) to LocalTime.of(14, 10))
+        )
     }
 }
