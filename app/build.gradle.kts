@@ -70,3 +70,9 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }
+
+base {
+    val appName = "PtkTimetable"
+    val version = android.defaultConfig.versionName
+    archivesName.set("$appName-v$version")
+}
