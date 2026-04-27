@@ -1,0 +1,143 @@
+name: Android Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android platform
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest
+
+      - name: Build Markdown test report
+        if: always()
+        shell: python
+        run: |
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+
+          report_dir = Path("app/build/test-results/testDebugUnitTest")
+          output_dir = Path("artifacts")
+          output_dir.mkdir(exist_ok=True)
+          report_file = output_dir / "test-report.md"
+
+          suites = []
+          total_tests = 0
+          total_failures = 0
+          total_errors = 0
+          total_skipped = 0
+          total_time = 0.0
+
+          for xml_file in sorted(report_dir.glob("TEST-*.xml")):
+            suite = ET.parse(xml_file).getroot()
+            tests = int(suite.attrib.get("tests", 0))
+            failures = int(suite.attrib.get("failures", 0))
+            errors = int(suite.attrib.get("errors", 0))
+            skipped = int(suite.attrib.get("skipped", 0))
+            time = float(suite.attrib.get("time", 0.0))
+            name = suite.attrib.get("name", xml_file.stem)
+
+            failed_cases = []
+            for case in suite.findall("testcase"):
+              failure = case.find("failure")
+              error = case.find("error")
+              if failure is not None or error is not None:
+                issue = failure if failure is not None else error
+                message = issue.attrib.get("message", "No details").strip()
+                failed_cases.append(
+                  f"- `{case.attrib.get('name', 'unknown')}`: {message}"
+                )
+
+            suites.append(
+              {
+                "name": name,
+                "tests": tests,
+                "failures": failures,
+                "errors": errors,
+                "skipped": skipped,
+                "time": time,
+                "failed_cases": failed_cases,
+              }
+            )
+
+            total_tests += tests
+            total_failures += failures
+            total_errors += errors
+            total_skipped += skipped
+            total_time += time
+
+          status = "PASSED" if total_failures == 0 and total_errors == 0 else "FAILED"
+
+          lines = [
+            "# Test report",
+            "",
+            f"- Status: **{status}**",
+            f"- Total tests: **{total_tests}**",
+            f"- Failures: **{total_failures}**",
+            f"- Errors: **{total_errors}**",
+            f"- Skipped: **{total_skipped}**",
+            f"- Duration: **{total_time:.2f}s**",
+            "",
+            "## Suites",
+            "",
+          ]
+
+          if not suites:
+            lines.extend(
+              [
+                "JUnit XML files were not found.",
+                "",
+                "Check the workflow logs to see why the test task did not produce reports.",
+              ]
+            )
+
+          for suite in suites:
+            lines.append(
+              f"- `{suite['name']}`: {suite['tests']} tests, "
+              f"{suite['failures']} failures, {suite['errors']} errors, "
+              f"{suite['skipped']} skipped, {suite['time']:.2f}s"
+            )
+            lines.extend(suite["failed_cases"])
+
+          content = "\n".join(lines) + "\n"
+          report_file.write_text(content, encoding="utf-8")
+
+          summary_file = Path.cwd() / Path(__import__("os").environ["GITHUB_STEP_SUMMARY"])
+          with summary_file.open("a", encoding="utf-8") as fh:
+            fh.write(content)
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-report
+          path: |
+            artifacts/test-report.md
+            app/build/test-results/testDebugUnitTest
+            app/build/reports/tests/testDebugUnitTest
+          if-no-files-found: warn
