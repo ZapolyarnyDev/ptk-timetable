@@ -1,6 +1,5 @@
-﻿package io.github.zapolyarnydev.ptktimetable.ui.schedule
+package io.github.zapolyarnydev.ptktimetable.ui.schedule
 
-import android.app.DatePickerDialog
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
@@ -23,7 +22,6 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -35,28 +33,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.ArrowForward
-import androidx.compose.material.icons.automirrored.outlined.Notes
-import androidx.compose.material.icons.outlined.AccessTime
-import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material.icons.outlined.Groups
-import androidx.compose.material.icons.outlined.NotificationsActive
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.School
-import androidx.compose.material.icons.outlined.Tune
-import androidx.compose.material.icons.outlined.Update
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -64,10 +48,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -78,80 +59,55 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkCurrentWeekType
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkGroupInfo
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkWeekType
-import io.github.zapolyarnydev.ptktimetable.ui.theme.BorderStrong
-import io.github.zapolyarnydev.ptktimetable.ui.theme.BorderSubtle
-import io.github.zapolyarnydev.ptktimetable.ui.theme.HeadingFontFamily
-import io.github.zapolyarnydev.ptktimetable.ui.theme.InkMuted
-import io.github.zapolyarnydev.ptktimetable.ui.theme.InkPrimary
-import io.github.zapolyarnydev.ptktimetable.ui.theme.InkSecondary
-import io.github.zapolyarnydev.ptktimetable.ui.theme.MainFontFamily
-import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlue
-import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlueDark
-import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlueSoft
-import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlueSoftStrong
-import io.github.zapolyarnydev.ptktimetable.ui.theme.SurfaceBlueTint
-import io.github.zapolyarnydev.ptktimetable.ui.theme.SurfaceMuted
-import io.github.zapolyarnydev.ptktimetable.ui.theme.White
-import kotlinx.coroutines.flow.StateFlow
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
+import io.github.zapolyarnydev.ptktimetable.ui.theme.AppDimensions
+import io.github.zapolyarnydev.ptktimetable.ui.theme.AppIcons
+import io.github.zapolyarnydev.ptktimetable.ui.theme.AppShapes
+import io.github.zapolyarnydev.ptktimetable.ui.theme.MaterialThemeAppColors
 
 @Composable
 internal fun HeaderPanel(title: String, subtitle: String, icon: ImageVector) {
-    SectionCard {
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+    val colors = MaterialThemeAppColors
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = AppShapes.large,
+        colors = CardDefaults.cardColors(containerColor = colors.brandContainer),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(AppDimensions.cardPadding),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Box(
                 modifier = Modifier
-                    .size(42.dp)
-                    .clip(CircleShape)
-                    .background(NovsuBlueSoftStrong)
-                    .drawBehind {
-                        drawCircle(
-                            color = NovsuBlue.copy(alpha = 0.18f),
-                            radius = size.minDimension / 2f,
-                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.dp.toPx()),
-                        )
-                    },
+                    .size(52.dp)
+                    .clip(AppShapes.medium)
+                    .background(MaterialTheme.colorScheme.primary),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = icon,
+                    icon,
                     contentDescription = null,
-                    tint = NovsuBlueDark,
-                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(26.dp),
                 )
             }
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = InkPrimary,
-                    fontFamily = HeadingFontFamily,
+                    title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
                 Text(
-                    text = subtitle,
+                    subtitle,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = InkSecondary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -159,44 +115,36 @@ internal fun HeaderPanel(title: String, subtitle: String, icon: ImageVector) {
 }
 
 @Composable
-internal fun InfoPanel(content: @Composable () -> Unit) {
-    SectionCard(content = content)
-}
+internal fun InfoPanel(content: @Composable () -> Unit) = SectionCard(content = content)
 
 @Composable
-internal fun SectionCard(padding: Dp = 14.dp, content: @Composable () -> Unit) {
+internal fun SectionCard(padding: Dp = AppDimensions.cardPadding, content: @Composable () -> Unit) {
     AnimatedReveal {
-        Surface(
+        Card(
             modifier = Modifier.fillMaxWidth(),
-            color = White,
-            border = BorderStroke(0.9.dp, BorderSubtle),
-            shape = RoundedCornerShape(16.dp),
-            tonalElevation = 0.dp,
-            shadowElevation = 0.dp,
+            shape = AppShapes.medium,
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         ) {
-            Column(modifier = Modifier.padding(padding)) {
-                content()
-            }
+            Column(modifier = Modifier.padding(padding)) { content() }
         }
     }
 }
 
 @Composable
 internal fun MetaRow(icon: ImageVector, text: String, highlight: Boolean = true) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = if (highlight) NovsuBlue else InkSecondary,
-            modifier = Modifier.size(16.dp),
+            tint = if (highlight) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(18.dp),
         )
         Text(
             text = text,
             style = MaterialTheme.typography.bodyMedium,
-            color = if (highlight) InkPrimary else InkSecondary,
+            color = if (highlight) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -214,12 +162,10 @@ internal fun <T> SelectionListSection(
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
-            color = InkPrimary,
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-            fontFamily = HeadingFontFamily,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = AppDimensions.cardPadding, vertical = 16.dp),
         )
-        HorizontalDivider(thickness = 0.8.dp, color = BorderSubtle)
-
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         items.forEachIndexed { index, item ->
             SelectionRow(
                 icon = icon(item),
@@ -227,94 +173,74 @@ internal fun <T> SelectionListSection(
                 subtitle = subtitleText(item),
                 onClick = { onClick(item) },
             )
-            if (index < items.lastIndex) {
-                HorizontalDivider(thickness = 0.8.dp, color = BorderSubtle)
-            }
+            if (index < items.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
 }
 
 @Composable
 internal fun SelectionRow(icon: ImageVector, title: String, subtitle: String, onClick: () -> Unit) {
+    val colors = MaterialThemeAppColors
     val interactionSource = remember { MutableInteractionSource() }
     val hovered by interactionSource.collectIsHoveredAsState()
     val pressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.992f else 1f,
-        animationSpec = tween(durationMillis = 90),
-        label = "selectionRowScale",
-    )
     val rowColor by animateColorAsState(
         targetValue = when {
-            pressed -> NovsuBlueSoft.copy(alpha = 0.72f)
-            hovered -> NovsuBlueSoft.copy(alpha = 0.45f)
-            else -> White
+            pressed -> colors.brandContainer
+            hovered -> MaterialTheme.colorScheme.surfaceVariant
+            else -> MaterialTheme.colorScheme.surface
         },
-        animationSpec = tween(durationMillis = 130),
+        animationSpec = tween(120),
         label = "selectionRowColor",
     )
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clip(RoundedCornerShape(12.dp))
             .background(rowColor)
-            .hoverable(interactionSource = interactionSource)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick,
-            )
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .hoverable(interactionSource)
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
+            .padding(horizontal = AppDimensions.cardPadding, vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Box(
             modifier = Modifier
-                .size(38.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(NovsuBlueSoft.copy(alpha = 0.7f))
-                .border(1.dp, BorderStrong, RoundedCornerShape(12.dp)),
+                .size(AppDimensions.iconTile)
+                .clip(AppShapes.small)
+                .background(colors.brandContainer),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(imageVector = icon, contentDescription = null, tint = NovsuBlueDark, modifier = Modifier.size(18.dp))
-        }
-
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                color = InkPrimary,
-                fontFamily = HeadingFontFamily,
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(21.dp),
             )
+        }
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             Text(
-                text = subtitle,
+                subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = InkMuted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-
-        Icon(
-            imageVector = Icons.Outlined.ChevronRight,
-            contentDescription = null,
-            tint = InkSecondary,
-            modifier = Modifier.size(20.dp),
-        )
+        Icon(AppIcons.chevron, contentDescription = "Открыть", tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
 internal fun EmptyStateBlock(text: String) {
     SectionCard {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyMedium,
-            color = InkSecondary,
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(
+                AppIcons.schedule,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(26.dp),
+            )
+            Text(text, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 
@@ -322,16 +248,14 @@ internal fun EmptyStateBlock(text: String) {
 internal fun SelectionListSkeleton(rows: Int) {
     SectionCard {
         repeat(rows) { index ->
-            val firstWidth = if (index % 2 == 0) 0.42f else 0.58f
-            val secondWidth = if (index % 2 == 0) 0.75f else 0.63f
-            SkeletonBar(widthFraction = firstWidth, height = 14.dp)
-            Spacer(Modifier.height(6.dp))
-            SkeletonBar(widthFraction = secondWidth, height = 11.dp)
-            if (index < rows - 1) {
-                Spacer(Modifier.height(10.dp))
-                HorizontalDivider(thickness = 0.8.dp, color = BorderSubtle)
-                Spacer(Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                SkeletonBar(widthFraction = 0.14f, height = 44.dp)
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SkeletonBar(widthFraction = if (index % 2 == 0) 0.48f else 0.62f, height = 15.dp)
+                    SkeletonBar(widthFraction = 0.75f, height = 11.dp)
+                }
             }
+            if (index < rows - 1) Spacer(Modifier.height(18.dp))
         }
     }
 }
@@ -345,28 +269,20 @@ internal fun PrimaryActionButton(
     modifier: Modifier = Modifier,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val pressScale = rememberPressScale(interactionSource, enabled = enabled)
-
+    val scale = rememberPressScale(interactionSource, enabled)
     Button(
-        modifier = modifier.graphicsLayer {
-            scaleX = pressScale
-            scaleY = pressScale
-        },
+        modifier = modifier.graphicsLayerScale(scale),
         onClick = onClick,
         enabled = enabled,
         interactionSource = interactionSource,
-        colors = ButtonDefaults.buttonColors(containerColor = NovsuBlueDark, contentColor = White),
-        shape = RoundedCornerShape(18.dp),
-        contentPadding = PaddingValues(horizontal = 17.dp, vertical = 11.dp),
-        elevation = ButtonDefaults.buttonElevation(
-            defaultElevation = 0.dp,
-            pressedElevation = 0.dp,
-            disabledElevation = 0.dp,
-        ),
+        shape = AppShapes.pill,
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp),
+        colors = ButtonDefaults.buttonColors(),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp),
     ) {
-        Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(16.dp))
-        Spacer(Modifier.width(6.dp))
-        Text(text = text, style = MaterialTheme.typography.labelLarge, fontFamily = MainFontFamily)
+        Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(text, style = MaterialTheme.typography.labelLarge)
     }
 }
 
@@ -378,74 +294,36 @@ internal fun OutlinedActionButton(
     modifier: Modifier = Modifier,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val pressScale = rememberPressScale(interactionSource, enabled = enabled)
-
+    val scale = rememberPressScale(interactionSource, enabled)
     OutlinedButton(
-        modifier = modifier.graphicsLayer {
-            scaleX = pressScale
-            scaleY = pressScale
-        },
+        modifier = modifier.graphicsLayerScale(scale),
         onClick = onClick,
         enabled = enabled,
         interactionSource = interactionSource,
-        border = BorderStroke(1.dp, BorderSubtle),
-        shape = RoundedCornerShape(18.dp),
-        contentPadding = PaddingValues(horizontal = 17.dp, vertical = 11.dp),
-        elevation = ButtonDefaults.buttonElevation(
-            defaultElevation = 0.dp,
-            pressedElevation = 0.dp,
-            disabledElevation = 0.dp,
-        ),
-        colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = NovsuBlueDark,
-            containerColor = NovsuBlueSoft.copy(alpha = 0.55f),
-            disabledContentColor = InkMuted,
-        ),
-    ) {
-        Text(text = text, style = MaterialTheme.typography.labelLarge, fontFamily = MainFontFamily)
-    }
+        shape = AppShapes.pill,
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp),
+    ) { Text(text, style = MaterialTheme.typography.labelLarge) }
 }
 
 @Composable
 internal fun NavArrowButton(icon: ImageVector, enabled: Boolean, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
-    val hovered by interactionSource.collectIsHoveredAsState()
-    val pressScale = rememberPressScale(interactionSource, enabled = enabled)
-    val borderColor by animateColorAsState(
-        targetValue = when {
-            !enabled -> BorderSubtle
-            hovered -> NovsuBlue
-            else -> BorderStrong
-        },
-        animationSpec = tween(durationMillis = 130),
-        label = "navArrowBorder",
-    )
-
+    val scale = rememberPressScale(interactionSource, enabled)
     Surface(
-        modifier = Modifier
-            .graphicsLayer {
-                scaleX = pressScale
-                scaleY = pressScale
-            }
-            .hoverable(interactionSource = interactionSource, enabled = enabled),
-        shape = RoundedCornerShape(12.dp),
-        color = White,
-        border = BorderStroke(1.dp, borderColor),
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp,
+        modifier = Modifier.graphicsLayerScale(scale),
+        shape = CircleShape,
+        color = if (enabled) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         IconButton(
             onClick = onClick,
             enabled = enabled,
             interactionSource = interactionSource,
-            modifier = Modifier.size(42.dp),
+            modifier = Modifier.size(46.dp),
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = if (enabled) NovsuBlueDark else InkSecondary,
-                modifier = Modifier.size(20.dp),
-            )
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         }
     }
 }
@@ -456,105 +334,66 @@ internal fun WeekChip(
     label: String,
     icon: ImageVector,
     onClick: () -> Unit,
-    containerColor: Color = White,
-    selectedContainerColor: Color = NovsuBlueSoftStrong,
-    labelColor: Color = InkSecondary,
-    selectedLabelColor: Color = InkPrimary,
-    iconColor: Color = InkSecondary,
-    selectedLeadingIconColor: Color = NovsuBlueDark,
-    borderColor: Color = BorderSubtle,
-    selectedBorderColor: Color = NovsuBlueDark,
+    containerColor: Color = MaterialTheme.colorScheme.surface,
+    selectedContainerColor: Color = MaterialTheme.colorScheme.primaryContainer,
+    labelColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    selectedLabelColor: Color = MaterialTheme.colorScheme.onPrimaryContainer,
+    iconColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    selectedLeadingIconColor: Color = MaterialTheme.colorScheme.primary,
+    borderColor: Color = MaterialTheme.colorScheme.outlineVariant,
+    selectedBorderColor: Color = MaterialTheme.colorScheme.primary,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val hovered by interactionSource.collectIsHoveredAsState()
-    val pressScale = rememberPressScale(interactionSource)
-    val resolvedContainerColor by animateColorAsState(
-        targetValue = when {
-            selected -> selectedContainerColor
-            hovered -> NovsuBlueSoft.copy(alpha = 0.55f)
-            else -> containerColor
-        },
-        animationSpec = tween(durationMillis = 130),
-        label = "weekChipContainer",
-    )
-    val resolvedBorderColor by animateColorAsState(
-        targetValue = when {
-            selected -> selectedBorderColor
-            hovered -> BorderStrong
-            else -> borderColor
-        },
-        animationSpec = tween(durationMillis = 130),
-        label = "weekChipBorder",
-    )
-
+    val scale = rememberPressScale(interactionSource)
     FilterChip(
-        modifier = Modifier
-            .graphicsLayer {
-                scaleX = pressScale
-                scaleY = pressScale
-            }
-            .hoverable(interactionSource = interactionSource),
+        modifier = Modifier.graphicsLayerScale(scale),
         selected = selected,
         onClick = onClick,
         interactionSource = interactionSource,
-        label = {
-            Text(
-                label,
-                fontFamily = MainFontFamily,
-                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-            )
-        },
-        leadingIcon = { Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(16.dp)) },
+        label = { Text(label, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium) },
+        leadingIcon = { Icon(icon, contentDescription = null, modifier = Modifier.size(17.dp)) },
         border = FilterChipDefaults.filterChipBorder(
             enabled = true,
             selected = selected,
-            borderColor = resolvedBorderColor,
+            borderColor = borderColor,
             selectedBorderColor = selectedBorderColor,
         ),
         colors = FilterChipDefaults.filterChipColors(
-            containerColor = resolvedContainerColor,
+            containerColor = containerColor,
             selectedContainerColor = selectedContainerColor,
-            selectedLabelColor = selectedLabelColor,
             labelColor = labelColor,
+            selectedLabelColor = selectedLabelColor,
             iconColor = iconColor,
             selectedLeadingIconColor = selectedLeadingIconColor,
         ),
-        elevation = FilterChipDefaults.filterChipElevation(0.dp, 0.dp, 0.dp, 0.dp, 0.dp, 0.dp),
     )
 }
 
 @Composable
-internal fun rememberPressScale(
-    interactionSource: MutableInteractionSource,
-    enabled: Boolean = true,
-    pressedScale: Float = 0.98f,
-): Float {
+internal fun rememberPressScale(interactionSource: MutableInteractionSource, enabled: Boolean = true): Float {
     val pressed by interactionSource.collectIsPressedAsState()
     return animateFloatAsState(
-        targetValue = if (enabled && pressed) pressedScale else 1f,
-        animationSpec = tween(durationMillis = 90),
+        targetValue = if (enabled && pressed) 0.975f else 1f,
+        animationSpec = tween(90),
         label = "pressScale",
     ).value
+}
+
+private fun Modifier.graphicsLayerScale(scale: Float): Modifier = this.graphicsLayer {
+    scaleX = scale
+    scaleY = scale
 }
 
 @Composable
 internal fun AnimatedReveal(key: Any? = Unit, content: @Composable () -> Unit) {
     var visible by remember(key) { mutableStateOf(false) }
-    LaunchedEffect(key) {
-        visible = true
-    }
+    LaunchedEffect(key) { visible = true }
     AnimatedVisibility(
         visible = visible,
-        enter = fadeIn(animationSpec = tween(durationMillis = 180)) +
-            slideInVertically(
-                initialOffsetY = { fullHeight -> fullHeight / 10 },
-                animationSpec = tween(durationMillis = 180),
-            ),
-        exit = fadeOut(animationSpec = tween(durationMillis = 110)),
+        enter = fadeIn(tween(220)) + slideInVertically(tween(220)) { it / 14 },
+        exit = fadeOut(tween(120)),
         label = "animatedReveal",
-    ) {
-        content()
-    }
+    ) { content() }
 }
 
 @Composable
@@ -565,77 +404,35 @@ internal fun OutlinedIconActionButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     active: Boolean = false,
-    tint: Color = NovsuBlueDark,
-    inactiveTint: Color = InkSecondary.copy(alpha = 0.55f),
-    size: Dp = 28.dp,
-    iconSize: Dp = 16.dp,
+    tint: Color = MaterialTheme.colorScheme.primary,
+    inactiveTint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    size: Dp = 32.dp,
+    iconSize: Dp = 17.dp,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val hovered by interactionSource.collectIsHoveredAsState()
     val pressed by interactionSource.collectIsPressedAsState()
-
-    val scale by animateFloatAsState(
-        targetValue = if (enabled && pressed) 0.92f else 1f,
-        animationSpec = tween(durationMillis = 90),
-        label = "iconActionScale",
-    )
-    val containerColor by animateColorAsState(
-        targetValue = when {
-            !enabled -> White
-            pressed -> NovsuBlueSoft.copy(alpha = 0.75f)
-            active -> NovsuBlueSoft.copy(alpha = 0.62f)
-            hovered -> NovsuBlueSoft.copy(alpha = 0.46f)
-            else -> White
-        },
-        animationSpec = tween(durationMillis = 120),
-        label = "iconActionContainer",
-    )
-    val borderColor by animateColorAsState(
-        targetValue = when {
-            !enabled -> BorderSubtle.copy(alpha = 0.8f)
-            active -> NovsuBlue
-            hovered -> BorderStrong
-            else -> BorderStrong
-        },
-        animationSpec = tween(durationMillis = 120),
-        label = "iconActionBorder",
-    )
-    val iconTint by animateColorAsState(
-        targetValue = if (enabled) tint else inactiveTint,
-        animationSpec = tween(durationMillis = 120),
-        label = "iconActionTint",
-    )
-
+    val scale by animateFloatAsState(if (pressed && enabled) 0.92f else 1f, tween(90), label = "iconActionScale")
     Surface(
         modifier = modifier
             .size(size)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .hoverable(interactionSource = interactionSource, enabled = enabled),
+            .graphicsLayerScale(scale)
+            .clickable(enabled = enabled, interactionSource = interactionSource, indication = null, onClick = onClick),
         shape = CircleShape,
-        color = containerColor,
-        border = BorderStroke(1.dp, borderColor),
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp,
+        color = when {
+            !enabled -> MaterialTheme.colorScheme.surface
+            active -> MaterialTheme.colorScheme.primaryContainer
+            else -> MaterialTheme.colorScheme.surfaceVariant
+        },
+        border = BorderStroke(
+            1.dp,
+            if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+        ),
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(CircleShape)
-                .clickable(
-                    enabled = enabled,
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = onClick,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Icon(
-                imageVector = icon,
+                icon,
                 contentDescription = contentDescription,
-                tint = iconTint,
+                tint = if (enabled) tint else inactiveTint,
                 modifier = Modifier.size(iconSize),
             )
         }
@@ -644,16 +441,12 @@ internal fun OutlinedIconActionButton(
 
 @Composable
 internal fun InlineLoading() {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        CircularProgressIndicator(
-            modifier = Modifier.size(16.dp),
-            strokeWidth = 2.dp,
-            color = NovsuBlue,
-        )
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
         Text(
-            text = "Загрузка...",
+            "Обновляем…",
             style = MaterialTheme.typography.bodySmall,
-            color = InkSecondary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -662,17 +455,17 @@ internal fun InlineLoading() {
 internal fun LessonTableSkeleton() {
     SectionCard {
         repeat(5) { index ->
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                SkeletonBar(widthFraction = 0.2f, height = 14.dp)
-                SkeletonBar(widthFraction = 0.65f, height = 14.dp)
+            Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.Top) {
+                Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    SkeletonBar(widthFraction = 0.68f, height = 16.dp)
+                    SkeletonBar(widthFraction = 0.48f, height = 11.dp)
+                }
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SkeletonBar(widthFraction = 0.82f, height = 17.dp)
+                    SkeletonBar(widthFraction = 0.56f, height = 12.dp)
+                }
             }
-            Spacer(Modifier.height(8.dp))
-            SkeletonBar(widthFraction = 0.78f, height = 11.dp)
-            if (index < 4) {
-                Spacer(Modifier.height(10.dp))
-                HorizontalDivider(thickness = 0.8.dp, color = BorderSubtle)
-                Spacer(Modifier.height(10.dp))
-            }
+            if (index < 4) Spacer(Modifier.height(20.dp))
         }
     }
 }
@@ -682,19 +475,15 @@ internal fun SkeletonBar(widthFraction: Float, height: Dp) {
     val transition = rememberInfiniteTransition(label = "skeleton")
     val alpha by transition.animateFloat(
         initialValue = 0.35f,
-        targetValue = 0.85f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 900),
-            repeatMode = RepeatMode.Reverse,
-        ),
+        targetValue = 0.8f,
+        animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
         label = "skeletonAlpha",
     )
-
     Box(
         modifier = Modifier
             .fillMaxWidth(widthFraction)
             .height(height)
-            .clip(MaterialTheme.shapes.small)
-            .background(NovsuBlueSoft.copy(alpha = alpha)),
+            .clip(AppShapes.small)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = alpha)),
     )
 }

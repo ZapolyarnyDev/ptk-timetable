@@ -1,104 +1,35 @@
-﻿package io.github.zapolyarnydev.ptktimetable.ui.schedule
+package io.github.zapolyarnydev.ptktimetable.ui.schedule
 
 import android.app.DatePickerDialog
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.ArrowForward
-import androidx.compose.material.icons.automirrored.outlined.Notes
-import androidx.compose.material.icons.outlined.AccessTime
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material.icons.outlined.Groups
-import androidx.compose.material.icons.outlined.NotificationsActive
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.School
-import androidx.compose.material.icons.outlined.Tune
-import androidx.compose.material.icons.outlined.Update
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkCurrentWeekType
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkGroupInfo
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkWeekType
-import io.github.zapolyarnydev.ptktimetable.ui.theme.BorderSubtle
-import io.github.zapolyarnydev.ptktimetable.ui.theme.HeadingFontFamily
-import io.github.zapolyarnydev.ptktimetable.ui.theme.InkMuted
-import io.github.zapolyarnydev.ptktimetable.ui.theme.InkPrimary
-import io.github.zapolyarnydev.ptktimetable.ui.theme.InkSecondary
-import io.github.zapolyarnydev.ptktimetable.ui.theme.MainFontFamily
-import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlue
-import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlueDark
-import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlueSoft
-import io.github.zapolyarnydev.ptktimetable.ui.theme.SurfaceBlueTint
-import io.github.zapolyarnydev.ptktimetable.ui.theme.SurfaceMuted
-import io.github.zapolyarnydev.ptktimetable.ui.theme.White
-import kotlinx.coroutines.flow.StateFlow
-import java.time.Instant
+import io.github.zapolyarnydev.ptktimetable.ui.theme.AppIcons
+import io.github.zapolyarnydev.ptktimetable.ui.theme.AppShapes
+import io.github.zapolyarnydev.ptktimetable.ui.theme.MaterialThemeAppColors
 import java.time.LocalDate
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @Composable
@@ -123,159 +54,177 @@ internal fun DayNavigatorPanel(
     weekFilter: ScheduleWeekFilter,
     onSelectDay: (ScheduleDay) -> Unit,
     onSelectWeekFilter: (ScheduleWeekFilter) -> Unit,
+    groupTitle: String? = null,
+    courseTitle: String? = null,
+    onBack: (() -> Unit)? = null,
+    onRefresh: (() -> Unit)? = null,
+    errorMessage: String? = null,
 ) {
     val context = LocalContext.current
+    val colors = MaterialThemeAppColors
 
     SectionCard {
+        if (onBack != null || onRefresh != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (onBack != null) {
+                    IconButton(onClick = onBack) {
+                        Icon(AppIcons.back, contentDescription = "К группам")
+                    }
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(1.dp),
+                ) {
+                    Text(
+                        text = buildAnnotatedString {
+                            withStyle(
+                                SpanStyle(
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                ),
+                            ) {
+                                append(groupTitle ?: "Группа не выбрана")
+                            }
+                            courseTitle?.takeIf { it.isNotBlank() }?.let {
+                                append("  •  ")
+                                withStyle(SpanStyle(color = MaterialTheme.colorScheme.onSurfaceVariant)) {
+                                    append(it)
+                                }
+                            }
+                        },
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                if (onRefresh != null) {
+                    IconButton(onClick = onRefresh) {
+                        Icon(AppIcons.refresh, contentDescription = "Обновить")
+                    }
+                }
+            }
+            errorMessage?.let {
+                Spacer(Modifier.height(7.dp))
+                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            }
+            Spacer(Modifier.height(13.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(Modifier.height(16.dp))
+        }
+        Text(
+            "Показать расписание",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(8.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(ScheduleMode.entries, key = { it.name }) { item ->
                 WeekChip(
                     selected = item == mode,
                     label = item.title,
-                    icon = if (item == ScheduleMode.BY_DAY) Icons.Outlined.Schedule else Icons.Outlined.CalendarMonth,
+                    icon = if (item == ScheduleMode.BY_DAY) AppIcons.schedule else AppIcons.calendar,
                     onClick = { onSelectMode(item) },
                 )
             }
         }
 
-        Spacer(Modifier.height(10.dp))
-
-        if (mode == ScheduleMode.BY_DAY) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
+        Spacer(Modifier.height(18.dp))
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            NavArrowButton(
+                icon = AppIcons.back,
+                enabled = if (mode == ScheduleMode.BY_DAY) canGoPrev else true,
+                onClick = if (mode == ScheduleMode.BY_DAY) onPreviousDay else onPreviousDate,
+            )
+            Column(
+                modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(3.dp),
             ) {
-                NavArrowButton(
-                    icon = Icons.AutoMirrored.Outlined.ArrowBack,
-                    enabled = canGoPrev,
-                    onClick = onPreviousDay,
+                Text(
+                    text = if (mode == ScheduleMode.BY_DAY) selectedDayTitle else formatDateTitle(selectedDate),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
                 )
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        text = selectedDayTitle,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = InkPrimary,
-                        fontFamily = HeadingFontFamily,
-                    )
-                    if (totalDays > 0) {
-                        Text(
-                            text = "день ${dayIndex + 1} из $totalDays",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = InkMuted,
-                        )
-                    }
-                }
-                NavArrowButton(
-                    icon = Icons.AutoMirrored.Outlined.ArrowForward,
-                    enabled = canGoNext,
-                    onClick = onNextDay,
+                Text(
+                    text = if (mode == ScheduleMode.BY_DAY) {
+                        if (totalDays > 0) "День ${dayIndex + 1} из $totalDays" else "День не выбран"
+                    } else {
+                        selectedDayTitle
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            NavArrowButton(
+                icon = AppIcons.forward,
+                enabled = if (mode == ScheduleMode.BY_DAY) canGoNext else true,
+                onClick = if (mode == ScheduleMode.BY_DAY) onNextDay else onNextDate,
+            )
+        }
 
-            Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(16.dp))
+        if (mode == ScheduleMode.BY_DAY) {
             if (availableDays.isNotEmpty()) {
+                Text(
+                    "День недели",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(7.dp))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(availableDays, key = { it.name }) { day ->
                         WeekChip(
                             selected = day == selectedDay,
                             label = day.shortTitle,
-                            icon = Icons.Outlined.Schedule,
+                            icon = AppIcons.schedule,
                             onClick = { onSelectDay(day) },
-                            containerColor = NovsuBlueSoft.copy(alpha = 0.45f),
-                            selectedContainerColor = NovsuBlueSoft,
-                            labelColor = NovsuBlueDark,
-                            selectedLabelColor = NovsuBlueDark,
-                            iconColor = NovsuBlueDark,
-                            selectedLeadingIconColor = NovsuBlueDark,
+                            containerColor = colors.surfaceSoft,
+                            selectedContainerColor = colors.brandContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
                         )
                     }
                 }
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(14.dp))
             }
-
+            Text(
+                "Неделя",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(7.dp))
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(ScheduleWeekFilter.entries, key = { it.name }) { filter ->
                     WeekChip(
                         selected = filter == weekFilter,
                         label = filter.title,
-                        icon = Icons.Outlined.Tune,
+                        icon = AppIcons.filter,
                         onClick = { onSelectWeekFilter(filter) },
                     )
                 }
             }
             if (isWeekMismatchWarningNeeded(weekFilter, currentWeekType)) {
-                Spacer(Modifier.height(8.dp))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(SurfaceBlueTint)
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
-                ) {
-                    Text(
-                        text = "Недели не совпадают: текущая ${weekTypeLabel(currentWeekType)}, " +
-                            "показано расписание для ${weekFilter.title.lowercase(Locale.forLanguageTag("ru"))}.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = "Сейчас ${weekTypeLabel(
+                        currentWeekType,
+                    )} неделя, а выбрана ${weekFilter.title.lowercase(Locale.forLanguageTag("ru"))}.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.warning,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                )
             }
         } else {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                NavArrowButton(
-                    icon = Icons.AutoMirrored.Outlined.ArrowBack,
-                    enabled = true,
-                    onClick = onPreviousDate,
-                )
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        text = formatDateTitle(selectedDate),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = InkPrimary,
-                        fontFamily = HeadingFontFamily,
-                    )
-                    Text(
-                        text = selectedDayTitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = InkMuted,
-                    )
-                }
-                NavArrowButton(
-                    icon = Icons.AutoMirrored.Outlined.ArrowForward,
-                    enabled = true,
-                    onClick = onNextDate,
-                )
-            }
-
-            Spacer(Modifier.height(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedActionButton("Сегодня", onGoToToday, modifier = Modifier.weight(1f))
                 OutlinedActionButton(
-                    text = "Сегодня",
-                    onClick = onGoToToday,
-                    modifier = Modifier.weight(1f),
-                )
-                OutlinedActionButton(
-                    text = "Выбрать дату",
+                    "Выбрать дату",
                     modifier = Modifier.weight(1f),
                     onClick = {
                         DatePickerDialog(
                             context,
-                            { _, year, month, dayOfMonth ->
-                                onSelectDate(LocalDate.of(year, month + 1, dayOfMonth))
-                            },
+                            { _, year, month, day -> onSelectDate(LocalDate.of(year, month + 1, day)) },
                             selectedDate.year,
                             selectedDate.monthValue - 1,
                             selectedDate.dayOfMonth,
@@ -283,6 +232,14 @@ internal fun DayNavigatorPanel(
                     },
                 )
             }
+            Spacer(Modifier.height(9.dp))
+            Text(
+                text = "Неделя на дату: ${weekTypeLabel(
+                    if (selectedDate == LocalDate.now()) currentWeekType else PtkCurrentWeekType.UNKNOWN,
+                )}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

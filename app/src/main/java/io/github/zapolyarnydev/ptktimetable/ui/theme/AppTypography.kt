@@ -18,7 +18,7 @@ val HeadingFontFamily = FontFamily(
     Font(R.font.manrope_wght, FontWeight.ExtraBold),
 )
 
-val PtkTypography = Typography(
+val AppTypography = Typography(
     headlineSmall = TextStyle(
         fontFamily = HeadingFontFamily,
         fontWeight = FontWeight.Black,
@@ -70,3 +70,5 @@ val PtkTypography = Typography(
         lineHeight = 19.sp,
     ),
 )
+
+val PtkTypography = AppTypography

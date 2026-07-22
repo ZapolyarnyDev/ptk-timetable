@@ -6,7 +6,7 @@ case "$(uname -s)" in
   *) ./gradlew spotlessApply ;;
 esac
 
-git diff --cached --name-only | while IFS= read -r file; do
+git diff --cached --name-only --diff-filter=ACMRTUXB | while IFS= read -r file; do
   [ -z "$file" ] || git add -- "$file"
 done
 

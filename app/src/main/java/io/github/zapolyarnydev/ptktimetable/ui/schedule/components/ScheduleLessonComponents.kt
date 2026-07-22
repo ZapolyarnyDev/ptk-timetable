@@ -1,72 +1,29 @@
-﻿package io.github.zapolyarnydev.ptktimetable.ui.schedule
+package io.github.zapolyarnydev.ptktimetable.ui.schedule
 
-import android.app.DatePickerDialog
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.ArrowForward
-import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
-import androidx.compose.material.icons.automirrored.outlined.Notes
-import androidx.compose.material.icons.outlined.AccessTime
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Groups
-import androidx.compose.material.icons.outlined.NotificationsActive
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.School
-import androidx.compose.material.icons.outlined.Tune
-import androidx.compose.material.icons.outlined.Update
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -74,37 +31,18 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkCurrentWeekType
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkGroupInfo
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkWeekType
-import io.github.zapolyarnydev.ptktimetable.ui.theme.BorderStrong
-import io.github.zapolyarnydev.ptktimetable.ui.theme.BorderSubtle
-import io.github.zapolyarnydev.ptktimetable.ui.theme.HeadingFontFamily
-import io.github.zapolyarnydev.ptktimetable.ui.theme.InkMuted
-import io.github.zapolyarnydev.ptktimetable.ui.theme.InkPrimary
-import io.github.zapolyarnydev.ptktimetable.ui.theme.InkSecondary
-import io.github.zapolyarnydev.ptktimetable.ui.theme.MainFontFamily
-import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlue
-import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlueDark
-import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlueSoft
-import io.github.zapolyarnydev.ptktimetable.ui.theme.SurfaceBlueTint
-import io.github.zapolyarnydev.ptktimetable.ui.theme.SurfaceMuted
-import io.github.zapolyarnydev.ptktimetable.ui.theme.White
-import kotlinx.coroutines.flow.StateFlow
-import java.time.Instant
+import io.github.zapolyarnydev.ptktimetable.ui.theme.AppDimensions
+import io.github.zapolyarnydev.ptktimetable.ui.theme.AppIcons
+import io.github.zapolyarnydev.ptktimetable.ui.theme.AppShapes
+import io.github.zapolyarnydev.ptktimetable.ui.theme.MaterialThemeAppColors
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -121,8 +59,31 @@ internal fun LessonTableCard(
     onAddOrEditNote: (ScheduleLessonItem) -> Unit,
     onAddOrEditReminder: (ScheduleLessonItem) -> Unit,
 ) {
-    SectionCard(padding = 12.dp) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    val nextTimeRange = timeSlots
+        .filter { isFutureLessonSlot(date, selectedDay, isDateMode, it.timeRange) }
+        .minByOrNull { lessonSortKey(it.timeRange) }
+        ?.timeRange
+
+    SectionCard(padding = 0.dp) {
+        Row(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 15.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(9.dp),
+        ) {
+            Box(Modifier.size(8.dp).clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.primary))
+            Text("Занятия", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(
+                text = "${timeSlots.size}",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .clip(AppShapes.pill)
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .padding(horizontal = 8.dp, vertical = 3.dp),
+            )
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
             timeSlots.forEachIndexed { index, slot ->
                 AnimatedReveal(key = "${slot.timeRange}-$index") {
                     LessonTableRow(
@@ -132,6 +93,7 @@ internal fun LessonTableCard(
                         date = date,
                         selectedDay = selectedDay,
                         isDateMode = isDateMode,
+                        isNextSlot = slot.timeRange == nextTimeRange,
                         noteMap = noteMap,
                         reminderMap = reminderMap,
                         onAddOrEditNote = onAddOrEditNote,
@@ -151,122 +113,104 @@ internal fun LessonTableRow(
     date: LocalDate,
     selectedDay: ScheduleDay?,
     isDateMode: Boolean,
+    isNextSlot: Boolean,
     noteMap: Map<String, ScheduleNoteItem>,
     reminderMap: Map<String, ScheduleNoteItem>,
     onAddOrEditNote: (ScheduleLessonItem) -> Unit,
     onAddOrEditReminder: (ScheduleLessonItem) -> Unit,
 ) {
+    val colors = MaterialThemeAppColors
     val (startTime, endTime) = splitTimeRange(slot.timeRange)
-    val timeIndent = 22.dp
-    val isCurrentSlot = isCurrentLessonSlot(
-        date = date,
-        selectedDay = selectedDay,
-        isDateMode = isDateMode,
-        timeRange = slot.timeRange,
+    val isCurrentSlot = isCurrentLessonSlot(date, selectedDay, isDateMode, slot.timeRange)
+    val accent = when {
+        isCurrentSlot -> colors.currentLesson
+        isNextSlot -> colors.nextLesson
+        else -> MaterialTheme.colorScheme.primary
+    }
+    val containerColor by animateColorAsState(
+        targetValue = when {
+            isCurrentSlot -> colors.currentLessonContainer
+            isNextSlot -> colors.nextLessonContainer
+            else -> MaterialTheme.colorScheme.surface
+        },
+        animationSpec = tween(220),
+        label = "lessonContainerColor",
     )
-    val cardBorderColor by animateColorAsState(
-        targetValue = if (isCurrentSlot) NovsuBlue else BorderSubtle,
-        animationSpec = tween(durationMillis = 170),
-        label = "lessonRowBorderColor",
-    )
-    val cardBackgroundColor by animateColorAsState(
-        targetValue = if (isCurrentSlot) SurfaceBlueTint else White,
-        animationSpec = tween(durationMillis = 170),
-        label = "lessonRowBackground",
-    )
-    val cardBorderWidth by animateDpAsState(
-        targetValue = if (isCurrentSlot) 1.5.dp else 1.dp,
-        animationSpec = tween(durationMillis = 170),
-        label = "lessonRowBorderWidth",
-    )
-    val dividerColor by animateColorAsState(
-        targetValue = if (isCurrentSlot) NovsuBlue.copy(alpha = 0.35f) else BorderStrong,
-        animationSpec = tween(durationMillis = 170),
-        label = "lessonRowDividerColor",
+    val borderWidth by animateDpAsState(
+        targetValue = if (isCurrentSlot || isNextSlot) 1.5.dp else 1.dp,
+        animationSpec = tween(220),
+        label = "lessonBorderWidth",
     )
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = cardBackgroundColor,
-        shape = RoundedCornerShape(14.dp),
-        border = BorderStroke(cardBorderWidth, cardBorderColor),
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp,
+        color = containerColor,
+        shape = AppShapes.schedule,
+        border = BorderStroke(
+            borderWidth,
+            if (isCurrentSlot || isNextSlot) {
+                accent.copy(alpha = 0.58f)
+            } else {
+                MaterialTheme.colorScheme.outlineVariant
+            },
+        ),
+        tonalElevation = if (isCurrentSlot) 2.dp else 0.dp,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 88.dp),
-        ) {
+        Row(modifier = Modifier.fillMaxWidth().heightIn(min = 94.dp)) {
+            Box(Modifier.width(5.dp).heightIn(min = 94.dp).background(accent))
             Column(
                 modifier = Modifier
-                    .width(96.dp)
-                    .padding(horizontal = 12.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.SpaceBetween,
+                    .width(AppDimensions.scheduleTimeColumn)
+                    .padding(horizontal = 12.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(7.dp),
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.AccessTime,
-                        contentDescription = null,
-                        tint = NovsuBlue,
-                        modifier = Modifier.size(16.dp),
-                    )
+                Text(
+                    startTime,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = accent,
+                )
+                Text(
+                    endTime,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (isCurrentSlot || isNextSlot) {
                     Text(
-                        text = startTime,
-                        style = MaterialTheme.typography.titleSmall,
-                        color = InkPrimary,
-                        fontFamily = HeadingFontFamily,
-                    )
-                }
-
-                Row {
-                    Spacer(modifier = Modifier.width(timeIndent))
-                    Text(
-                        text = endTime,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = InkPrimary,
-                        fontFamily = HeadingFontFamily,
+                        text = if (isCurrentSlot) "СЕЙЧАС" else "ДАЛЬШЕ",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = accent,
+                        fontWeight = FontWeight.Bold,
                     )
                 }
             }
-
-            Box(
-                modifier = Modifier
-                    .width(1.dp)
-                    .heightIn(min = 88.dp)
-                    .background(dividerColor),
-            )
-
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 12.dp, vertical = 12.dp),
+            Box(Modifier.width(1.dp).heightIn(min = 94.dp).background(accent.copy(alpha = 0.2f)))
+            Column(
+                modifier = Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(9.dp),
             ) {
                 if (slot.isSplitByWeek) {
                     SplitWeekCell(
-                        slot = slot,
-                        currentWeekType = currentWeekType,
-                        weekFilter = weekFilter,
-                        date = date,
-                        isDateMode = isDateMode,
-                        noteMap = noteMap,
-                        reminderMap = reminderMap,
-                        onAddOrEditNote = onAddOrEditNote,
-                        onAddOrEditReminder = onAddOrEditReminder,
+                        slot,
+                        currentWeekType,
+                        weekFilter,
+                        date,
+                        isDateMode,
+                        noteMap,
+                        reminderMap,
+                        onAddOrEditNote,
+                        onAddOrEditReminder,
                     )
                 } else {
                     LessonTextBlock(
-                        lessons = slot.allLessons,
-                        currentWeekType = currentWeekType,
-                        date = date,
-                        isDateMode = isDateMode,
-                        noteMap = noteMap,
-                        reminderMap = reminderMap,
-                        onAddOrEditNote = onAddOrEditNote,
-                        onAddOrEditReminder = onAddOrEditReminder,
+                        slot.allLessons,
+                        currentWeekType,
+                        date,
+                        isDateMode,
+                        noteMap,
+                        reminderMap,
+                        onAddOrEditNote,
+                        onAddOrEditReminder,
                     )
                 }
             }
@@ -286,65 +230,38 @@ internal fun SplitWeekCell(
     onAddOrEditNote: (ScheduleLessonItem) -> Unit,
     onAddOrEditReminder: (ScheduleLessonItem) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        when {
-            !isDateMode && weekFilter == ScheduleWeekFilter.UPPER -> {
-                WeekHalfBlock(
-                    title = "Верхняя",
-                    lessons = slot.upperLessons,
-                    weekType = PtkWeekType.UPPER,
-                    currentWeekType = currentWeekType,
-                    date = date,
-                    isDateMode = isDateMode,
-                    noteMap = noteMap,
-                    reminderMap = reminderMap,
-                    onAddOrEditNote = onAddOrEditNote,
-                    onAddOrEditReminder = onAddOrEditReminder,
-                )
-            }
-
-            !isDateMode && weekFilter == ScheduleWeekFilter.LOWER -> {
-                WeekHalfBlock(
-                    title = "Нижняя",
-                    lessons = slot.lowerLessons,
-                    weekType = PtkWeekType.LOWER,
-                    currentWeekType = currentWeekType,
-                    date = date,
-                    isDateMode = isDateMode,
-                    noteMap = noteMap,
-                    reminderMap = reminderMap,
-                    onAddOrEditNote = onAddOrEditNote,
-                    onAddOrEditReminder = onAddOrEditReminder,
-                )
-            }
-
-            else -> {
-                WeekHalfBlock(
-                    title = "Верхняя",
-                    lessons = slot.upperLessons,
-                    weekType = PtkWeekType.UPPER,
-                    currentWeekType = currentWeekType,
-                    date = date,
-                    isDateMode = isDateMode,
-                    noteMap = noteMap,
-                    reminderMap = reminderMap,
-                    onAddOrEditNote = onAddOrEditNote,
-                    onAddOrEditReminder = onAddOrEditReminder,
-                )
-                DashedHorizontalDivider()
-                WeekHalfBlock(
-                    title = "Нижняя",
-                    lessons = slot.lowerLessons,
-                    weekType = PtkWeekType.LOWER,
-                    currentWeekType = currentWeekType,
-                    date = date,
-                    isDateMode = isDateMode,
-                    noteMap = noteMap,
-                    reminderMap = reminderMap,
-                    onAddOrEditNote = onAddOrEditNote,
-                    onAddOrEditReminder = onAddOrEditReminder,
-                )
-            }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (slot.allLessons.isNotEmpty()) {
+            LessonTextBlock(
+                slot.allLessons,
+                currentWeekType,
+                date,
+                isDateMode,
+                noteMap,
+                reminderMap,
+                onAddOrEditNote,
+                onAddOrEditReminder,
+            )
+        }
+        val blocks = when {
+            !isDateMode && weekFilter == ScheduleWeekFilter.UPPER -> listOf("Верхняя" to slot.upperLessons)
+            !isDateMode && weekFilter == ScheduleWeekFilter.LOWER -> listOf("Нижняя" to slot.lowerLessons)
+            else -> listOf("Верхняя" to slot.upperLessons, "Нижняя" to slot.lowerLessons)
+        }
+        blocks.forEachIndexed { index, (title, lessons) ->
+            if (index > 0) DashedHorizontalDivider()
+            WeekHalfBlock(
+                title,
+                lessons,
+                if (title == "Верхняя") PtkWeekType.UPPER else PtkWeekType.LOWER,
+                currentWeekType,
+                date,
+                isDateMode,
+                noteMap,
+                reminderMap,
+                onAddOrEditNote,
+                onAddOrEditReminder,
+            )
         }
     }
 }
@@ -363,34 +280,34 @@ internal fun WeekHalfBlock(
     onAddOrEditReminder: (ScheduleLessonItem) -> Unit,
 ) {
     val isCurrent = weekTypeMatchesCurrent(weekType, currentWeekType)
-    val titleAlpha = if (isCurrent) 1f else 0.9f
-
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(
-            text = title,
+            title,
             style = MaterialTheme.typography.labelLarge,
-            color = NovsuBlue.copy(alpha = titleAlpha),
-            fontFamily = MainFontFamily,
-            fontWeight = FontWeight.SemiBold,
+            color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
         )
-        if (lessons.isEmpty()) {
-            Text(
-                text = "-",
-                style = MaterialTheme.typography.bodyMedium,
-                color = InkMuted.copy(alpha = titleAlpha),
-            )
-        } else {
-            LessonTextBlock(
-                lessons = lessons,
-                currentWeekType = currentWeekType,
-                date = date,
-                isDateMode = isDateMode,
-                noteMap = noteMap,
-                reminderMap = reminderMap,
-                onAddOrEditNote = onAddOrEditNote,
-                onAddOrEditReminder = onAddOrEditReminder,
-            )
+        if (isCurrent) {
+            Text("сейчас", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
         }
+    }
+    if (lessons.isEmpty()) {
+        Text(
+            "Нет занятия",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    } else {
+        LessonTextBlock(
+            lessons,
+            currentWeekType,
+            date,
+            isDateMode,
+            noteMap,
+            reminderMap,
+            onAddOrEditNote,
+            onAddOrEditReminder,
+        )
     }
 }
 
@@ -405,128 +322,124 @@ internal fun LessonTextBlock(
     onAddOrEditNote: (ScheduleLessonItem) -> Unit,
     onAddOrEditReminder: (ScheduleLessonItem) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
         lessons.forEachIndexed { index, lesson ->
             val isCurrent = weekTypeMatchesCurrent(lesson.weekType, currentWeekType)
-            val textAlpha = if (isCurrent) 1f else 0.9f
             val note = noteMap[noteLessonKey(date, lesson.timeRange, lesson.weekType, lesson.subject, lesson.rawText)]
             val reminder = reminderMap[
-                noteLessonKey(
-                    date,
-                    lesson.timeRange,
-                    lesson.weekType,
-                    lesson.subject,
-                    lesson.rawText,
-                ),
+                noteLessonKey(date, lesson.timeRange, lesson.weekType, lesson.subject, lesson.rawText),
             ]
-            val mainText = lesson.subject.ifBlank { lesson.rawText }
-            val hasNote = note != null
-            val reminderEnabled = reminder?.reminderEnabled == true
             val details = listOfNotNull(
-                lesson.teacher?.takeIf { it.isNotBlank() },
-                lesson.classroom?.takeIf { it.isNotBlank() },
-            ).joinToString(", ")
-
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                lesson.teacher?.takeIf { it.isNotBlank() }?.let { AppIcons.person to it },
+                lesson.classroom?.takeIf { it.isNotBlank() }?.let { AppIcons.room to it },
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text(
-                        text = mainText,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = InkPrimary.copy(alpha = textAlpha),
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f),
-                    )
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Text(
+                            text = lesson.subject.ifBlank { lesson.rawText },
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        if (lesson.weekType != PtkWeekType.ALL) {
+                            Text(
+                                text = weekTypeTitle(lesson.weekType),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (isCurrent) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                            )
+                        }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                        OutlinedIconActionButton(
+                            icon = if (note != null) AppIcons.note else AppIcons.edit,
+                            contentDescription = if (note != null) {
+                                "Открыть заметку"
+                            } else {
+                                "Добавить заметку"
+                            },
+                            onClick = { onAddOrEditNote(lesson) },
+                            enabled = isDateMode,
+                            active = note != null,
+                            size = 32.dp,
+                        )
+                        OutlinedIconActionButton(
+                            icon = AppIcons.reminder,
+                            contentDescription =
+                            "Напоминание",
+                            onClick = { onAddOrEditReminder(lesson) },
+                            enabled = isDateMode,
+                            active = reminder?.reminderEnabled == true,
+                            size = 32.dp,
+                        )
+                    }
+                }
+                details.forEach { (icon, value) ->
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        OutlinedIconActionButton(
-                            icon = if (hasNote) Icons.AutoMirrored.Outlined.FormatListBulleted else Icons.Outlined.Edit,
-                            contentDescription = if (hasNote) "Заметка есть" else "Добавить заметку",
-                            onClick = { onAddOrEditNote(lesson) },
-                            enabled = isDateMode,
-                            active = hasNote,
-                            tint = if (hasNote) NovsuBlue.copy(alpha = textAlpha) else InkSecondary.copy(alpha = 0.7f),
-                            inactiveTint = InkSecondary.copy(alpha = 0.35f),
-                            size = 28.dp,
-                            iconSize = 15.dp,
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(15.dp),
                         )
-                        OutlinedIconActionButton(
-                            icon = Icons.Outlined.NotificationsActive,
-                            contentDescription = "Напоминание",
-                            onClick = { onAddOrEditReminder(lesson) },
-                            enabled = isDateMode,
-                            active = reminderEnabled,
-                            tint = if (reminderEnabled) {
-                                NovsuBlue.copy(
-                                    alpha = textAlpha,
-                                )
-                            } else {
-                                InkSecondary.copy(alpha = 0.7f)
-                            },
-                            inactiveTint = InkSecondary.copy(alpha = 0.35f),
-                            size = 28.dp,
-                            iconSize = 15.dp,
+                        Text(
+                            value,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
-                if (details.isNotBlank()) {
+                if (note != null && note.noteText.isNotBlank()) {
                     Text(
-                        text = details,
+                        text = "Заметка · ${note.noteText}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = InkSecondary.copy(alpha = textAlpha),
-                    )
-                }
-                if (note != null) {
-                    Text(
-                        text = "Заметка: ${note.noteText}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = NovsuBlueDark.copy(alpha = textAlpha),
+                        color = MaterialTheme.colorScheme.primary,
                         maxLines = 2,
                     )
                 }
             }
-
-            if (index < lessons.lastIndex) {
-                HorizontalDivider(thickness = 0.8.dp, color = BorderSubtle.copy(alpha = 0.9f))
-            }
+            if (index < lessons.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
+}
+
+private fun weekTypeTitle(type: PtkWeekType): String = when (type) {
+    PtkWeekType.ALL -> "Обе недели"
+    PtkWeekType.UPPER -> "Верхняя неделя"
+    PtkWeekType.LOWER -> "Нижняя неделя"
 }
 
 internal fun weekTypeMatchesCurrent(lessonWeekType: PtkWeekType, currentWeekType: PtkCurrentWeekType): Boolean =
     when (currentWeekType) {
         PtkCurrentWeekType.UNKNOWN -> true
-
-        PtkCurrentWeekType.UPPER -> {
-            lessonWeekType == PtkWeekType.UPPER || lessonWeekType == PtkWeekType.ALL
-        }
-
-        PtkCurrentWeekType.LOWER -> {
-            lessonWeekType == PtkWeekType.LOWER || lessonWeekType == PtkWeekType.ALL
-        }
+        PtkCurrentWeekType.UPPER -> lessonWeekType == PtkWeekType.UPPER || lessonWeekType == PtkWeekType.ALL
+        PtkCurrentWeekType.LOWER -> lessonWeekType == PtkWeekType.LOWER || lessonWeekType == PtkWeekType.ALL
     }
 
 @Composable
-internal fun DashedHorizontalDivider(color: Color = BorderSubtle, stroke: Dp = 1.dp) {
+internal fun DashedHorizontalDivider(color: Color = MaterialTheme.colorScheme.outlineVariant, stroke: Dp = 1.dp) {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(2.dp)
-            .drawBehind {
-                val y = size.height / 2f
-                drawLine(
-                    color = color,
-                    start = Offset(0f, y),
-                    end = Offset(size.width, y),
-                    strokeWidth = stroke.toPx(),
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(10.dp.toPx(), 6.dp.toPx()), 0f),
-                )
-            },
+        modifier = Modifier.fillMaxWidth().height(2.dp).drawBehind {
+            val y = size.height / 2f
+            drawLine(
+                color = color,
+                start = Offset(0f, y),
+                end = Offset(size.width, y),
+                strokeWidth = stroke.toPx(),
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(8.dp.toPx(), 5.dp.toPx())),
+            )
+        },
     )
 }
 
@@ -536,8 +449,7 @@ data class TimeSlotUi(
     val upperLessons: List<ScheduleLessonItem>,
     val lowerLessons: List<ScheduleLessonItem>,
 ) {
-    val isSplitByWeek: Boolean
-        get() = upperLessons.isNotEmpty() || lowerLessons.isNotEmpty()
+    val isSplitByWeek: Boolean get() = upperLessons.isNotEmpty() || lowerLessons.isNotEmpty()
 }
 
 internal fun buildTimeSlots(lessons: List<ScheduleLessonItem>): List<TimeSlotUi> = lessons
@@ -553,20 +465,12 @@ internal fun buildTimeSlots(lessons: List<ScheduleLessonItem>): List<TimeSlotUi>
     .sortedBy { lessonSortKey(it.timeRange) }
 
 internal fun filterLessons(state: ScheduleUiState): List<ScheduleLessonItem> {
-    if (state.mode == ScheduleMode.BY_DATE) {
-        return state.lessons
-            .asSequence()
-            .sortedBy { lessonSortKey(it.timeRange) }
-            .toList()
-    }
-
+    if (state.mode == ScheduleMode.BY_DATE) return state.lessons.sortedBy { lessonSortKey(it.timeRange) }
     val selectedDay = state.selectedDay ?: return emptyList()
     return state.lessons
-        .asSequence()
         .filter { it.day == selectedDay }
-        .filter { lesson -> lessonMatchesWeekFilter(lesson.weekType, state.weekFilter) }
+        .filter { lessonMatchesWeekFilter(it.weekType, state.weekFilter) }
         .sortedBy { lessonSortKey(it.timeRange) }
-        .toList()
 }
 
 internal fun lessonMatchesWeekFilter(weekType: PtkWeekType, filter: ScheduleWeekFilter): Boolean = when (filter) {
@@ -578,20 +482,13 @@ internal fun lessonMatchesWeekFilter(weekType: PtkWeekType, filter: ScheduleWeek
 internal fun lessonSortKey(timeRange: String): Int {
     val normalized = timeRange.replace('—', '-').replace('–', '-')
     val match = Regex("(\\d{1,2})[.:](\\d{2})").find(normalized) ?: return Int.MAX_VALUE
-    val hours = match.groupValues[1].toIntOrNull() ?: return Int.MAX_VALUE
-    val minutes = match.groupValues[2].toIntOrNull() ?: return Int.MAX_VALUE
-    return hours * 60 + minutes
+    return (match.groupValues[1].toIntOrNull() ?: 99) * 60 + (match.groupValues[2].toIntOrNull() ?: 99)
 }
 
 internal fun splitTimeRange(timeRange: String): Pair<String, String> {
-    val normalized = timeRange
-        .replace('—', '-')
-        .replace('–', '-')
-        .replace(" ", "")
+    val normalized = timeRange.replace('—', '-').replace('–', '-').replace(" ", "")
     val parts = normalized.split("-", limit = 2)
-    val start = parts.getOrNull(0).orEmpty().ifBlank { timeRange }
-    val end = parts.getOrNull(1).orEmpty().ifBlank { "" }
-    return start to end
+    return parts.getOrNull(0).orEmpty().ifBlank { timeRange } to parts.getOrNull(1).orEmpty()
 }
 
 internal fun noteLessonKey(
@@ -609,13 +506,8 @@ internal fun noteLessonKey(
 ).joinToString("|")
 
 internal fun isLessonEditableNowOrFuture(date: LocalDate, timeRange: String): Boolean {
-    val start = splitTimeRange(timeRange).first
-    val match = Regex("(\\d{1,2})[.:](\\d{2})").find(start) ?: return false
-    val h = match.groupValues[1].toIntOrNull() ?: return false
-    val m = match.groupValues[2].toIntOrNull() ?: return false
-    val startDateTime = runCatching { java.time.LocalDateTime.of(date, java.time.LocalTime.of(h, m)) }.getOrNull()
-        ?: return false
-    return !startDateTime.isBefore(java.time.LocalDateTime.now())
+    val start = parseStartDateTime(date, timeRange) ?: return false
+    return !start.isBefore(LocalDateTime.now())
 }
 
 internal fun isCurrentLessonSlot(
@@ -628,27 +520,40 @@ internal fun isCurrentLessonSlot(
     val isMatchingDay = if (isDateMode) {
         now.toLocalDate() == date
     } else {
-        selectedDay != null && selectedDay == dayOfWeekToScheduleDay(now.dayOfWeek)
+        selectedDay == dayOfWeekToScheduleDay(now.dayOfWeek)
     }
     if (!isMatchingDay) return false
-
-    val slotDate = if (isDateMode) date else now.toLocalDate()
     val (startRaw, endRaw) = splitTimeRange(timeRange)
-    val startMatch = Regex("(\\d{1,2})[.:](\\d{2})").find(startRaw) ?: return false
-    val endMatch = Regex("(\\d{1,2})[.:](\\d{2})").find(endRaw) ?: return false
-    val start = runCatching {
-        LocalDateTime.of(
-            slotDate,
-            LocalTime.of(startMatch.groupValues[1].toInt(), startMatch.groupValues[2].toInt()),
-        )
-    }.getOrNull() ?: return false
-    val end = runCatching {
-        LocalDateTime.of(
-            slotDate,
-            LocalTime.of(endMatch.groupValues[1].toInt(), endMatch.groupValues[2].toInt()),
-        )
-    }.getOrNull() ?: return false
+    val start = parseTime(now.toLocalDate(), startRaw) ?: return false
+    val end = parseTime(now.toLocalDate(), endRaw) ?: return false
     return !now.isBefore(start) && now.isBefore(end)
+}
+
+internal fun isFutureLessonSlot(
+    date: LocalDate,
+    selectedDay: ScheduleDay?,
+    isDateMode: Boolean,
+    timeRange: String,
+): Boolean {
+    val today = LocalDate.now()
+    val targetDate = if (isDateMode) {
+        date
+    } else {
+        if (selectedDay != dayOfWeekToScheduleDay(today.dayOfWeek)) return false
+        today
+    }
+    val start = parseStartDateTime(targetDate, timeRange) ?: return false
+    return start.isAfter(LocalDateTime.now())
+}
+
+private fun parseStartDateTime(date: LocalDate, timeRange: String): LocalDateTime? =
+    parseTime(date, splitTimeRange(timeRange).first)
+
+private fun parseTime(date: LocalDate, text: String): LocalDateTime? {
+    val match = Regex("(\\d{1,2})[.:](\\d{2})").find(text) ?: return null
+    val hour = match.groupValues[1].toIntOrNull() ?: return null
+    val minute = match.groupValues[2].toIntOrNull() ?: return null
+    return runCatching { LocalDateTime.of(date, LocalTime.of(hour, minute)) }.getOrNull()
 }
 
 internal fun dayOfWeekToScheduleDay(dayOfWeek: java.time.DayOfWeek): ScheduleDay = when (dayOfWeek) {
@@ -662,8 +567,7 @@ internal fun dayOfWeekToScheduleDay(dayOfWeek: java.time.DayOfWeek): ScheduleDay
 }
 
 internal fun formatDateTitle(date: LocalDate): String =
-    DateTimeFormatter.ofPattern("dd.MM.yyyy", Locale.forLanguageTag("ru"))
-        .format(date)
+    DateTimeFormatter.ofPattern("d MMMM", Locale.forLanguageTag("ru")).format(date)
 
 internal fun weekTypeLabel(type: PtkCurrentWeekType): String = when (type) {
     PtkCurrentWeekType.UPPER -> "верхняя"
@@ -683,7 +587,7 @@ internal fun isWeekMismatchWarningNeeded(
     }
 }
 
-internal fun formatInstant(value: Instant): String =
-    DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm", Locale.forLanguageTag("ru"))
-        .withZone(ZoneId.systemDefault())
+internal fun formatInstant(value: java.time.Instant): String =
+    DateTimeFormatter.ofPattern("dd.MM HH:mm", Locale.forLanguageTag("ru"))
+        .withZone(java.time.ZoneId.systemDefault())
         .format(value)

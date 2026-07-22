@@ -1,11 +1,6 @@
-﻿package io.github.zapolyarnydev.ptktimetable.ui.schedule
+package io.github.zapolyarnydev.ptktimetable.ui.schedule
 
-import android.app.DatePickerDialog
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -13,57 +8,25 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.ArrowForward
-import androidx.compose.material.icons.automirrored.outlined.Notes
-import androidx.compose.material.icons.outlined.AccessTime
-import androidx.compose.material.icons.outlined.Badge
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material.icons.outlined.Groups
-import androidx.compose.material.icons.outlined.NotificationsActive
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.School
-import androidx.compose.material.icons.outlined.Tune
-import androidx.compose.material.icons.outlined.Update
-import androidx.compose.material.icons.outlined.ViewModule
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -73,40 +36,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkCurrentWeekType
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkGroupInfo
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkWeekType
-import io.github.zapolyarnydev.ptktimetable.ui.theme.BorderStrong
-import io.github.zapolyarnydev.ptktimetable.ui.theme.BorderSubtle
-import io.github.zapolyarnydev.ptktimetable.ui.theme.HeadingFontFamily
-import io.github.zapolyarnydev.ptktimetable.ui.theme.InkPrimary
-import io.github.zapolyarnydev.ptktimetable.ui.theme.InkSecondary
-import io.github.zapolyarnydev.ptktimetable.ui.theme.MainFontFamily
-import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlue
-import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlueDark
-import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlueSoft
-import io.github.zapolyarnydev.ptktimetable.ui.theme.SurfaceBlueTint
-import io.github.zapolyarnydev.ptktimetable.ui.theme.SurfaceMuted
-import io.github.zapolyarnydev.ptktimetable.ui.theme.White
+import io.github.zapolyarnydev.ptktimetable.ui.theme.AppAnimations
+import io.github.zapolyarnydev.ptktimetable.ui.theme.AppDimensions
+import io.github.zapolyarnydev.ptktimetable.ui.theme.AppIcons
+import io.github.zapolyarnydev.ptktimetable.ui.theme.AppShapes
+import io.github.zapolyarnydev.ptktimetable.ui.theme.MaterialThemeAppColors
 import kotlinx.coroutines.flow.StateFlow
-import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 @Composable
 fun ScheduleScreen(
@@ -158,7 +99,6 @@ fun ScheduleScreen(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ScheduleScreenContent(
     state: ScheduleUiState,
@@ -183,40 +123,27 @@ private fun ScheduleScreenContent(
     onUpdateNoteById: (String, String) -> Unit,
     onDeleteNoteById: (String) -> Unit,
 ) {
-    Scaffold(containerColor = White) { padding ->
-        Box(modifier = Modifier.fillMaxSize()) {
+    val colors = MaterialThemeAppColors
+    Scaffold(containerColor = colors.canvas) { padding ->
+        Box(Modifier.fillMaxSize().padding(padding)) {
             AnimatedContent(
                 targetState = state.step,
                 transitionSpec = {
-                    (
-                        fadeIn(animationSpec = tween(durationMillis = 170)) +
-                            slideInVertically(
-                                initialOffsetY = { fullHeight -> fullHeight / 12 },
-                                animationSpec = tween(durationMillis = 170),
-                            )
-                        ) togetherWith fadeOut(animationSpec = tween(durationMillis = 110))
+                    (fadeIn(tween(220)) + slideInVertically(tween(220)) { it / 14 }) togetherWith fadeOut(tween(120))
                 },
-                label = "scheduleStepAnimatedContent",
+                label = "scheduleStepTransition",
             ) { step ->
                 when (step) {
-                    ScheduleStep.COURSE_SELECTION -> CourseSelectionState(
-                        padding = padding,
-                        state = state,
-                        onRefresh = onRefresh,
-                        onRetry = onRetry,
-                        onCourseSelect = onCourseSelect,
-                    )
+                    ScheduleStep.COURSE_SELECTION -> CourseSelectionState(state, onRefresh, onRetry, onCourseSelect)
 
                     ScheduleStep.GROUP_SELECTION -> GroupSelectionState(
-                        padding = padding,
-                        state = state,
-                        onRefresh = onRefresh,
-                        onBackToCourses = onBackToCourses,
-                        onGroupSelect = onGroupSelect,
+                        state,
+                        onRefresh,
+                        onBackToCourses,
+                        onGroupSelect,
                     )
 
                     ScheduleStep.SCHEDULE -> ScheduleState(
-                        padding = padding,
                         state = state,
                         onRefresh = onRefresh,
                         onBackToGroups = onBackToGroups,
@@ -238,9 +165,35 @@ private fun ScheduleScreenContent(
                 }
             }
 
-            if (state.isLoading) {
-                LoadingOverlay()
+            if (state.isLoading && state.groups.isNotEmpty()) LoadingOverlay()
+            if (state.isLoading && state.groups.isEmpty() && state.courses.isEmpty()) InitialLoadingState()
+        }
+    }
+}
+
+@Composable
+private fun InitialLoadingState() {
+    val colors = MaterialThemeAppColors
+    Box(Modifier.fillMaxSize().background(colors.canvas), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(18.dp)) {
+            Box(
+                modifier = Modifier.size(76.dp).clip(AppShapes.large).background(MaterialTheme.colorScheme.primary),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    AppIcons.schedule,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(38.dp),
+                )
             }
+            Text("Расписание", style = MaterialTheme.typography.headlineSmall)
+            Text(
+                "Подготавливаем данные…",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            CircularProgressIndicator(modifier = Modifier.size(26.dp), strokeWidth = 2.5.dp)
         }
     }
 }
@@ -248,33 +201,17 @@ private fun ScheduleScreenContent(
 @Composable
 private fun LoadingOverlay() {
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(InkPrimary.copy(alpha = 0.26f)),
+        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.35f)),
         contentAlignment = Alignment.Center,
     ) {
-        Surface(
-            color = SurfaceBlueTint,
-            shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, BorderStrong),
-            tonalElevation = 0.dp,
-            shadowElevation = 0.dp,
-        ) {
+        Surface(shape = AppShapes.large, color = MaterialTheme.colorScheme.surface, tonalElevation = 4.dp) {
             Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 22.dp, vertical = 17.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(22.dp),
-                    color = NovsuBlue,
-                    strokeWidth = 2.4.dp,
-                )
-                Text(
-                    text = "Загружаем данные...",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = InkPrimary,
-                )
+                CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.5.dp)
+                Text("Обновляем расписание…", style = MaterialTheme.typography.bodyLarge)
             }
         }
     }
@@ -282,132 +219,101 @@ private fun LoadingOverlay() {
 
 @Composable
 private fun CourseSelectionState(
-    padding: PaddingValues,
     state: ScheduleUiState,
     onRefresh: () -> Unit,
     onRetry: () -> Unit,
     onCourseSelect: (CourseItem) -> Unit,
 ) {
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(padding)
-            .background(White),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(AppDimensions.screenHorizontalPadding, AppDimensions.screenVerticalPadding),
+        verticalArrangement = Arrangement.spacedBy(AppDimensions.sectionSpacing),
     ) {
         item {
             HeaderPanel(
-                title = "Добро пожаловать",
-                subtitle = "Выберите курс, затем группу и получите расписание",
-                icon = Icons.Outlined.School,
+                title = "Твоё расписание",
+                subtitle = "Выбери курс — дальше покажем доступные группы",
+                icon = AppIcons.schedule,
             )
         }
-
         item {
-            InfoPanel {
-                state.groupsUpdatedAt?.let {
-                    MetaRow(
-                        icon = Icons.Outlined.Update,
-                        text = "Обновлено: ${formatInstant(it)}",
-                        highlight = false,
-                    )
-                }
-                Spacer(Modifier.height(10.dp))
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    PrimaryActionButton(
-                        text = "Обновить",
-                        icon = Icons.Outlined.Refresh,
-                        onClick = onRefresh,
-                        modifier = Modifier.weight(1f),
-                    )
-                    if (state.isLoading) InlineLoading()
-                }
-                state.errorMessage?.let {
-                    Spacer(Modifier.height(8.dp))
-                    Text(text = it, color = MaterialTheme.colorScheme.error)
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedActionButton(text = "Повторить", onClick = onRetry)
-                }
-            }
+            SelectionContextCard(
+                eyebrow = "Шаг 1 из 2",
+                title = "Выберите курс",
+                subtitle = "Это займёт всего несколько секунд",
+                icon = AppIcons.course,
+                actionText = "Обновить список",
+                actionIcon = AppIcons.refresh,
+                onAction = onRefresh,
+                updatedAt = state.groupsUpdatedAt?.let(::formatInstant),
+                errorMessage = state.errorMessage,
+                onErrorAction = onRetry,
+            )
         }
-
         item {
-            if (state.isLoading && state.courses.isEmpty()) {
-                SelectionListSkeleton(rows = 4)
-            } else if (state.courses.isEmpty()) {
-                EmptyStateBlock(text = "Курсы не найдены")
-            } else {
-                SelectionListSection(
-                    title = "Курсы",
+            when {
+                state.isLoading && state.courses.isEmpty() -> SelectionListSkeleton(rows = 4)
+
+                state.courses.isEmpty() -> EmptyStateBlock("Курсы не найдены. Обновите список и попробуйте ещё раз.")
+
+                else -> SelectionListSection(
+                    title = "Доступные курсы",
                     items = state.courses,
-                    icon = { Icons.Outlined.ViewModule },
+                    icon = { AppIcons.courseList },
                     titleText = { it.title },
                     subtitleText = { "Курс №${it.course}" },
                     onClick = onCourseSelect,
                 )
             }
         }
+        item { ScreenFooter(text = "Данные берутся с портала колледжа") }
     }
 }
 
 @Composable
 private fun GroupSelectionState(
-    padding: PaddingValues,
     state: ScheduleUiState,
     onRefresh: () -> Unit,
     onBackToCourses: () -> Unit,
     onGroupSelect: (PtkGroupInfo) -> Unit,
 ) {
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(padding)
-            .background(White),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(AppDimensions.screenHorizontalPadding, AppDimensions.screenVerticalPadding),
+        verticalArrangement = Arrangement.spacedBy(AppDimensions.sectionSpacing),
     ) {
         item {
-            InfoPanel {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    OutlinedActionButton(
-                        text = "К курсам",
-                        onClick = onBackToCourses,
-                        modifier = Modifier.weight(1f),
-                    )
-                    PrimaryActionButton(
-                        text = "Обновить",
-                        icon = Icons.Outlined.Refresh,
-                        onClick = onRefresh,
-                        modifier = Modifier.weight(1f),
-                    )
-                    if (state.isLoading) InlineLoading()
-                }
-                Spacer(Modifier.height(10.dp))
-                MetaRow(icon = Icons.Outlined.School, text = "Курс: ${state.selectedCourse?.title ?: "-"}")
-                state.errorMessage?.let {
-                    Spacer(Modifier.height(8.dp))
-                    Text(text = it, color = MaterialTheme.colorScheme.error)
-                }
-            }
+            HeaderPanel(
+                title = "Выберите группу",
+                subtitle = state.selectedCourse?.title ?: "Курс не выбран",
+                icon = AppIcons.group,
+            )
         }
-
         item {
-            if (state.isLoading && state.courseGroups.isEmpty()) {
-                SelectionListSkeleton(rows = 6)
-            } else if (state.courseGroups.isEmpty()) {
-                EmptyStateBlock(text = "Для выбранного курса группы не найдены")
-            } else {
-                SelectionListSection(
-                    title = "Группы",
+            SelectionContextCard(
+                eyebrow = "Шаг 2 из 2",
+                title = "Группа для расписания",
+                subtitle = "Можно вернуться к выбору курса в любой момент",
+                icon = AppIcons.group,
+                actionText = "Обновить",
+                actionIcon = AppIcons.refresh,
+                onAction = onRefresh,
+                secondaryText = "К курсам",
+                onSecondary = onBackToCourses,
+                updatedAt = state.groupsUpdatedAt?.let(::formatInstant),
+                errorMessage = state.errorMessage,
+            )
+        }
+        item {
+            when {
+                state.isLoading && state.courseGroups.isEmpty() -> SelectionListSkeleton(rows = 6)
+
+                state.courseGroups.isEmpty() -> EmptyStateBlock("Для выбранного курса группы не найдены.")
+
+                else -> SelectionListSection(
+                    title = "Доступные группы",
                     items = state.courseGroups,
-                    icon = { Icons.Outlined.Badge },
+                    icon = { AppIcons.group },
                     titleText = { "Группа ${it.groupName}" },
                     subtitleText = { it.collegeName },
                     onClick = onGroupSelect,
@@ -418,8 +324,72 @@ private fun GroupSelectionState(
 }
 
 @Composable
+private fun SelectionContextCard(
+    eyebrow: String,
+    title: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    actionText: String,
+    actionIcon: androidx.compose.ui.graphics.vector.ImageVector,
+    onAction: () -> Unit,
+    updatedAt: String?,
+    errorMessage: String? = null,
+    onErrorAction: (() -> Unit)? = null,
+    secondaryText: String? = null,
+    onSecondary: (() -> Unit)? = null,
+) {
+    InfoPanel {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp),
+            )
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(eyebrow, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        if (updatedAt != null) {
+            Spacer(Modifier.height(13.dp))
+            MetaRow(AppIcons.update, "Обновлено $updatedAt", highlight = false)
+        }
+        if (errorMessage != null) {
+            Spacer(Modifier.height(12.dp))
+            Text(errorMessage, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            if (onErrorAction != null) {
+                Spacer(Modifier.height(8.dp))
+                OutlinedActionButton("Повторить", onErrorAction)
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (secondaryText != null && onSecondary != null) {
+                OutlinedActionButton(secondaryText, onSecondary, modifier = Modifier.weight(1f))
+            }
+            PrimaryActionButton(actionText, onAction, actionIcon, modifier = Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun ScreenFooter(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 4.dp),
+    )
+}
+
+@Composable
 private fun ScheduleState(
-    padding: PaddingValues,
     state: ScheduleUiState,
     onRefresh: () -> Unit,
     onBackToGroups: () -> Unit,
@@ -446,172 +416,119 @@ private fun ScheduleState(
     val filteredLessons = filterLessons(state)
     val timeSlots = buildTimeSlots(filteredLessons)
     val activeGroup = state.selectedGroup?.groupName
-    val notesForGroup = state.notes.filter { note ->
-        activeGroup.isNullOrBlank() || note.groupName == activeGroup
+    val notesForGroup = state.notes.filter { activeGroup.isNullOrBlank() || it.groupName == activeGroup }
+    val lessonEntryMap = notesForGroup.associateBy {
+        noteLessonKey(it.date, it.timeRange, it.weekType, it.subject, it.rawText)
     }
-    val lessonEntryMap = notesForGroup.associateBy { note ->
-        noteLessonKey(
-            date = note.date,
-            timeRange = note.timeRange,
-            weekType = note.weekType,
-            subject = note.subject,
-            rawText = note.rawText,
-        )
+    val noteTextMap = notesForGroup.filter { it.noteText.isNotBlank() }.associateBy {
+        noteLessonKey(it.date, it.timeRange, it.weekType, it.subject, it.rawText)
     }
-    val noteTextMap = notesForGroup
-        .filter { it.noteText.isNotBlank() }
-        .associateBy { note ->
-            noteLessonKey(
-                date = note.date,
-                timeRange = note.timeRange,
-                weekType = note.weekType,
-                subject = note.subject,
-                rawText = note.rawText,
-            )
-        }
     val dayIndex = state.availableDays.indexOf(state.selectedDay).takeIf { it >= 0 } ?: 0
     val canGoPrev = if (state.mode == ScheduleMode.BY_DAY) dayIndex > 0 else true
     val canGoNext = if (state.mode == ScheduleMode.BY_DAY) dayIndex < state.availableDays.lastIndex else true
-
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(padding)
-            .background(White),
-        contentPadding = PaddingValues(vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        item {
-            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                InfoPanel {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        OutlinedActionButton(
-                            text = "К группам",
-                            onClick = onBackToGroups,
-                            modifier = Modifier.weight(1f),
-                        )
-                        PrimaryActionButton(
-                            text = "Обновить",
-                            icon = Icons.Outlined.Refresh,
-                            onClick = onRefresh,
-                            modifier = Modifier.weight(1f),
-                        )
-                        if (state.isLoading) InlineLoading()
-                    }
-                    Spacer(Modifier.height(10.dp))
-                    MetaRow(
-                        icon = Icons.Outlined.Groups,
-                        text = state.selectedGroup?.let { "Группа ${it.groupName}" } ?: "Группа не выбрана",
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    val activeWeekType = if (state.mode == ScheduleMode.BY_DATE) {
-                        state.selectedDateWeekType
-                    } else {
-                        state.currentWeekType
-                    }
-                    MetaRow(
-                        icon = Icons.Outlined.CalendarMonth,
-                        text = if (state.mode == ScheduleMode.BY_DATE) {
-                            "Неделя на дату: ${weekTypeLabel(activeWeekType)}"
-                        } else {
-                            "Текущая неделя: ${weekTypeLabel(activeWeekType)}"
-                        },
-                    )
-                    state.scheduleUpdatedAt?.let {
-                        Spacer(Modifier.height(6.dp))
-                        MetaRow(
-                            icon = Icons.Outlined.Update,
-                            text = "Обновлено: ${formatInstant(it)}",
-                            highlight = false,
-                        )
-                    }
-                    state.errorMessage?.let {
-                        Spacer(Modifier.height(8.dp))
-                        Text(text = it, color = MaterialTheme.colorScheme.error)
-                    }
-                }
-            }
-        }
-
-        item {
-            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                DayNavigatorPanel(
-                    mode = state.mode,
-                    selectedDayTitle = state.selectedDay?.title ?: "День не выбран",
-                    selectedDate = state.selectedDate,
-                    currentWeekType = state.currentWeekType,
-                    dayIndex = dayIndex,
-                    totalDays = state.availableDays.size,
-                    canGoPrev = canGoPrev,
-                    canGoNext = canGoNext,
-                    onSelectMode = onSelectMode,
-                    onPreviousDay = onPreviousDay,
-                    onNextDay = onNextDay,
-                    onSelectDate = onSelectDate,
-                    onPreviousDate = onPreviousDate,
-                    onNextDate = onNextDate,
-                    onGoToToday = onGoToToday,
-                    availableDays = state.availableDays,
-                    selectedDay = state.selectedDay,
-                    weekFilter = state.weekFilter,
-                    onSelectDay = onSelectDay,
-                    onSelectWeekFilter = onSelectWeekFilter,
-                )
-            }
-        }
-
-        item {
-            if (state.isLoading && state.lessons.isEmpty()) {
-                LessonTableSkeleton()
-            } else if (timeSlots.isEmpty()) {
-                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    EmptyStateBlock(
-                        text = if (state.lessons.isEmpty()) {
-                            "Занятий не найдено"
-                        } else {
-                            "На выбранный день и неделю пар нет"
-                        },
-                    )
-                }
-            } else {
-                LessonTableCard(
-                    timeSlots = timeSlots,
-                    currentWeekType = if (state.mode == ScheduleMode.BY_DATE) {
-                        state.selectedDateWeekType
-                    } else {
-                        state.currentWeekType
-                    },
-                    weekFilter = state.weekFilter,
-                    date = state.selectedDate,
-                    selectedDay = state.selectedDay,
-                    isDateMode = state.mode == ScheduleMode.BY_DATE,
-                    noteMap = noteTextMap,
-                    reminderMap = lessonEntryMap,
-                    onAddOrEditNote = { lesson -> editingLesson = lesson },
-                    onAddOrEditReminder = { lesson -> reminderLesson = lesson },
-                )
-            }
-        }
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(bottom = 26.dp, end = 18.dp),
-        contentAlignment = Alignment.BottomEnd,
-    ) {
-        OutlinedIconActionButton(
-            icon = Icons.AutoMirrored.Outlined.Notes,
-            contentDescription = "Все заметки",
-            onClick = { showNotesDialog = true },
-            modifier = Modifier.size(56.dp),
-            size = 56.dp,
-            iconSize = 24.dp,
-            tint = NovsuBlueDark,
+    val currentLesson = filteredLessons.firstOrNull {
+        isCurrentLessonSlot(
+            state.selectedDate,
+            state.selectedDay,
+            state.mode == ScheduleMode.BY_DATE,
+            it.timeRange,
         )
+    }
+    val nextLesson = filteredLessons
+        .filter {
+            isFutureLessonSlot(state.selectedDate, state.selectedDay, state.mode == ScheduleMode.BY_DATE, it.timeRange)
+        }
+        .minByOrNull { lessonSortKey(it.timeRange) }
+
+    Box(Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(vertical = AppDimensions.screenVerticalPadding),
+            verticalArrangement = Arrangement.spacedBy(AppDimensions.sectionSpacing),
+        ) {
+            item {
+                Box(Modifier.padding(horizontal = AppDimensions.screenHorizontalPadding)) {
+                    DayNavigatorPanel(
+                        mode = state.mode,
+                        selectedDayTitle = state.selectedDay?.title ?: "День не выбран",
+                        selectedDate = state.selectedDate,
+                        currentWeekType = if (state.mode ==
+                            ScheduleMode.BY_DATE
+                        ) {
+                            state.selectedDateWeekType
+                        } else {
+                            state.currentWeekType
+                        },
+                        dayIndex = dayIndex,
+                        totalDays = state.availableDays.size,
+                        canGoPrev = canGoPrev,
+                        canGoNext = canGoNext,
+                        onSelectMode = onSelectMode,
+                        onPreviousDay = onPreviousDay,
+                        onNextDay = onNextDay,
+                        onSelectDate = onSelectDate,
+                        onPreviousDate = onPreviousDate,
+                        onNextDate = onNextDate,
+                        onGoToToday = onGoToToday,
+                        availableDays = state.availableDays,
+                        selectedDay = state.selectedDay,
+                        weekFilter = state.weekFilter,
+                        onSelectDay = onSelectDay,
+                        onSelectWeekFilter = onSelectWeekFilter,
+                        groupTitle = state.selectedGroup?.let { "Группа ${it.groupName}" },
+                        courseTitle = state.selectedCourse?.title,
+                        onBack = onBackToGroups,
+                        onRefresh = onRefresh,
+                        errorMessage = state.errorMessage,
+                    )
+                }
+            }
+            if (currentLesson != null || nextLesson != null) {
+                item {
+                    Box(Modifier.padding(horizontal = AppDimensions.screenHorizontalPadding)) {
+                        LessonStatusSummary(currentLesson, nextLesson)
+                    }
+                }
+            }
+            item {
+                Box(Modifier.padding(horizontal = AppDimensions.screenHorizontalPadding)) {
+                    when {
+                        state.isLoading && state.lessons.isEmpty() -> LessonTableSkeleton()
+
+                        timeSlots.isEmpty() -> EmptyStateBlock(
+                            if (state.lessons.isEmpty()) "Занятий не найдено" else "На выбранный день и неделю пар нет",
+                        )
+
+                        else -> LessonTableCard(
+                            timeSlots = timeSlots,
+                            currentWeekType = if (state.mode ==
+                                ScheduleMode.BY_DATE
+                            ) {
+                                state.selectedDateWeekType
+                            } else {
+                                state.currentWeekType
+                            },
+                            weekFilter = state.weekFilter,
+                            date = state.selectedDate,
+                            selectedDay = state.selectedDay,
+                            isDateMode = state.mode == ScheduleMode.BY_DATE,
+                            noteMap = noteTextMap,
+                            reminderMap = lessonEntryMap,
+                            onAddOrEditNote = { editingLesson = it },
+                            onAddOrEditReminder = { reminderLesson = it },
+                        )
+                    }
+                }
+            }
+        }
+
+        FloatingActionButton(
+            onClick = { showNotesDialog = true },
+            modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp),
+            shape = AppShapes.medium,
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        ) { Icon(AppIcons.notes, contentDescription = "Все заметки") }
     }
 
     if (showNotesDialog) {
@@ -624,7 +541,6 @@ private fun ScheduleState(
             },
         )
     }
-
     editingLesson?.let { lesson ->
         val note = noteTextMap[
             noteLessonKey(
@@ -651,7 +567,6 @@ private fun ScheduleState(
             },
         )
     }
-
     reminderLesson?.let { lesson ->
         val note = lessonEntryMap[
             noteLessonKey(
@@ -674,10 +589,8 @@ private fun ScheduleState(
             },
         )
     }
-
     editingNoteId?.let { noteId ->
-        val note = state.notes.firstOrNull { it.noteId == noteId }
-        if (note != null) {
+        state.notes.firstOrNull { it.noteId == noteId }?.let { note ->
             NoteEditByIdDialog(
                 note = note,
                 onDismiss = { editingNoteId = null },
@@ -690,6 +603,79 @@ private fun ScheduleState(
                     editingNoteId = null
                 },
             )
+        }
+    }
+}
+
+@Composable
+private fun LessonStatusSummary(current: ScheduleLessonItem?, next: ScheduleLessonItem?) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        StatusCard(
+            modifier = Modifier.weight(1f),
+            label = "Сейчас",
+            lesson = current,
+            accent = MaterialTheme.colorScheme.primary,
+            container = MaterialTheme.colorScheme.surfaceVariant,
+        )
+        StatusCard(
+            modifier = Modifier.weight(1f),
+            label = "Дальше",
+            lesson = next,
+            accent = MaterialTheme.colorScheme.primary,
+            container = MaterialTheme.colorScheme.surfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun StatusCard(
+    modifier: Modifier,
+    label: String,
+    lesson: ScheduleLessonItem?,
+    accent: androidx.compose.ui.graphics.Color,
+    container: androidx.compose.ui.graphics.Color,
+) {
+    Surface(
+        modifier = modifier,
+        shape = AppShapes.medium,
+        color = container,
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (lesson != null) {
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.42f)
+            } else {
+                MaterialTheme.colorScheme.outlineVariant
+            },
+        ),
+    ) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Text(
+                label.uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                color = accent,
+                fontWeight = FontWeight.Bold,
+            )
+            if (lesson == null) {
+                Text(
+                    "Нет занятия",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                Text(
+                    lesson.timeRange,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    lesson.subject.ifBlank {
+                        lesson.rawText
+                    },
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                )
+            }
         }
     }
 }
