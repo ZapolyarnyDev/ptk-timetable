@@ -6,7 +6,9 @@ case "$(uname -s)" in
   *) ./gradlew spotlessApply ;;
 esac
 
-git add -u
+git diff --cached --name-only | while IFS= read -r file; do
+  [ -z "$file" ] || git add -- "$file"
+done
 
 case "$(uname -s)" in
   MINGW*|MSYS*|CYGWIN*) ./gradlew.bat spotlessCheck ;;
