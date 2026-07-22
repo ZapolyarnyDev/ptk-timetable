@@ -1,0 +1,14 @@
+#!/bin/sh
+set -e
+
+case "$(uname -s)" in
+  MINGW*|MSYS*|CYGWIN*) ./gradlew.bat spotlessApply ;;
+  *) ./gradlew spotlessApply ;;
+esac
+
+git add -u
+
+case "$(uname -s)" in
+  MINGW*|MSYS*|CYGWIN*) ./gradlew.bat spotlessCheck ;;
+  *) ./gradlew spotlessCheck ;;
+esac
