@@ -12,6 +12,8 @@ interface TimetableRepository {
     suspend fun refreshGroupsAndTemplates(): RefreshResult
     suspend fun getGroups(): List<TimetableGroup>
     suspend fun getTemplatesByGroup(groupName: String): List<LessonTemplate>
+    suspend fun getTemplatesByGroup(groupName: String, sourceUrl: String): List<LessonTemplate> =
+        getTemplatesByGroup(groupName)
     suspend fun getOccurrencesByDate(groupName: String, date: LocalDate): List<LessonOccurrence>
     suspend fun getOccurrencesByDayOfWeek(
         groupName: String,

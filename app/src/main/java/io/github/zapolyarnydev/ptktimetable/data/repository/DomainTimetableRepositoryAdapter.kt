@@ -46,9 +46,15 @@ class DomainTimetableRepositoryAdapter(
         )
     }
 
-    override suspend fun getTemplatesByGroup(groupName: String): List<LessonTemplate> {
+    override suspend fun getTemplatesByGroup(groupName: String): List<LessonTemplate> =
+        buildTemplates(scheduleRepository.getScheduleForGroup(groupName))
+
+    override suspend fun getTemplatesByGroup(groupName: String, sourceUrl: String): List<LessonTemplate> =
+        buildTemplates(scheduleRepository.getScheduleForGroup(groupName, sourceUrl))
+
+    private fun buildTemplates(rawLessons: List<PtkRawLesson>): List<LessonTemplate> {
         val sourceUpdatedAt = Instant.now(clock)
-        return scheduleRepository.getScheduleForGroup(groupName)
+        return rawLessons
             .mapNotNull { raw ->
                 val dayOfWeek = parseDayOfWeek(raw.dayOfWeek) ?: return@mapNotNull null
                 val (startTime, endTime) = parseTimeRange(

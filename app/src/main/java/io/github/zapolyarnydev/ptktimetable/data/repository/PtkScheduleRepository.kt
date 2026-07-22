@@ -42,8 +42,14 @@ class PtkScheduleRepository(
         val selectedGroup = groups.firstOrNull { sameGroup(it.groupName, normalizedGroupName) }
             ?: return emptyList()
 
-        val xlsBytes = portalService.downloadXls(selectedGroup.xlsUrl)
-        return xlsScheduleParser.parseSchedule(xlsBytes, selectedGroup.groupName)
+        return downloadSchedule(selectedGroup.groupName, selectedGroup.xlsUrl)
+    }
+
+    override suspend fun getScheduleForGroup(groupName: String, xlsUrl: String): List<PtkRawLesson> {
+        val normalizedGroupName = groupName.trim()
+        val normalizedXlsUrl = xlsUrl.trim()
+        if (normalizedGroupName.isBlank() || normalizedXlsUrl.isBlank()) return emptyList()
+        return downloadSchedule(normalizedGroupName, normalizedXlsUrl)
     }
 
     override suspend fun getCurrentWeekType(): PtkCurrentWeekType = getWeekTypeForDate(LocalDate.now())
@@ -77,6 +83,11 @@ class PtkScheduleRepository(
                 fetchedAt = Instant.now(clock),
             )
         }
+    }
+
+    private suspend fun downloadSchedule(groupName: String, xlsUrl: String): List<PtkRawLesson> {
+        val xlsBytes = portalService.downloadXls(xlsUrl)
+        return xlsScheduleParser.parseSchedule(xlsBytes, groupName)
     }
 
     private fun sameGroup(left: String, right: String): Boolean =

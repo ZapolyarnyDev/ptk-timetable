@@ -152,10 +152,10 @@ class ScheduleViewModel(
         val current = state.value
         val selectedGroup = current.selectedGroup
         if (selectedGroup != null) {
-            openGroupInternal(
-                group = selectedGroup,
-                saveAsLastSelected = false,
-                preserveUiSelection = true,
+            loadCatalog(
+                preserveCourseSelection = true,
+                restoreLastSelectedGroupOnLaunch = false,
+                preserveSelectedGroup = true,
             )
         } else {
             loadCatalog(
@@ -497,7 +497,11 @@ class ScheduleViewModel(
         _state.update { it.copy(selectedDay = days[nextIndex]) }
     }
 
-    private fun loadCatalog(preserveCourseSelection: Boolean, restoreLastSelectedGroupOnLaunch: Boolean) {
+    private fun loadCatalog(
+        preserveCourseSelection: Boolean,
+        restoreLastSelectedGroupOnLaunch: Boolean,
+        preserveSelectedGroup: Boolean = false,
+    ) {
         val previous = state.value
         viewModelScope.launch(Dispatchers.IO) {
             _state.update { it.copy(isLoading = true, errorMessage = null) }
@@ -510,6 +514,14 @@ class ScheduleViewModel(
                 Pair(groups, currentWeekType)
             }.onSuccess { (groups, currentWeekType) ->
                 val courses = buildCourseItems(groups)
+
+                val refreshedSelectedGroup = if (preserveSelectedGroup) {
+                    previous.selectedGroup?.let { previousGroup ->
+                        groups.firstOrNull { it.groupName.equals(previousGroup.groupName, ignoreCase = true) }
+                    }
+                } else {
+                    null
+                }
 
                 val restoredGroup = if (restoreLastSelectedGroupOnLaunch) {
                     val lastSelectedGroupName = runCatching {
@@ -557,7 +569,9 @@ class ScheduleViewModel(
                     runCatching { preferencesStore.setLastSelectedGroupName(null) }
                 }
 
-                val selectedCourse = if (preserveCourseSelection) {
+                val selectedCourse = refreshedSelectedGroup?.let { refreshedGroup ->
+                    courses.firstOrNull { it.course == refreshedGroup.course }
+                } ?: if (preserveCourseSelection) {
                     val prevCourse = previous.selectedCourse?.course
                     courses.firstOrNull { it.course == prevCourse }
                 } else {
@@ -569,8 +583,10 @@ class ScheduleViewModel(
 
                 _state.update {
                     it.copy(
-                        isLoading = false,
-                        step = if (selectedCourse != null) {
+                        isLoading = refreshedSelectedGroup != null,
+                        step = if (refreshedSelectedGroup != null) {
+                            ScheduleStep.SCHEDULE
+                        } else if (selectedCourse != null) {
                             ScheduleStep.GROUP_SELECTION
                         } else {
                             ScheduleStep.COURSE_SELECTION
@@ -579,7 +595,7 @@ class ScheduleViewModel(
                         courses = courses,
                         selectedCourse = selectedCourse,
                         courseGroups = courseGroups,
-                        selectedGroup = null,
+                        selectedGroup = refreshedSelectedGroup,
                         lessons = emptyList(),
                         availableDays = emptyList(),
                         selectedDay = null,
@@ -588,6 +604,14 @@ class ScheduleViewModel(
                         selectedDateWeekType = currentWeekType,
                         groupsUpdatedAt = nowProvider(),
                         errorMessage = null,
+                    )
+                }
+
+                if (refreshedSelectedGroup != null) {
+                    openGroupInternal(
+                        group = refreshedSelectedGroup,
+                        saveAsLastSelected = false,
+                        preserveUiSelection = true,
                     )
                 }
             }.onFailure { error ->
@@ -618,7 +642,7 @@ class ScheduleViewModel(
                     runCatching { preferencesStore.setLastSelectedGroupName(group.groupName) }
                 }
 
-                timetableRepository.getTemplatesByGroup(group.groupName)
+                timetableRepository.getTemplatesByGroup(group.groupName, group.xlsUrl)
             }.onSuccess { templates ->
                 loadedTemplates = templates
 
