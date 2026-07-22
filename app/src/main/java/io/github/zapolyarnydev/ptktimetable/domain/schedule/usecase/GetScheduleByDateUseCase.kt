@@ -4,14 +4,7 @@ import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.LessonOccurren
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.repository.TimetableRepository
 import java.time.LocalDate
 
-class GetScheduleByDateUseCase(
-    private val repository: TimetableRepository
-) {
-    suspend operator fun invoke(
-        groupName: String,
-        date: LocalDate
-    ): List<LessonOccurrence> {
-        return repository.getOccurrencesByDate(groupName, date)
-    }
+class GetScheduleByDateUseCase(private val repository: TimetableRepository) {
+    suspend operator fun invoke(groupName: String, date: LocalDate): List<LessonOccurrence> =
+        repository.getOccurrencesByDate(groupName, date)
 }
-

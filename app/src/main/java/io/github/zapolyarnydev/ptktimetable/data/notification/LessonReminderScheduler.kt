@@ -6,23 +6,16 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 
-class LessonReminderScheduler(
-    private val context: Context
-) {
+class LessonReminderScheduler(private val context: Context) {
 
-    fun schedule(
-        noteId: String,
-        triggerAtMillis: Long,
-        title: String,
-        message: String
-    ) {
+    fun schedule(noteId: String, triggerAtMillis: Long, title: String, message: String) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val pendingIntent = buildPendingIntent(
             context = context,
             noteId = noteId,
             title = title,
             message = message,
-            flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         ) ?: return
 
         runCatching {
@@ -30,13 +23,13 @@ class LessonReminderScheduler(
                 alarmManager.setExactAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     triggerAtMillis,
-                    pendingIntent
+                    pendingIntent,
                 )
             } else {
                 alarmManager.setAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     triggerAtMillis,
-                    pendingIntent
+                    pendingIntent,
                 )
             }
         }.onFailure {
@@ -44,7 +37,7 @@ class LessonReminderScheduler(
                 alarmManager.setAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     triggerAtMillis,
-                    pendingIntent
+                    pendingIntent,
                 )
             }
         }
@@ -57,7 +50,7 @@ class LessonReminderScheduler(
             noteId = noteId,
             title = "",
             message = "",
-            flags = PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+            flags = PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
         ) ?: return
 
         alarmManager.cancel(pendingIntent)
@@ -69,7 +62,7 @@ class LessonReminderScheduler(
         noteId: String,
         title: String,
         message: String,
-        flags: Int
+        flags: Int,
     ): PendingIntent? {
         val intent = Intent(context, LessonReminderReceiver::class.java).apply {
             putExtra(EXTRA_NOTE_ID, noteId)
@@ -80,7 +73,7 @@ class LessonReminderScheduler(
             context,
             noteId.hashCode(),
             intent,
-            flags
+            flags,
         )
     }
 

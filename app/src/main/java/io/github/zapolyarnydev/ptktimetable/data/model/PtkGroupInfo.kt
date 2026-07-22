@@ -5,5 +5,5 @@ data class PtkGroupInfo(
     val course: Int,
     val courseName: String,
     val groupName: String,
-    val xlsUrl: String
+    val xlsUrl: String,
 )

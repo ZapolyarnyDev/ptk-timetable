@@ -11,7 +11,7 @@ class LessonTextNormalizerTest {
     @Test
     fun `normalize extracts subject teacher and classroom`() {
         val normalized = normalizer.normalize(
-            "CMS WordPress, Ильин В.Р., ауд.403"
+            "CMS WordPress, Ильин В.Р., ауд.403",
         )
 
         assertEquals("CMS WordPress", normalized.subject)
@@ -22,12 +22,12 @@ class LessonTextNormalizerTest {
     @Test
     fun `normalize keeps subgroup marker in subject and extracts teacher classroom`() {
         val normalized = normalizer.normalize(
-            "Иностранный язык в профессиональной деятельности, п/г 1, Пименова Т.М., ауд.303"
+            "Иностранный язык в профессиональной деятельности, п/г 1, Пименова Т.М., ауд.303",
         )
 
         assertEquals(
             "Иностранный язык в профессиональной деятельности, п/г 1",
-            normalized.subject
+            normalized.subject,
         )
         assertEquals("Пименова Т.М.", normalized.teacher)
         assertEquals("ауд.303", normalized.classroom)

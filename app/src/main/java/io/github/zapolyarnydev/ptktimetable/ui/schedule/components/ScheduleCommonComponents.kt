@@ -1,19 +1,17 @@
 ﻿package io.github.zapolyarnydev.ptktimetable.ui.schedule
 
 import android.app.DatePickerDialog
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,8 +22,8 @@ import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -51,8 +49,8 @@ import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.Update
 import androidx.compose.material3.Button
@@ -83,31 +81,33 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkCurrentWeekType
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkGroupInfo
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkWeekType
-import io.github.zapolyarnydev.ptktimetable.ui.theme.BorderSubtle
 import io.github.zapolyarnydev.ptktimetable.ui.theme.BorderStrong
+import io.github.zapolyarnydev.ptktimetable.ui.theme.BorderSubtle
 import io.github.zapolyarnydev.ptktimetable.ui.theme.HeadingFontFamily
-import io.github.zapolyarnydev.ptktimetable.ui.theme.InkPrimary
 import io.github.zapolyarnydev.ptktimetable.ui.theme.InkMuted
+import io.github.zapolyarnydev.ptktimetable.ui.theme.InkPrimary
 import io.github.zapolyarnydev.ptktimetable.ui.theme.InkSecondary
 import io.github.zapolyarnydev.ptktimetable.ui.theme.MainFontFamily
 import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlue
 import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlueDark
 import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlueSoft
 import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlueSoftStrong
-import io.github.zapolyarnydev.ptktimetable.ui.theme.SurfaceMuted
 import io.github.zapolyarnydev.ptktimetable.ui.theme.SurfaceBlueTint
+import io.github.zapolyarnydev.ptktimetable.ui.theme.SurfaceMuted
 import io.github.zapolyarnydev.ptktimetable.ui.theme.White
 import kotlinx.coroutines.flow.StateFlow
 import java.time.Instant
@@ -117,11 +117,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @Composable
-internal fun HeaderPanel(
-    title: String,
-    subtitle: String,
-    icon: ImageVector
-) {
+internal fun HeaderPanel(title: String, subtitle: String, icon: ImageVector) {
     SectionCard {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
@@ -133,24 +129,29 @@ internal fun HeaderPanel(
                         drawCircle(
                             color = NovsuBlue.copy(alpha = 0.18f),
                             radius = size.minDimension / 2f,
-                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.dp.toPx())
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.dp.toPx()),
                         )
                     },
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center,
             ) {
-                Icon(imageVector = icon, contentDescription = null, tint = NovsuBlueDark, modifier = Modifier.size(20.dp))
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = NovsuBlueDark,
+                    modifier = Modifier.size(20.dp),
+                )
             }
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleLarge,
                     color = InkPrimary,
-                    fontFamily = HeadingFontFamily
+                    fontFamily = HeadingFontFamily,
                 )
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = InkSecondary
+                    color = InkSecondary,
                 )
             }
         }
@@ -158,17 +159,12 @@ internal fun HeaderPanel(
 }
 
 @Composable
-internal fun InfoPanel(
-    content: @Composable () -> Unit
-) {
+internal fun InfoPanel(content: @Composable () -> Unit) {
     SectionCard(content = content)
 }
 
 @Composable
-internal fun SectionCard(
-    padding: Dp = 14.dp,
-    content: @Composable () -> Unit
-) {
+internal fun SectionCard(padding: Dp = 14.dp, content: @Composable () -> Unit) {
     AnimatedReveal {
         Surface(
             modifier = Modifier.fillMaxWidth(),
@@ -176,7 +172,7 @@ internal fun SectionCard(
             border = BorderStroke(0.9.dp, BorderSubtle),
             shape = RoundedCornerShape(16.dp),
             tonalElevation = 0.dp,
-            shadowElevation = 0.dp
+            shadowElevation = 0.dp,
         ) {
             Column(modifier = Modifier.padding(padding)) {
                 content()
@@ -186,25 +182,21 @@ internal fun SectionCard(
 }
 
 @Composable
-internal fun MetaRow(
-    icon: ImageVector,
-    text: String,
-    highlight: Boolean = true
-) {
+internal fun MetaRow(icon: ImageVector, text: String, highlight: Boolean = true) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
             tint = if (highlight) NovsuBlue else InkSecondary,
-            modifier = Modifier.size(16.dp)
+            modifier = Modifier.size(16.dp),
         )
         Text(
             text = text,
             style = MaterialTheme.typography.bodyMedium,
-            color = if (highlight) InkPrimary else InkSecondary
+            color = if (highlight) InkPrimary else InkSecondary,
         )
     }
 }
@@ -216,7 +208,7 @@ internal fun <T> SelectionListSection(
     icon: (T) -> ImageVector,
     titleText: (T) -> String,
     subtitleText: (T) -> String,
-    onClick: (T) -> Unit
+    onClick: (T) -> Unit,
 ) {
     SectionCard(padding = 0.dp) {
         Text(
@@ -224,7 +216,7 @@ internal fun <T> SelectionListSection(
             style = MaterialTheme.typography.titleMedium,
             color = InkPrimary,
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-            fontFamily = HeadingFontFamily
+            fontFamily = HeadingFontFamily,
         )
         HorizontalDivider(thickness = 0.8.dp, color = BorderSubtle)
 
@@ -233,7 +225,7 @@ internal fun <T> SelectionListSection(
                 icon = icon(item),
                 title = titleText(item),
                 subtitle = subtitleText(item),
-                onClick = { onClick(item) }
+                onClick = { onClick(item) },
             )
             if (index < items.lastIndex) {
                 HorizontalDivider(thickness = 0.8.dp, color = BorderSubtle)
@@ -243,19 +235,14 @@ internal fun <T> SelectionListSection(
 }
 
 @Composable
-internal fun SelectionRow(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit
-) {
+internal fun SelectionRow(icon: ImageVector, title: String, subtitle: String, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val hovered by interactionSource.collectIsHoveredAsState()
     val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (pressed) 0.992f else 1f,
         animationSpec = tween(durationMillis = 90),
-        label = "selectionRowScale"
+        label = "selectionRowScale",
     )
     val rowColor by animateColorAsState(
         targetValue = when {
@@ -264,7 +251,7 @@ internal fun SelectionRow(
             else -> White
         },
         animationSpec = tween(durationMillis = 130),
-        label = "selectionRowColor"
+        label = "selectionRowColor",
     )
 
     Row(
@@ -280,11 +267,11 @@ internal fun SelectionRow(
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
-                onClick = onClick
+                onClick = onClick,
             )
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Box(
             modifier = Modifier
@@ -292,7 +279,7 @@ internal fun SelectionRow(
                 .clip(RoundedCornerShape(12.dp))
                 .background(NovsuBlueSoft.copy(alpha = 0.7f))
                 .border(1.dp, BorderStrong, RoundedCornerShape(12.dp)),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.Center,
         ) {
             Icon(imageVector = icon, contentDescription = null, tint = NovsuBlueDark, modifier = Modifier.size(18.dp))
         }
@@ -302,12 +289,12 @@ internal fun SelectionRow(
                 text = title,
                 style = MaterialTheme.typography.titleSmall,
                 color = InkPrimary,
-                fontFamily = HeadingFontFamily
+                fontFamily = HeadingFontFamily,
             )
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = InkMuted
+                color = InkMuted,
             )
         }
 
@@ -315,7 +302,7 @@ internal fun SelectionRow(
             imageVector = Icons.Outlined.ChevronRight,
             contentDescription = null,
             tint = InkSecondary,
-            modifier = Modifier.size(20.dp)
+            modifier = Modifier.size(20.dp),
         )
     }
 }
@@ -326,7 +313,7 @@ internal fun EmptyStateBlock(text: String) {
         Text(
             text = text,
             style = MaterialTheme.typography.bodyMedium,
-            color = InkSecondary
+            color = InkSecondary,
         )
     }
 }
@@ -355,7 +342,7 @@ internal fun PrimaryActionButton(
     onClick: () -> Unit,
     icon: ImageVector,
     enabled: Boolean = true,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressScale = rememberPressScale(interactionSource, enabled = enabled)
@@ -371,7 +358,11 @@ internal fun PrimaryActionButton(
         colors = ButtonDefaults.buttonColors(containerColor = NovsuBlueDark, contentColor = White),
         shape = RoundedCornerShape(18.dp),
         contentPadding = PaddingValues(horizontal = 17.dp, vertical = 11.dp),
-        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp, disabledElevation = 0.dp)
+        elevation = ButtonDefaults.buttonElevation(
+            defaultElevation = 0.dp,
+            pressedElevation = 0.dp,
+            disabledElevation = 0.dp,
+        ),
     ) {
         Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(6.dp))
@@ -384,7 +375,7 @@ internal fun OutlinedActionButton(
     text: String,
     onClick: () -> Unit,
     enabled: Boolean = true,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressScale = rememberPressScale(interactionSource, enabled = enabled)
@@ -400,23 +391,23 @@ internal fun OutlinedActionButton(
         border = BorderStroke(1.dp, BorderSubtle),
         shape = RoundedCornerShape(18.dp),
         contentPadding = PaddingValues(horizontal = 17.dp, vertical = 11.dp),
-        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp, disabledElevation = 0.dp),
+        elevation = ButtonDefaults.buttonElevation(
+            defaultElevation = 0.dp,
+            pressedElevation = 0.dp,
+            disabledElevation = 0.dp,
+        ),
         colors = ButtonDefaults.outlinedButtonColors(
             contentColor = NovsuBlueDark,
             containerColor = NovsuBlueSoft.copy(alpha = 0.55f),
-            disabledContentColor = InkMuted
-        )
+            disabledContentColor = InkMuted,
+        ),
     ) {
         Text(text = text, style = MaterialTheme.typography.labelLarge, fontFamily = MainFontFamily)
     }
 }
 
 @Composable
-internal fun NavArrowButton(
-    icon: ImageVector,
-    enabled: Boolean,
-    onClick: () -> Unit
-) {
+internal fun NavArrowButton(icon: ImageVector, enabled: Boolean, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val hovered by interactionSource.collectIsHoveredAsState()
     val pressScale = rememberPressScale(interactionSource, enabled = enabled)
@@ -427,7 +418,7 @@ internal fun NavArrowButton(
             else -> BorderStrong
         },
         animationSpec = tween(durationMillis = 130),
-        label = "navArrowBorder"
+        label = "navArrowBorder",
     )
 
     Surface(
@@ -441,19 +432,19 @@ internal fun NavArrowButton(
         color = White,
         border = BorderStroke(1.dp, borderColor),
         tonalElevation = 0.dp,
-        shadowElevation = 0.dp
+        shadowElevation = 0.dp,
     ) {
         IconButton(
             onClick = onClick,
             enabled = enabled,
             interactionSource = interactionSource,
-            modifier = Modifier.size(42.dp)
+            modifier = Modifier.size(42.dp),
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = if (enabled) NovsuBlueDark else InkSecondary,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(20.dp),
             )
         }
     }
@@ -472,7 +463,7 @@ internal fun WeekChip(
     iconColor: Color = InkSecondary,
     selectedLeadingIconColor: Color = NovsuBlueDark,
     borderColor: Color = BorderSubtle,
-    selectedBorderColor: Color = NovsuBlueDark
+    selectedBorderColor: Color = NovsuBlueDark,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val hovered by interactionSource.collectIsHoveredAsState()
@@ -484,7 +475,7 @@ internal fun WeekChip(
             else -> containerColor
         },
         animationSpec = tween(durationMillis = 130),
-        label = "weekChipContainer"
+        label = "weekChipContainer",
     )
     val resolvedBorderColor by animateColorAsState(
         targetValue = when {
@@ -493,7 +484,7 @@ internal fun WeekChip(
             else -> borderColor
         },
         animationSpec = tween(durationMillis = 130),
-        label = "weekChipBorder"
+        label = "weekChipBorder",
     )
 
     FilterChip(
@@ -510,7 +501,7 @@ internal fun WeekChip(
             Text(
                 label,
                 fontFamily = MainFontFamily,
-                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
             )
         },
         leadingIcon = { Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(16.dp)) },
@@ -518,7 +509,7 @@ internal fun WeekChip(
             enabled = true,
             selected = selected,
             borderColor = resolvedBorderColor,
-            selectedBorderColor = selectedBorderColor
+            selectedBorderColor = selectedBorderColor,
         ),
         colors = FilterChipDefaults.filterChipColors(
             containerColor = resolvedContainerColor,
@@ -526,9 +517,9 @@ internal fun WeekChip(
             selectedLabelColor = selectedLabelColor,
             labelColor = labelColor,
             iconColor = iconColor,
-            selectedLeadingIconColor = selectedLeadingIconColor
+            selectedLeadingIconColor = selectedLeadingIconColor,
         ),
-        elevation = FilterChipDefaults.filterChipElevation(0.dp, 0.dp, 0.dp, 0.dp, 0.dp, 0.dp)
+        elevation = FilterChipDefaults.filterChipElevation(0.dp, 0.dp, 0.dp, 0.dp, 0.dp, 0.dp),
     )
 }
 
@@ -536,21 +527,18 @@ internal fun WeekChip(
 internal fun rememberPressScale(
     interactionSource: MutableInteractionSource,
     enabled: Boolean = true,
-    pressedScale: Float = 0.98f
+    pressedScale: Float = 0.98f,
 ): Float {
     val pressed by interactionSource.collectIsPressedAsState()
     return animateFloatAsState(
         targetValue = if (enabled && pressed) pressedScale else 1f,
         animationSpec = tween(durationMillis = 90),
-        label = "pressScale"
+        label = "pressScale",
     ).value
 }
 
 @Composable
-internal fun AnimatedReveal(
-    key: Any? = Unit,
-    content: @Composable () -> Unit
-) {
+internal fun AnimatedReveal(key: Any? = Unit, content: @Composable () -> Unit) {
     var visible by remember(key) { mutableStateOf(false) }
     LaunchedEffect(key) {
         visible = true
@@ -560,10 +548,10 @@ internal fun AnimatedReveal(
         enter = fadeIn(animationSpec = tween(durationMillis = 180)) +
             slideInVertically(
                 initialOffsetY = { fullHeight -> fullHeight / 10 },
-                animationSpec = tween(durationMillis = 180)
+                animationSpec = tween(durationMillis = 180),
             ),
         exit = fadeOut(animationSpec = tween(durationMillis = 110)),
-        label = "animatedReveal"
+        label = "animatedReveal",
     ) {
         content()
     }
@@ -580,7 +568,7 @@ internal fun OutlinedIconActionButton(
     tint: Color = NovsuBlueDark,
     inactiveTint: Color = InkSecondary.copy(alpha = 0.55f),
     size: Dp = 28.dp,
-    iconSize: Dp = 16.dp
+    iconSize: Dp = 16.dp,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val hovered by interactionSource.collectIsHoveredAsState()
@@ -589,7 +577,7 @@ internal fun OutlinedIconActionButton(
     val scale by animateFloatAsState(
         targetValue = if (enabled && pressed) 0.92f else 1f,
         animationSpec = tween(durationMillis = 90),
-        label = "iconActionScale"
+        label = "iconActionScale",
     )
     val containerColor by animateColorAsState(
         targetValue = when {
@@ -600,7 +588,7 @@ internal fun OutlinedIconActionButton(
             else -> White
         },
         animationSpec = tween(durationMillis = 120),
-        label = "iconActionContainer"
+        label = "iconActionContainer",
     )
     val borderColor by animateColorAsState(
         targetValue = when {
@@ -610,12 +598,12 @@ internal fun OutlinedIconActionButton(
             else -> BorderStrong
         },
         animationSpec = tween(durationMillis = 120),
-        label = "iconActionBorder"
+        label = "iconActionBorder",
     )
     val iconTint by animateColorAsState(
         targetValue = if (enabled) tint else inactiveTint,
         animationSpec = tween(durationMillis = 120),
-        label = "iconActionTint"
+        label = "iconActionTint",
     )
 
     Surface(
@@ -630,7 +618,7 @@ internal fun OutlinedIconActionButton(
         color = containerColor,
         border = BorderStroke(1.dp, borderColor),
         tonalElevation = 0.dp,
-        shadowElevation = 0.dp
+        shadowElevation = 0.dp,
     ) {
         Box(
             modifier = Modifier
@@ -640,15 +628,15 @@ internal fun OutlinedIconActionButton(
                     enabled = enabled,
                     interactionSource = interactionSource,
                     indication = null,
-                    onClick = onClick
+                    onClick = onClick,
                 ),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = contentDescription,
                 tint = iconTint,
-                modifier = Modifier.size(iconSize)
+                modifier = Modifier.size(iconSize),
             )
         }
     }
@@ -660,12 +648,12 @@ internal fun InlineLoading() {
         CircularProgressIndicator(
             modifier = Modifier.size(16.dp),
             strokeWidth = 2.dp,
-            color = NovsuBlue
+            color = NovsuBlue,
         )
         Text(
             text = "Загрузка...",
             style = MaterialTheme.typography.bodySmall,
-            color = InkSecondary
+            color = InkSecondary,
         )
     }
 }
@@ -690,19 +678,16 @@ internal fun LessonTableSkeleton() {
 }
 
 @Composable
-internal fun SkeletonBar(
-    widthFraction: Float,
-    height: Dp
-) {
+internal fun SkeletonBar(widthFraction: Float, height: Dp) {
     val transition = rememberInfiniteTransition(label = "skeleton")
     val alpha by transition.animateFloat(
         initialValue = 0.35f,
         targetValue = 0.85f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 900),
-            repeatMode = RepeatMode.Reverse
+            repeatMode = RepeatMode.Reverse,
         ),
-        label = "skeletonAlpha"
+        label = "skeletonAlpha",
     )
 
     Box(
@@ -710,7 +695,6 @@ internal fun SkeletonBar(
             .fillMaxWidth(widthFraction)
             .height(height)
             .clip(MaterialTheme.shapes.small)
-            .background(NovsuBlueSoft.copy(alpha = alpha))
+            .background(NovsuBlueSoft.copy(alpha = alpha)),
     )
 }
-

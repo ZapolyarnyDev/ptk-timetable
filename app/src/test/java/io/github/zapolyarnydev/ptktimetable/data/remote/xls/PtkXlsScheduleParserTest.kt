@@ -8,7 +8,7 @@ class PtkXlsScheduleParserTest {
 
     private val sut = ParserContract(
         parserClassName = "io.github.zapolyarnydev.ptktimetable.data.remote.xls.PtkXlsScheduleParser",
-        parseMethodName = "parseSchedule"
+        parseMethodName = "parseSchedule",
     )
 
     @Test
@@ -87,15 +87,15 @@ class PtkXlsScheduleParserTest {
 
         assertTrue(
             "Expected upper-week Java lesson for Saturday 16.25-18.05",
-            saturdaySlot5.any { it.weekType == "UPPER" && it.rawText.contains("Java", ignoreCase = true) }
+            saturdaySlot5.any { it.weekType == "UPPER" && it.rawText.contains("Java", ignoreCase = true) },
         )
         assertTrue(
             "Expected lower-week WordPress lesson for Saturday 16.25-18.05",
-            saturdaySlot5.any { it.weekType == "LOWER" && it.rawText.contains("WordPress", ignoreCase = true) }
+            saturdaySlot5.any { it.weekType == "LOWER" && it.rawText.contains("WordPress", ignoreCase = true) },
         )
         assertTrue(
             "Saturday 16.25-18.05 should not remain ALL when split lessons exist",
-            saturdaySlot5.none { it.weekType == "ALL" }
+            saturdaySlot5.none { it.weekType == "ALL" },
         )
     }
 
@@ -113,11 +113,11 @@ class PtkXlsScheduleParserTest {
 
         assertTrue(
             "Expected lower-week lesson for 16.25-18.05 in group 3992. Actual: $dump",
-            slot5.any { it.weekType == "LOWER" }
+            slot5.any { it.weekType == "LOWER" },
         )
         assertTrue(
             "16.25-18.05 for group 3992 should not be parsed as ALL. Actual: $dump",
-            slot5.none { it.weekType == "ALL" }
+            slot5.none { it.weekType == "ALL" },
         )
     }
 
@@ -141,13 +141,10 @@ class PtkXlsScheduleParserTest {
         val dayOfWeek: String,
         val timeRange: String,
         val rawText: String,
-        val weekType: String
+        val weekType: String,
     )
 
-    private class ParserContract(
-        parserClassName: String,
-        parseMethodName: String
-    ) {
+    private class ParserContract(parserClassName: String, parseMethodName: String) {
         private val parserInstance: Any
         private val parseMethod: Method
 
@@ -158,7 +155,7 @@ class PtkXlsScheduleParserTest {
                 throw AssertionError(
                     "Expected parser class `$parserClassName` not found. " +
                         "Create it to satisfy TDD tests.",
-                    e
+                    e,
                 )
             }
             parserInstance = parserClass.getDeclaredConstructor().newInstance()
@@ -166,7 +163,7 @@ class PtkXlsScheduleParserTest {
                 method.name == parseMethodName && method.parameterCount == 2
             } ?: throw AssertionError(
                 "Expected method `$parseMethodName(xlsBytes: ByteArray, groupName: String)` " +
-                    "in `$parserClassName` was not found."
+                    "in `$parserClassName` was not found.",
             )
         }
 
@@ -192,7 +189,7 @@ class PtkXlsScheduleParserTest {
         private fun readString(raw: Any, property: String): String {
             val value = readProperty(raw, property)
             return value as? String ?: throw AssertionError(
-                "Property `$property` must be String, actual=${value?.javaClass?.name}"
+                "Property `$property` must be String, actual=${value?.javaClass?.name}",
             )
         }
 
@@ -200,7 +197,7 @@ class PtkXlsScheduleParserTest {
             val getterName = "get" + property.replaceFirstChar { it.uppercaseChar() }
             val getter = raw.javaClass.methods.firstOrNull { it.name == getterName && it.parameterCount == 0 }
                 ?: throw AssertionError(
-                    "Expected property `$property` (getter `$getterName`) in `${raw.javaClass.name}`"
+                    "Expected property `$property` (getter `$getterName`) in `${raw.javaClass.name}`",
                 )
             return getter.invoke(raw)
         }

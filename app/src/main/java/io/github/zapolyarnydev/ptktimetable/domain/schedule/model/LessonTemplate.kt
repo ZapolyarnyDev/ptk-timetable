@@ -15,6 +15,5 @@ data class LessonTemplate(
     val teacher: String?,
     val room: String?,
     val rawText: String,
-    val sourceUpdatedAt: Instant
+    val sourceUpdatedAt: Instant,
 )
-

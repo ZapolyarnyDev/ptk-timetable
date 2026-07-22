@@ -17,7 +17,6 @@ interface TimetableRepository {
         groupName: String,
         dayOfWeek: DayOfWeek,
         weekFilter: WeekFilter,
-        anchorDate: LocalDate
+        anchorDate: LocalDate,
     ): List<LessonOccurrence>
 }
-

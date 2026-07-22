@@ -22,7 +22,7 @@ class PtkScheduleRepository(
     private val currentWeekHtmlParser: PtkCurrentWeekHtmlParser = PtkCurrentWeekHtmlParser(),
     private val xlsScheduleParser: PtkXlsScheduleParser = PtkXlsScheduleParser(),
     private val clock: Clock = Clock.systemDefaultZone(),
-    private val calendarCacheTtl: Duration = Duration.ofMinutes(30)
+    private val calendarCacheTtl: Duration = Duration.ofMinutes(30),
 ) : ScheduleRepository {
 
     private val calendarCacheMutex = Mutex()
@@ -46,9 +46,7 @@ class PtkScheduleRepository(
         return xlsScheduleParser.parseSchedule(xlsBytes, selectedGroup.groupName)
     }
 
-    override suspend fun getCurrentWeekType(): PtkCurrentWeekType {
-        return getWeekTypeForDate(LocalDate.now())
-    }
+    override suspend fun getCurrentWeekType(): PtkCurrentWeekType = getWeekTypeForDate(LocalDate.now())
 
     override suspend fun getWeekTypeForDate(date: LocalDate): PtkCurrentWeekType {
         val html = getPortalHtmlForCalendar()
@@ -66,7 +64,7 @@ class PtkScheduleRepository(
             val freshHtml = portalService.fetchPortalHtml()
             calendarCache = CalendarCache(
                 html = freshHtml,
-                fetchedAt = now
+                fetchedAt = now,
             )
             freshHtml
         }
@@ -76,17 +74,13 @@ class PtkScheduleRepository(
         calendarCacheMutex.withLock {
             calendarCache = CalendarCache(
                 html = html,
-                fetchedAt = Instant.now(clock)
+                fetchedAt = Instant.now(clock),
             )
         }
     }
 
-    private fun sameGroup(left: String, right: String): Boolean {
-        return left.trim().lowercase(Locale.ROOT) == right.trim().lowercase(Locale.ROOT)
-    }
+    private fun sameGroup(left: String, right: String): Boolean =
+        left.trim().lowercase(Locale.ROOT) == right.trim().lowercase(Locale.ROOT)
 
-    private data class CalendarCache(
-        val html: String,
-        val fetchedAt: Instant
-    )
+    private data class CalendarCache(val html: String, val fetchedAt: Instant)
 }

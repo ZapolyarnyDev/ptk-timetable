@@ -22,9 +22,12 @@ class ScheduleParsingIntegrationTest {
 
         assertTrue("Expected non-empty lessons for ${group.groupName}", lessons.isNotEmpty())
         assertTrue("All lessons must belong to selected group", lessons.all { it.groupName == group.groupName })
-        assertTrue("All lessons must have non-blank day/time/text", lessons.all {
-            it.dayOfWeek.isNotBlank() && it.timeRange.isNotBlank() && it.rawText.isNotBlank()
-        })
+        assertTrue(
+            "All lessons must have non-blank day/time/text",
+            lessons.all {
+                it.dayOfWeek.isNotBlank() && it.timeRange.isNotBlank() && it.rawText.isNotBlank()
+            },
+        )
     }
 
     private fun loadResourceText(path: String): String {

@@ -36,21 +36,15 @@ import java.time.format.DateTimeFormatter
 enum class ScheduleStep {
     COURSE_SELECTION,
     GROUP_SELECTION,
-    SCHEDULE
+    SCHEDULE,
 }
 
-enum class ScheduleMode(
-    val title: String
-) {
+enum class ScheduleMode(val title: String) {
     BY_DAY("По дням"),
-    BY_DATE("По дате")
+    BY_DATE("По дате"),
 }
 
-enum class ScheduleDay(
-    val title: String,
-    val shortTitle: String,
-    val order: Int
-) {
+enum class ScheduleDay(val title: String, val shortTitle: String, val order: Int) {
     MONDAY("Понедельник", "Пн", 1),
     TUESDAY("Вторник", "Вт", 2),
     WEDNESDAY("Среда", "Ср", 3),
@@ -58,21 +52,16 @@ enum class ScheduleDay(
     FRIDAY("Пятница", "Пт", 5),
     SATURDAY("Суббота", "Сб", 6),
     SUNDAY("Воскресенье", "Вс", 7),
-    UNKNOWN("Другое", "?", 99)
+    UNKNOWN("Другое", "?", 99),
 }
 
-enum class ScheduleWeekFilter(
-    val title: String
-) {
+enum class ScheduleWeekFilter(val title: String) {
     ALL("Обе"),
     UPPER("Верхняя"),
-    LOWER("Нижняя")
+    LOWER("Нижняя"),
 }
 
-data class CourseItem(
-    val course: Int,
-    val title: String
-)
+data class CourseItem(val course: Int, val title: String)
 
 data class ScheduleLessonItem(
     val day: ScheduleDay,
@@ -82,7 +71,7 @@ data class ScheduleLessonItem(
     val subject: String,
     val teacher: String?,
     val classroom: String?,
-    val rawText: String
+    val rawText: String,
 )
 
 data class ScheduleNoteItem(
@@ -99,7 +88,7 @@ data class ScheduleNoteItem(
     val reminderEnabled: Boolean,
     val reminderMinutes: Int?,
     val remindAtEpochMillis: Long?,
-    val createdAtEpochMillis: Long
+    val createdAtEpochMillis: Long,
 )
 
 data class ScheduleUiState(
@@ -121,7 +110,7 @@ data class ScheduleUiState(
     val notes: List<ScheduleNoteItem> = emptyList(),
     val groupsUpdatedAt: Instant? = null,
     val scheduleUpdatedAt: Instant? = null,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
 )
 
 class ScheduleViewModel(
@@ -131,14 +120,14 @@ class ScheduleViewModel(
     private val notesStore: LessonNotesStore,
     private val reminderScheduler: LessonReminderScheduler,
     private val nowProvider: () -> Instant = { Instant.now() },
-    private val todayProvider: () -> LocalDate = { LocalDate.now() }
+    private val todayProvider: () -> LocalDate = { LocalDate.now() },
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(
         ScheduleUiState(
             isLoading = true,
-            selectedDate = todayProvider()
-        )
+            selectedDate = todayProvider(),
+        ),
     )
     val state: StateFlow<ScheduleUiState> = _state.asStateFlow()
 
@@ -148,14 +137,14 @@ class ScheduleViewModel(
         refreshNotes()
         loadCatalog(
             preserveCourseSelection = false,
-            restoreLastSelectedGroupOnLaunch = true
+            restoreLastSelectedGroupOnLaunch = true,
         )
     }
 
     fun loadGroups() {
         loadCatalog(
             preserveCourseSelection = true,
-            restoreLastSelectedGroupOnLaunch = false
+            restoreLastSelectedGroupOnLaunch = false,
         )
     }
 
@@ -166,12 +155,12 @@ class ScheduleViewModel(
             openGroupInternal(
                 group = selectedGroup,
                 saveAsLastSelected = false,
-                preserveUiSelection = true
+                preserveUiSelection = true,
             )
         } else {
             loadCatalog(
                 preserveCourseSelection = true,
-                restoreLastSelectedGroupOnLaunch = false
+                restoreLastSelectedGroupOnLaunch = false,
             )
         }
     }
@@ -189,7 +178,7 @@ class ScheduleViewModel(
                 lessons = emptyList(),
                 availableDays = emptyList(),
                 selectedDay = null,
-                errorMessage = null
+                errorMessage = null,
             )
         }
     }
@@ -209,7 +198,7 @@ class ScheduleViewModel(
                 lessons = emptyList(),
                 availableDays = emptyList(),
                 selectedDay = null,
-                errorMessage = null
+                errorMessage = null,
             )
         }
     }
@@ -223,7 +212,7 @@ class ScheduleViewModel(
                 lessons = emptyList(),
                 availableDays = emptyList(),
                 selectedDay = null,
-                errorMessage = null
+                errorMessage = null,
             )
         }
     }
@@ -245,7 +234,7 @@ class ScheduleViewModel(
             it.copy(
                 selectedDate = normalized,
                 selectedDay = dayOfWeekToScheduleDay(normalized.dayOfWeek),
-                errorMessage = null
+                errorMessage = null,
             )
         }
         if (state.value.mode == ScheduleMode.BY_DATE) {
@@ -281,10 +270,7 @@ class ScheduleViewModel(
         _state.update { it.copy(weekFilter = filter, errorMessage = null) }
     }
 
-    fun saveNoteForLesson(
-        lesson: ScheduleLessonItem,
-        noteText: String
-    ) {
+    fun saveNoteForLesson(lesson: ScheduleLessonItem, noteText: String) {
         val current = state.value
         val group = current.selectedGroup ?: return
         if (current.mode != ScheduleMode.BY_DATE) return
@@ -304,7 +290,7 @@ class ScheduleViewModel(
         val noteId = buildNoteId(
             groupName = group.groupName,
             date = date,
-            lesson = lesson
+            lesson = lesson,
         )
 
         viewModelScope.launch(Dispatchers.IO) {
@@ -326,7 +312,7 @@ class ScheduleViewModel(
                     reminderEnabled = existing?.reminderEnabled == true,
                     reminderMinutes = existing?.reminderMinutes,
                     remindAtEpochMillis = existing?.remindAtEpochMillis,
-                    createdAtEpochMillis = nowMillis
+                    createdAtEpochMillis = nowMillis,
                 )
 
                 notesStore.upsert(note)
@@ -344,11 +330,7 @@ class ScheduleViewModel(
         }
     }
 
-    fun setReminderForLesson(
-        lesson: ScheduleLessonItem,
-        enabled: Boolean,
-        reminderMinutes: Int
-    ) {
+    fun setReminderForLesson(lesson: ScheduleLessonItem, enabled: Boolean, reminderMinutes: Int) {
         val current = state.value
         val group = current.selectedGroup ?: return
         if (current.mode != ScheduleMode.BY_DATE) return
@@ -362,7 +344,7 @@ class ScheduleViewModel(
         val noteId = buildNoteId(
             groupName = group.groupName,
             date = date,
-            lesson = lesson
+            lesson = lesson,
         )
 
         viewModelScope.launch(Dispatchers.IO) {
@@ -381,7 +363,9 @@ class ScheduleViewModel(
                 }
 
                 if (enabled && (remindAtMillis == null || remindAtMillis <= nowMillis)) {
-                    _state.update { it.copy(errorMessage = "Слишком поздно для уведомления, увеличьте время напоминания") }
+                    _state.update {
+                        it.copy(errorMessage = "Слишком поздно для уведомления, увеличьте время напоминания")
+                    }
                     return@runCatching
                 }
 
@@ -399,7 +383,7 @@ class ScheduleViewModel(
                     reminderEnabled = enabled,
                     reminderMinutes = reminderMinutes.takeIf { enabled },
                     remindAtEpochMillis = remindAtMillis?.takeIf { enabled },
-                    createdAtEpochMillis = existing?.createdAtEpochMillis ?: nowMillis
+                    createdAtEpochMillis = existing?.createdAtEpochMillis ?: nowMillis,
                 )
 
                 notesStore.upsert(updated)
@@ -427,7 +411,7 @@ class ScheduleViewModel(
         val noteId = buildNoteId(
             groupName = group.groupName,
             date = date,
-            lesson = lesson
+            lesson = lesson,
         )
 
         viewModelScope.launch(Dispatchers.IO) {
@@ -447,10 +431,7 @@ class ScheduleViewModel(
         }
     }
 
-    fun updateNoteById(
-        noteId: String,
-        newText: String
-    ) {
+    fun updateNoteById(noteId: String, newText: String) {
         val trimmed = newText.trim()
         if (trimmed.isBlank()) {
             _state.update { it.copy(errorMessage = "Текст заметки не может быть пустым") }
@@ -464,7 +445,9 @@ class ScheduleViewModel(
                 val updated = existing.copy(noteText = trimmed)
                 notesStore.upsert(updated)
 
-                if (updated.reminderEnabled && updated.remindAtEpochMillis != null && updated.remindAtEpochMillis > nowProvider().toEpochMilli()) {
+                if (updated.reminderEnabled && updated.remindAtEpochMillis != null &&
+                    updated.remindAtEpochMillis > nowProvider().toEpochMilli()
+                ) {
                     val lesson = ScheduleLessonItem(
                         day = dayOfWeekToScheduleDay(updated.date.dayOfWeek),
                         dayLabel = dayOfWeekToScheduleDay(updated.date.dayOfWeek).title,
@@ -473,7 +456,7 @@ class ScheduleViewModel(
                         subject = updated.subject,
                         teacher = updated.teacher,
                         classroom = updated.classroom,
-                        rawText = updated.rawText
+                        rawText = updated.rawText,
                     )
                     scheduleReminder(updated, lesson)
                 }
@@ -514,10 +497,7 @@ class ScheduleViewModel(
         _state.update { it.copy(selectedDay = days[nextIndex]) }
     }
 
-    private fun loadCatalog(
-        preserveCourseSelection: Boolean,
-        restoreLastSelectedGroupOnLaunch: Boolean
-    ) {
+    private fun loadCatalog(preserveCourseSelection: Boolean, restoreLastSelectedGroupOnLaunch: Boolean) {
         val previous = state.value
         viewModelScope.launch(Dispatchers.IO) {
             _state.update { it.copy(isLoading = true, errorMessage = null) }
@@ -562,13 +542,13 @@ class ScheduleViewModel(
                             currentWeekType = currentWeekType,
                             selectedDateWeekType = currentWeekType,
                             groupsUpdatedAt = nowProvider(),
-                            errorMessage = null
+                            errorMessage = null,
                         )
                     }
                     openGroupInternal(
                         group = restoredGroup,
                         saveAsLastSelected = false,
-                        preserveUiSelection = false
+                        preserveUiSelection = false,
                     )
                     return@onSuccess
                 }
@@ -607,25 +587,21 @@ class ScheduleViewModel(
                         currentWeekType = currentWeekType,
                         selectedDateWeekType = currentWeekType,
                         groupsUpdatedAt = nowProvider(),
-                        errorMessage = null
+                        errorMessage = null,
                     )
                 }
             }.onFailure { error ->
                 _state.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = error.message ?: "Не удалось загрузить список групп"
+                        errorMessage = error.message ?: "Не удалось загрузить список групп",
                     )
                 }
             }
         }
     }
 
-    private fun openGroupInternal(
-        group: PtkGroupInfo,
-        saveAsLastSelected: Boolean,
-        preserveUiSelection: Boolean
-    ) {
+    private fun openGroupInternal(group: PtkGroupInfo, saveAsLastSelected: Boolean, preserveUiSelection: Boolean) {
         val beforeLoading = state.value
         viewModelScope.launch(Dispatchers.IO) {
             _state.update {
@@ -633,7 +609,7 @@ class ScheduleViewModel(
                     isLoading = true,
                     step = ScheduleStep.SCHEDULE,
                     selectedGroup = group,
-                    errorMessage = null
+                    errorMessage = null,
                 )
             }
 
@@ -658,7 +634,7 @@ class ScheduleViewModel(
                 val selectedDay = resolveSelectedDay(
                     preserveUiSelection = preserveUiSelection,
                     previousSelectedDay = beforeLoading.selectedDay,
-                    availableDays = availableDays
+                    availableDays = availableDays,
                 )
 
                 val selectedDate = if (preserveUiSelection) {
@@ -689,7 +665,7 @@ class ScheduleViewModel(
                     buildDateLessonsFromTemplates(
                         templates = templates,
                         date = selectedDate,
-                        selectedDateWeekType = selectedDateWeekType
+                        selectedDateWeekType = selectedDateWeekType,
                     )
                 } else {
                     allLessons
@@ -707,7 +683,7 @@ class ScheduleViewModel(
                         weekFilter = weekFilter,
                         selectedDateWeekType = selectedDateWeekType,
                         scheduleUpdatedAt = nowProvider(),
-                        errorMessage = null
+                        errorMessage = null,
                     )
                 }
             }.onFailure { error ->
@@ -720,7 +696,7 @@ class ScheduleViewModel(
                         lessons = emptyList(),
                         availableDays = emptyList(),
                         selectedDay = null,
-                        errorMessage = error.message ?: "Не удалось загрузить расписание"
+                        errorMessage = error.message ?: "Не удалось загрузить расписание",
                     )
                 }
             }
@@ -751,7 +727,7 @@ class ScheduleViewModel(
             buildDateLessonsFromTemplates(
                 templates = loadedTemplates,
                 date = current.selectedDate,
-                selectedDateWeekType = current.selectedDateWeekType
+                selectedDateWeekType = current.selectedDateWeekType,
             )
         } else {
             allLessons
@@ -762,7 +738,7 @@ class ScheduleViewModel(
                 lessons = lessons,
                 availableDays = availableDays,
                 selectedDay = selectedDay,
-                errorMessage = null
+                errorMessage = null,
             )
         }
     }
@@ -779,7 +755,7 @@ class ScheduleViewModel(
     private fun buildDateLessonsFromTemplates(
         templates: List<LessonTemplate>,
         date: LocalDate,
-        selectedDateWeekType: PtkCurrentWeekType
+        selectedDateWeekType: PtkCurrentWeekType,
     ): List<ScheduleLessonItem> {
         val targetDay = dayOfWeekToScheduleDay(date.dayOfWeek)
         val isUpperWeek = when (selectedDateWeekType) {
@@ -809,7 +785,7 @@ class ScheduleViewModel(
             val provisionalLessons = buildDateLessonsFromTemplates(
                 templates = loadedTemplates,
                 date = date,
-                selectedDateWeekType = PtkCurrentWeekType.UNKNOWN
+                selectedDateWeekType = PtkCurrentWeekType.UNKNOWN,
             )
             _state.update {
                 if (it.selectedDate != date || it.mode != ScheduleMode.BY_DATE) {
@@ -819,7 +795,7 @@ class ScheduleViewModel(
                         lessons = provisionalLessons,
                         selectedDay = dayOfWeekToScheduleDay(date.dayOfWeek),
                         selectedDateWeekType = PtkCurrentWeekType.UNKNOWN,
-                        errorMessage = null
+                        errorMessage = null,
                     )
                 }
             }
@@ -828,7 +804,7 @@ class ScheduleViewModel(
             val lessons = buildDateLessonsFromTemplates(
                 templates = loadedTemplates,
                 date = date,
-                selectedDateWeekType = selectedDateWeekType
+                selectedDateWeekType = selectedDateWeekType,
             )
             _state.update {
                 if (it.selectedDate != date || it.mode != ScheduleMode.BY_DATE) {
@@ -838,7 +814,7 @@ class ScheduleViewModel(
                         lessons = lessons,
                         selectedDay = dayOfWeekToScheduleDay(date.dayOfWeek),
                         selectedDateWeekType = selectedDateWeekType,
-                        errorMessage = null
+                        errorMessage = null,
                     )
                 }
             }
@@ -863,7 +839,11 @@ class ScheduleViewModel(
     private suspend fun refreshNotesInternal() {
         runCatching {
             notesStore.getAll()
-                .sortedWith(compareBy<LessonNote> { it.date }.thenBy { lessonSortKey(it.timeRange) }.thenBy { it.createdAtEpochMillis })
+                .sortedWith(
+                    compareBy<LessonNote> {
+                        it.date
+                    }.thenBy { lessonSortKey(it.timeRange) }.thenBy { it.createdAtEpochMillis },
+                )
                 .mapNotNull { it.toUiNote() }
         }.onSuccess { notes ->
             _state.update { current -> current.copy(notes = notes) }
@@ -871,7 +851,7 @@ class ScheduleViewModel(
             _state.update { current ->
                 current.copy(
                     notes = emptyList(),
-                    errorMessage = error.message ?: "Не удалось загрузить заметки"
+                    errorMessage = error.message ?: "Не удалось загрузить заметки",
                 )
             }
         }
@@ -893,79 +873,58 @@ class ScheduleViewModel(
             reminderEnabled = reminderEnabled,
             reminderMinutes = reminderMinutes,
             remindAtEpochMillis = remindAtEpochMillis,
-            createdAtEpochMillis = createdAtEpochMillis
+            createdAtEpochMillis = createdAtEpochMillis,
         )
     }
 
-    private fun buildNoteId(
-        groupName: String,
-        date: LocalDate,
-        lesson: ScheduleLessonItem
-    ): String {
-        return LessonNotesStore.buildLessonNoteId(
+    private fun buildNoteId(groupName: String, date: LocalDate, lesson: ScheduleLessonItem): String =
+        LessonNotesStore.buildLessonNoteId(
             groupName = groupName,
             date = date,
             timeRange = lesson.timeRange,
             weekType = lesson.weekType.name,
-            rawText = lesson.rawText
+            rawText = lesson.rawText,
         )
-    }
 
-    private fun canEditNote(
-        date: LocalDate,
-        timeRange: String
-    ): Boolean {
+    private fun canEditNote(date: LocalDate, timeRange: String): Boolean {
         val now = nowProvider().atZone(ZoneId.systemDefault()).toLocalDateTime()
         val startDateTime = parseLessonStartDateTime(date, timeRange) ?: return false
         return !startDateTime.isBefore(now)
     }
 
-    private fun parseLessonStartDateTime(
-        date: LocalDate,
-        timeRange: String
-    ): LocalDateTime? {
+    private fun parseLessonStartDateTime(date: LocalDate, timeRange: String): LocalDateTime? {
         val startTime = LessonNotesStore.parseStartTimeOrNull(timeRange) ?: return null
         return LocalDateTime.of(date, startTime)
     }
 
-    private fun scheduleReminder(
-        note: LessonNote,
-        lesson: ScheduleLessonItem
-    ) {
+    private fun scheduleReminder(note: LessonNote, lesson: ScheduleLessonItem) {
         val trigger = note.remindAtEpochMillis ?: return
         reminderScheduler.schedule(
             noteId = note.id,
             triggerAtMillis = trigger,
             title = "Скоро пара: ${lesson.subject.ifBlank { "занятие" }}",
-            message = buildReminderMessage(note.groupName, note.date, lesson.timeRange, note.noteText)
+            message = buildReminderMessage(note.groupName, note.date, lesson.timeRange, note.noteText),
         )
     }
 
-    private fun buildReminderMessage(
-        groupName: String,
-        date: LocalDate,
-        timeRange: String,
-        noteText: String?
-    ): String {
+    private fun buildReminderMessage(groupName: String, date: LocalDate, timeRange: String, noteText: String?): String {
         val base = "Группа $groupName, $timeRange, ${date.format(DATE_TITLE_FORMATTER)}"
         val note = noteText?.trim().orEmpty()
         return if (note.isNotBlank()) "$base\nЗаметка: $note" else base
     }
 
-    private fun buildCourseItems(groups: List<PtkGroupInfo>): List<CourseItem> {
-        return groups
-            .groupBy { it.course }
-            .map { (course, items) ->
-                val title = items.firstOrNull()?.courseName?.takeIf { it.isNotBlank() } ?: "$course курс"
-                CourseItem(course = course, title = title)
-            }
-            .sortedBy { it.course }
-    }
+    private fun buildCourseItems(groups: List<PtkGroupInfo>): List<CourseItem> = groups
+        .groupBy { it.course }
+        .map { (course, items) ->
+            val title = items.firstOrNull()?.courseName?.takeIf { it.isNotBlank() } ?: "$course курс"
+            CourseItem(course = course, title = title)
+        }
+        .sortedBy { it.course }
 
     private fun resolveSelectedDay(
         preserveUiSelection: Boolean,
         previousSelectedDay: ScheduleDay?,
-        availableDays: List<ScheduleDay>
+        availableDays: List<ScheduleDay>,
     ): ScheduleDay? {
         if (availableDays.isEmpty()) return null
         if (preserveUiSelection && previousSelectedDay != null && previousSelectedDay in availableDays) {
@@ -976,24 +935,20 @@ class ScheduleViewModel(
         return availableDays.firstOrNull { it == today } ?: availableDays.first()
     }
 
-    private fun dayOfWeekToScheduleDay(dayOfWeek: DayOfWeek): ScheduleDay {
-        return when (dayOfWeek) {
-            DayOfWeek.MONDAY -> ScheduleDay.MONDAY
-            DayOfWeek.TUESDAY -> ScheduleDay.TUESDAY
-            DayOfWeek.WEDNESDAY -> ScheduleDay.WEDNESDAY
-            DayOfWeek.THURSDAY -> ScheduleDay.THURSDAY
-            DayOfWeek.FRIDAY -> ScheduleDay.FRIDAY
-            DayOfWeek.SATURDAY -> ScheduleDay.SATURDAY
-            DayOfWeek.SUNDAY -> ScheduleDay.SUNDAY
-        }
+    private fun dayOfWeekToScheduleDay(dayOfWeek: DayOfWeek): ScheduleDay = when (dayOfWeek) {
+        DayOfWeek.MONDAY -> ScheduleDay.MONDAY
+        DayOfWeek.TUESDAY -> ScheduleDay.TUESDAY
+        DayOfWeek.WEDNESDAY -> ScheduleDay.WEDNESDAY
+        DayOfWeek.THURSDAY -> ScheduleDay.THURSDAY
+        DayOfWeek.FRIDAY -> ScheduleDay.FRIDAY
+        DayOfWeek.SATURDAY -> ScheduleDay.SATURDAY
+        DayOfWeek.SUNDAY -> ScheduleDay.SUNDAY
     }
 
-    private fun defaultWeekFilter(currentWeekType: PtkCurrentWeekType): ScheduleWeekFilter {
-        return when (currentWeekType) {
-            PtkCurrentWeekType.UPPER -> ScheduleWeekFilter.UPPER
-            PtkCurrentWeekType.LOWER -> ScheduleWeekFilter.LOWER
-            PtkCurrentWeekType.UNKNOWN -> ScheduleWeekFilter.ALL
-        }
+    private fun defaultWeekFilter(currentWeekType: PtkCurrentWeekType): ScheduleWeekFilter = when (currentWeekType) {
+        PtkCurrentWeekType.UPPER -> ScheduleWeekFilter.UPPER
+        PtkCurrentWeekType.LOWER -> ScheduleWeekFilter.LOWER
+        PtkCurrentWeekType.UNKNOWN -> ScheduleWeekFilter.ALL
     }
 
     private fun lessonSortKey(timeRange: String): Int {
@@ -1004,42 +959,35 @@ class ScheduleViewModel(
         return hours * 60 + minutes
     }
 
-    private fun TimetableGroup.toUiGroup(): PtkGroupInfo {
-        return PtkGroupInfo(
-            collegeName = collegeName,
-            course = course,
-            courseName = courseName,
-            groupName = groupName,
-            xlsUrl = sourceUrl
-        )
-    }
+    private fun TimetableGroup.toUiGroup(): PtkGroupInfo = PtkGroupInfo(
+        collegeName = collegeName,
+        course = course,
+        courseName = courseName,
+        groupName = groupName,
+        xlsUrl = sourceUrl,
+    )
 
     private fun LessonTemplate.toScheduleLessonItem(
-        overrideDay: ScheduleDay = dayOfWeekToScheduleDay(dayOfWeek)
-    ): ScheduleLessonItem {
-        return ScheduleLessonItem(
-            day = overrideDay,
-            dayLabel = overrideDay.title,
-            timeRange = formatTimeRange(startTime, endTime),
-            weekType = weekType.toUiWeekType(),
-            subject = subject,
-            teacher = teacher,
-            classroom = room,
-            rawText = rawText
-        )
+        overrideDay: ScheduleDay = dayOfWeekToScheduleDay(dayOfWeek),
+    ): ScheduleLessonItem = ScheduleLessonItem(
+        day = overrideDay,
+        dayLabel = overrideDay.title,
+        timeRange = formatTimeRange(startTime, endTime),
+        weekType = weekType.toUiWeekType(),
+        subject = subject,
+        teacher = teacher,
+        classroom = room,
+        rawText = rawText,
+    )
+
+    private fun WeekType.toUiWeekType(): PtkWeekType = when (this) {
+        WeekType.ALL -> PtkWeekType.ALL
+        WeekType.UPPER -> PtkWeekType.UPPER
+        WeekType.LOWER -> PtkWeekType.LOWER
     }
 
-    private fun WeekType.toUiWeekType(): PtkWeekType {
-        return when (this) {
-            WeekType.ALL -> PtkWeekType.ALL
-            WeekType.UPPER -> PtkWeekType.UPPER
-            WeekType.LOWER -> PtkWeekType.LOWER
-        }
-    }
-
-    private fun formatTimeRange(start: LocalTime, end: LocalTime): String {
-        return "${TIME_FORMATTER.format(start)}-${TIME_FORMATTER.format(end)}"
-    }
+    private fun formatTimeRange(start: LocalTime, end: LocalTime): String =
+        "${TIME_FORMATTER.format(start)}-${TIME_FORMATTER.format(end)}"
 
     private companion object {
         val TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("H.mm")
@@ -1047,9 +995,7 @@ class ScheduleViewModel(
     }
 }
 
-class ScheduleViewModelFactory(
-    private val context: Context
-) : ViewModelProvider.Factory {
+class ScheduleViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ScheduleViewModel::class.java)) {
@@ -1057,7 +1003,7 @@ class ScheduleViewModelFactory(
             val weekResolver = PortalBackedWeekResolver(baseRepository)
             val timetableRepository = DomainTimetableRepositoryAdapter(
                 scheduleRepository = baseRepository,
-                weekResolver = weekResolver
+                weekResolver = weekResolver,
             )
 
             @Suppress("UNCHECKED_CAST")
@@ -1066,7 +1012,7 @@ class ScheduleViewModelFactory(
                 weekResolver = weekResolver,
                 preferencesStore = UserPreferencesStore(context.applicationContext),
                 notesStore = LessonNotesStore(context.applicationContext),
-                reminderScheduler = LessonReminderScheduler(context.applicationContext)
+                reminderScheduler = LessonReminderScheduler(context.applicationContext),
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")

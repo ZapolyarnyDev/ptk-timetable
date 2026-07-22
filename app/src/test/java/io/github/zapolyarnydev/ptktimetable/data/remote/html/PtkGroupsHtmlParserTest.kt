@@ -8,7 +8,7 @@ class PtkGroupsHtmlParserTest {
 
     private val sut = ParserContract(
         parserClassName = "io.github.zapolyarnydev.ptktimetable.data.remote.html.PtkGroupsHtmlParser",
-        parseMethodName = "parseGroups"
+        parseMethodName = "parseGroups",
     )
 
     @Test
@@ -31,7 +31,7 @@ class PtkGroupsHtmlParserTest {
                 item.xlsUrl.startsWith("https://portal.novsu.ru/") &&
                     item.xlsUrl.contains("/_timetable/ptk/") &&
                     item.xlsUrl.contains(".xls")
-            }
+            },
         )
     }
 
@@ -60,16 +60,9 @@ class PtkGroupsHtmlParserTest {
         return stream.bufferedReader().use { it.readText() }
     }
 
-    private data class GroupRef(
-        val groupName: String,
-        val course: Int,
-        val xlsUrl: String
-    )
+    private data class GroupRef(val groupName: String, val course: Int, val xlsUrl: String)
 
-    private class ParserContract(
-        parserClassName: String,
-        parseMethodName: String
-    ) {
+    private class ParserContract(parserClassName: String, parseMethodName: String) {
         private val parserInstance: Any
         private val parseMethod: Method
 
@@ -80,7 +73,7 @@ class PtkGroupsHtmlParserTest {
                 throw AssertionError(
                     "Expected parser class `$parserClassName` not found. " +
                         "Create it to satisfy TDD tests.",
-                    e
+                    e,
                 )
             }
             parserInstance = parserClass.getDeclaredConstructor().newInstance()
@@ -88,7 +81,7 @@ class PtkGroupsHtmlParserTest {
                 method.name == parseMethodName && method.parameterCount == 2
             } ?: throw AssertionError(
                 "Expected method `$parseMethodName(html: String, baseUrl: String)` " +
-                    "in `$parserClassName` was not found."
+                    "in `$parserClassName` was not found.",
             )
         }
 
@@ -111,7 +104,7 @@ class PtkGroupsHtmlParserTest {
         private fun readString(raw: Any, property: String): String {
             val value = readProperty(raw, property)
             return value as? String ?: throw AssertionError(
-                "Property `$property` must be String, actual=${value?.javaClass?.name}"
+                "Property `$property` must be String, actual=${value?.javaClass?.name}",
             )
         }
 
@@ -119,9 +112,11 @@ class PtkGroupsHtmlParserTest {
             val value = readProperty(raw, property)
             return when (value) {
                 is Int -> value
+
                 is Number -> value.toInt()
+
                 else -> throw AssertionError(
-                    "Property `$property` must be numeric, actual=${value?.javaClass?.name}"
+                    "Property `$property` must be numeric, actual=${value?.javaClass?.name}",
                 )
             }
         }
@@ -130,7 +125,7 @@ class PtkGroupsHtmlParserTest {
             val getterName = "get" + property.replaceFirstChar { it.uppercaseChar() }
             val getter = raw.javaClass.methods.firstOrNull { it.name == getterName && it.parameterCount == 0 }
                 ?: throw AssertionError(
-                    "Expected property `$property` (getter `$getterName`) in `${raw.javaClass.name}`"
+                    "Expected property `$property` (getter `$getterName`) in `${raw.javaClass.name}`",
                 )
             return getter.invoke(raw)
         }

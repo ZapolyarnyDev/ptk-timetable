@@ -7,4 +7,3 @@ interface WeekResolver {
     suspend fun resolve(date: LocalDate): WeekInfo
     suspend fun resolveRange(from: LocalDate, to: LocalDate): Map<LocalDate, WeekInfo>
 }
-

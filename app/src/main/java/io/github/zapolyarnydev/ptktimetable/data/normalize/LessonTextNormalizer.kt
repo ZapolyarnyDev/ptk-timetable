@@ -2,11 +2,7 @@ package io.github.zapolyarnydev.ptktimetable.data.normalize
 
 import java.util.Locale
 
-data class NormalizedLessonText(
-    val subject: String,
-    val teacher: String?,
-    val classroom: String?
-)
+data class NormalizedLessonText(val subject: String, val teacher: String?, val classroom: String?)
 
 class LessonTextNormalizer {
 
@@ -53,9 +49,7 @@ class LessonTextNormalizer {
         return normalized.isNotBlank() && !DASH_ONLY_REGEX.matches(normalized)
     }
 
-    private fun normalizeSpaces(text: String): String {
-        return text.replace(Regex("\\s+"), " ").trim()
-    }
+    private fun normalizeSpaces(text: String): String = text.replace(Regex("\\s+"), " ").trim()
 
     private companion object {
         val DASH_ONLY_REGEX = Regex("^[-—–]+$")
@@ -68,7 +62,7 @@ class LessonTextNormalizer {
             "школа",
             "нтш",
             "aud",
-            "room"
+            "room",
         )
     }
 }

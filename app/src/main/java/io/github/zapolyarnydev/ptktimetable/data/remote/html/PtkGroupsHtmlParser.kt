@@ -45,7 +45,7 @@ class PtkGroupsHtmlParser {
                         course = course,
                         courseName = courseName,
                         groupName = groupName,
-                        xlsUrl = absoluteUrl
+                        xlsUrl = absoluteUrl,
                     )
                 }
             }
@@ -76,13 +76,9 @@ class PtkGroupsHtmlParser {
         return map
     }
 
-    private fun isXlsLink(href: String): Boolean {
-        return href.lowercase(Locale.ROOT).contains(".xls")
-    }
+    private fun isXlsLink(href: String): Boolean = href.lowercase(Locale.ROOT).contains(".xls")
 
-    private fun normalize(input: String): String {
-        return input.replace(Regex("\\s+"), " ").trim()
-    }
+    private fun normalize(input: String): String = input.replace(Regex("\\s+"), " ").trim()
 
     private companion object {
         const val PTK_COLLEGE_NAME = "Политехнический колледж"

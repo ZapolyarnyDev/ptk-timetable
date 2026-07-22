@@ -5,6 +5,5 @@ data class TimetableGroup(
     val course: Int,
     val courseName: String,
     val groupName: String,
-    val sourceUrl: String
+    val sourceUrl: String,
 )
-

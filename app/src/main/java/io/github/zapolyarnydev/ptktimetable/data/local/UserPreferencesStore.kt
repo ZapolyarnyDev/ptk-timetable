@@ -13,17 +13,13 @@ import java.io.IOException
 private const val USER_SETTINGS_DATASTORE = "user_settings"
 private val Context.userPreferencesDataStore by preferencesDataStore(name = USER_SETTINGS_DATASTORE)
 
-class UserPreferencesStore(
-    private val context: Context
-) {
+class UserPreferencesStore(private val context: Context) {
 
-    suspend fun getLastSelectedGroupName(): String? {
-        return context.userPreferencesDataStore.data
-            .catch { exception ->
-                if (exception is IOException) emit(emptyPreferences()) else throw exception
-            }
-            .first()[LAST_SELECTED_GROUP_KEY]
-    }
+    suspend fun getLastSelectedGroupName(): String? = context.userPreferencesDataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
+        }
+        .first()[LAST_SELECTED_GROUP_KEY]
 
     suspend fun setLastSelectedGroupName(groupName: String?) {
         context.userPreferencesDataStore.edit { preferences ->

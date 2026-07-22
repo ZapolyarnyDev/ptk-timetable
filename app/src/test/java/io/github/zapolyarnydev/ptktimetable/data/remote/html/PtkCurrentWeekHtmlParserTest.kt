@@ -27,15 +27,14 @@ class PtkCurrentWeekHtmlParserTest {
 
         val lower = parser.parseCurrentWeekType(
             html = html,
-            today = LocalDate.of(2026, 3, 10)
+            today = LocalDate.of(2026, 3, 10),
         )
         val upper = parser.parseCurrentWeekType(
             html = html,
-            today = LocalDate.of(2026, 3, 17)
+            today = LocalDate.of(2026, 3, 17),
         )
 
         assertEquals(PtkCurrentWeekType.LOWER, lower)
         assertEquals(PtkCurrentWeekType.UPPER, upper)
     }
 }
-

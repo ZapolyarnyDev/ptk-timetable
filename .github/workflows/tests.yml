@@ -31,6 +31,9 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
 
+      - name: Check code formatting
+        run: ./gradlew spotlessCheck
+
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest
 

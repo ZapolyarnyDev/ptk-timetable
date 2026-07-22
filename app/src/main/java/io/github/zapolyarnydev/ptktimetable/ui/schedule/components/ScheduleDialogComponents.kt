@@ -1,8 +1,6 @@
 ﻿package io.github.zapolyarnydev.ptktimetable.ui.schedule
 
 import android.app.DatePickerDialog
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -13,8 +11,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -40,8 +38,8 @@ import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.Update
 import androidx.compose.material3.Button
@@ -78,15 +76,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkCurrentWeekType
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkGroupInfo
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkWeekType
-import io.github.zapolyarnydev.ptktimetable.ui.theme.BorderSubtle
 import io.github.zapolyarnydev.ptktimetable.ui.theme.BorderStrong
+import io.github.zapolyarnydev.ptktimetable.ui.theme.BorderSubtle
 import io.github.zapolyarnydev.ptktimetable.ui.theme.HeadingFontFamily
-import io.github.zapolyarnydev.ptktimetable.ui.theme.InkPrimary
 import io.github.zapolyarnydev.ptktimetable.ui.theme.InkMuted
+import io.github.zapolyarnydev.ptktimetable.ui.theme.InkPrimary
 import io.github.zapolyarnydev.ptktimetable.ui.theme.InkSecondary
 import io.github.zapolyarnydev.ptktimetable.ui.theme.MainFontFamily
 import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlue
@@ -108,18 +108,18 @@ internal fun LessonNoteDialog(
     canEdit: Boolean,
     onDismiss: () -> Unit,
     onSave: (String) -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
 ) {
     var noteText by remember(note?.noteId) { mutableStateOf(note?.noteText.orEmpty()) }
     AppModalDialog(
         title = "Заметка к занятию",
         subtitle = "",
-        onDismiss = onDismiss
+        onDismiss = onDismiss,
     ) {
         Text(
             text = "${lesson.day.title}, ${lesson.timeRange}",
             style = MaterialTheme.typography.bodySmall,
-            color = InkSecondary
+            color = InkSecondary,
         )
         Spacer(Modifier.height(10.dp))
         OutlinedTextField(
@@ -128,26 +128,26 @@ internal fun LessonNoteDialog(
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Текст заметки") },
             enabled = canEdit,
-            minLines = 4
+            minLines = 4,
         )
         if (!canEdit) {
             Spacer(Modifier.height(8.dp))
             Text(
                 text = "Редактирование доступно только для будущих пар в режиме «По дате».",
                 style = MaterialTheme.typography.bodySmall,
-                color = InkSecondary
+                color = InkSecondary,
             )
         }
         Spacer(Modifier.height(14.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             if (note != null && canEdit) {
                 OutlinedButton(
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(18.dp)
+                    shape = RoundedCornerShape(18.dp),
                 ) {
                     Text("Отмена", maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
@@ -156,7 +156,7 @@ internal fun LessonNoteDialog(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(18.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                    border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.error)
+                    border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.error),
                 ) {
                     Text("Удалить", maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
@@ -164,7 +164,7 @@ internal fun LessonNoteDialog(
                 OutlinedButton(
                     onClick = onDismiss,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp)
+                    shape = RoundedCornerShape(18.dp),
                 ) {
                     Text("Отмена", maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
@@ -175,7 +175,7 @@ internal fun LessonNoteDialog(
             onClick = { onSave(noteText) },
             enabled = canEdit && noteText.isNotBlank(),
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp)
+            shape = RoundedCornerShape(18.dp),
         ) {
             Text("Сохранить", maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
@@ -183,28 +183,24 @@ internal fun LessonNoteDialog(
 }
 
 @Composable
-internal fun NotesOverviewDialog(
-    notes: List<ScheduleNoteItem>,
-    onDismiss: () -> Unit,
-    onEdit: (String) -> Unit
-) {
+internal fun NotesOverviewDialog(notes: List<ScheduleNoteItem>, onDismiss: () -> Unit, onEdit: (String) -> Unit) {
     AppModalDialog(
         title = "Все заметки",
         subtitle = "Нажмите на заметку, чтобы отредактировать её текст.",
-        onDismiss = onDismiss
+        onDismiss = onDismiss,
     ) {
         if (notes.isEmpty()) {
             Text(
                 text = "Пока нет заметок",
                 style = MaterialTheme.typography.bodyMedium,
-                color = InkSecondary
+                color = InkSecondary,
             )
         } else {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 280.dp, max = 380.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(notes, key = { it.noteId }) { note ->
                     Surface(
@@ -213,24 +209,24 @@ internal fun NotesOverviewDialog(
                             .clickable { onEdit(note.noteId) },
                         color = White,
                         border = BorderStroke(0.8.dp, BorderSubtle),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(10.dp),
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
                             Text(
                                 text = "${formatDateTitle(note.date)} • ${note.timeRange}",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = InkSecondary
+                                color = InkSecondary,
                             )
                             Text(
                                 text = note.subject.ifBlank { "Пара" },
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = InkPrimary,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.SemiBold,
                             )
                             Text(
                                 text = note.noteText.ifBlank { "Без текста заметки" },
                                 style = MaterialTheme.typography.bodySmall,
-                                color = NovsuBlue
+                                color = NovsuBlue,
                             )
                         }
                     }
@@ -241,7 +237,7 @@ internal fun NotesOverviewDialog(
         Button(
             onClick = onDismiss,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp)
+            shape = RoundedCornerShape(18.dp),
         ) {
             Text("Закрыть")
         }
@@ -254,7 +250,7 @@ internal fun ReminderDialog(
     note: ScheduleNoteItem?,
     canEdit: Boolean,
     onDismiss: () -> Unit,
-    onSave: (Boolean, Int) -> Unit
+    onSave: (Boolean, Int) -> Unit,
 ) {
     var enabled by remember(note?.noteId) { mutableStateOf(note?.reminderEnabled == true) }
     var minutesText by remember(note?.noteId) { mutableStateOf((note?.reminderMinutes ?: 10).toString()) }
@@ -263,28 +259,28 @@ internal fun ReminderDialog(
     AppModalDialog(
         title = "Напоминание о паре",
         subtitle = "Настройте время уведомления. Если к паре есть заметка, она будет показана в тексте уведомления.",
-        onDismiss = onDismiss
+        onDismiss = onDismiss,
     ) {
         Text(
             text = "${lesson.day.title}, ${lesson.timeRange}",
             style = MaterialTheme.typography.bodySmall,
-            color = InkSecondary
+            color = InkSecondary,
         )
         Spacer(Modifier.height(10.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = "Включить уведомление",
                 style = MaterialTheme.typography.bodyMedium,
-                color = InkPrimary
+                color = InkPrimary,
             )
             Switch(
                 checked = enabled,
                 onCheckedChange = { enabled = it },
-                enabled = canEdit
+                enabled = canEdit,
             )
         }
         if (enabled) {
@@ -294,7 +290,7 @@ internal fun ReminderDialog(
                 label = { Text("Минут до начала") },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = canEdit,
-                singleLine = true
+                singleLine = true,
             )
             Spacer(Modifier.height(8.dp))
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -303,7 +299,7 @@ internal fun ReminderDialog(
                         selected = parsedMinutes == item,
                         label = "$item мин",
                         icon = Icons.Outlined.Tune,
-                        onClick = { minutesText = item.toString() }
+                        onClick = { minutesText = item.toString() },
                     )
                 }
             }
@@ -313,18 +309,18 @@ internal fun ReminderDialog(
             Text(
                 text = "Уведомления доступны только для будущих пар в режиме «По дате».",
                 style = MaterialTheme.typography.bodySmall,
-                color = InkSecondary
+                color = InkSecondary,
             )
         }
         Spacer(Modifier.height(14.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             OutlinedButton(
                 onClick = onDismiss,
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(18.dp)
+                shape = RoundedCornerShape(18.dp),
             ) {
                 Text("Отмена")
             }
@@ -332,7 +328,7 @@ internal fun ReminderDialog(
                 onClick = { onSave(enabled, parsedMinutes ?: 10) },
                 enabled = canEdit && (!enabled || parsedMinutes != null),
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(18.dp)
+                shape = RoundedCornerShape(18.dp),
             ) {
                 Text("Сохранить")
             }
@@ -345,30 +341,30 @@ internal fun NoteEditByIdDialog(
     note: ScheduleNoteItem,
     onDismiss: () -> Unit,
     onSave: (String) -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
 ) {
     var text by remember(note.noteId) { mutableStateOf(note.noteText) }
     AppModalDialog(
         title = "Редактирование заметки",
         subtitle = "${formatDateTitle(note.date)} • ${note.timeRange}",
-        onDismiss = onDismiss
+        onDismiss = onDismiss,
     ) {
         OutlinedTextField(
             value = text,
             onValueChange = { text = it },
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Текст заметки") },
-            minLines = 4
+            minLines = 4,
         )
         Spacer(Modifier.height(12.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             OutlinedButton(
                 onClick = onDismiss,
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(18.dp)
+                shape = RoundedCornerShape(18.dp),
             ) {
                 Text("Отмена", maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
@@ -377,7 +373,7 @@ internal fun NoteEditByIdDialog(
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(18.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.error)
+                border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.error),
             ) {
                 Text("Удалить", maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
@@ -387,7 +383,7 @@ internal fun NoteEditByIdDialog(
             onClick = { onSave(text) },
             enabled = text.isNotBlank(),
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp)
+            shape = RoundedCornerShape(18.dp),
         ) {
             Text("Сохранить", maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
@@ -399,18 +395,18 @@ internal fun AppModalDialog(
     title: String,
     subtitle: String,
     onDismiss: () -> Unit,
-    content: @Composable ColumnScope.() -> Unit
+    content: @Composable ColumnScope.() -> Unit,
 ) {
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(InkPrimary.copy(alpha = 0.28f))
                 .padding(horizontal = 18.dp, vertical = 28.dp),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.Center,
         ) {
             Surface(
                 modifier = Modifier
@@ -418,7 +414,7 @@ internal fun AppModalDialog(
                     .heightIn(min = 320.dp, max = 580.dp),
                 color = SurfaceBlueTint,
                 shape = RoundedCornerShape(20.dp),
-                border = BorderStroke(1.dp, BorderStrong)
+                border = BorderStroke(1.dp, BorderStrong),
             ) {
                 Column(
                     modifier = Modifier.padding(18.dp),
@@ -428,21 +424,20 @@ internal fun AppModalDialog(
                             text = title,
                             style = MaterialTheme.typography.titleLarge,
                             color = InkPrimary,
-                            fontFamily = HeadingFontFamily
+                            fontFamily = HeadingFontFamily,
                         )
                         if (subtitle.isNotBlank()) {
                             Text(
                                 text = subtitle,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = InkMuted
+                                color = InkMuted,
                             )
                         }
                         Spacer(Modifier.height(4.dp))
                         content()
-                    }
+                    },
                 )
             }
         }
     }
 }
-

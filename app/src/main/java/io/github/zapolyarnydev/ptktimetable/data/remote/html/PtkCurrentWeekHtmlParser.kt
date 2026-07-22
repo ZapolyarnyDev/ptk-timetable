@@ -9,17 +9,10 @@ import java.util.Locale
 
 class PtkCurrentWeekHtmlParser {
 
-    fun parseCurrentWeekType(
-        html: String,
-        today: LocalDate = LocalDate.now()
-    ): PtkCurrentWeekType {
-        return parseWeekTypeForDate(html, today)
-    }
+    fun parseCurrentWeekType(html: String, today: LocalDate = LocalDate.now()): PtkCurrentWeekType =
+        parseWeekTypeForDate(html, today)
 
-    fun parseWeekTypeForDate(
-        html: String,
-        date: LocalDate
-    ): PtkCurrentWeekType {
+    fun parseWeekTypeForDate(html: String, date: LocalDate): PtkCurrentWeekType {
         val document = Jsoup.parse(html)
         val calendarRoot = findCalendarRoot(document.body())
 
@@ -30,10 +23,7 @@ class PtkCurrentWeekHtmlParser {
         return PtkCurrentWeekType.UNKNOWN
     }
 
-    private fun parseByRanges(
-        calendarRoot: Element?,
-        today: LocalDate
-    ): PtkCurrentWeekType? {
+    private fun parseByRanges(calendarRoot: Element?, today: LocalDate): PtkCurrentWeekType? {
         val rows = calendarRoot
             ?.select("table.viewtable tr")
             .orEmpty()
@@ -100,9 +90,9 @@ class PtkCurrentWeekHtmlParser {
         return start to end
     }
 
-    private fun parseDate(value: String): LocalDate? {
-        return runCatching { LocalDate.parse(value.trim(), DATE_FORMATTER) }.getOrNull()
-    }
+    private fun parseDate(value: String): LocalDate? = runCatching {
+        LocalDate.parse(value.trim(), DATE_FORMATTER)
+    }.getOrNull()
 
     private companion object {
         val DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")

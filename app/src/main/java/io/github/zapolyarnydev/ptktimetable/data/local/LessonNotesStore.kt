@@ -33,12 +33,10 @@ data class LessonNote(
     val reminderEnabled: Boolean,
     val reminderMinutes: Int?,
     val remindAtEpochMillis: Long?,
-    val createdAtEpochMillis: Long
+    val createdAtEpochMillis: Long,
 )
 
-class LessonNotesStore(
-    private val context: Context
-) {
+class LessonNotesStore(private val context: Context) {
 
     suspend fun getAll(): List<LessonNote> {
         val raw = context.lessonNotesDataStore.data
@@ -86,7 +84,7 @@ class LessonNotesStore(
                         put("reminderMinutes", note.reminderMinutes ?: JSONObject.NULL)
                         put("remindAtEpochMillis", note.remindAtEpochMillis ?: JSONObject.NULL)
                         put("createdAtEpochMillis", note.createdAtEpochMillis)
-                    }
+                    },
                 )
             }
         }.toString()
@@ -143,8 +141,8 @@ class LessonNotesStore(
                             reminderEnabled = reminderEnabled,
                             reminderMinutes = reminderMinutes,
                             remindAtEpochMillis = remindAtEpochMillis,
-                            createdAtEpochMillis = createdAt
-                        )
+                            createdAtEpochMillis = createdAt,
+                        ),
                     )
                 }
             }
@@ -160,16 +158,14 @@ class LessonNotesStore(
             date: LocalDate,
             timeRange: String,
             weekType: String,
-            rawText: String
-        ): String {
-            return listOf(
-                groupName.trim(),
-                date.format(DATE_FORMATTER),
-                timeRange.trim(),
-                weekType.trim(),
-                rawText.trim().hashCode().toString()
-            ).joinToString("|")
-        }
+            rawText: String,
+        ): String = listOf(
+            groupName.trim(),
+            date.format(DATE_FORMATTER),
+            timeRange.trim(),
+            weekType.trim(),
+            rawText.trim().hashCode().toString(),
+        ).joinToString("|")
 
         fun parseStartTimeOrNull(timeRange: String): LocalTime? {
             val normalized = timeRange

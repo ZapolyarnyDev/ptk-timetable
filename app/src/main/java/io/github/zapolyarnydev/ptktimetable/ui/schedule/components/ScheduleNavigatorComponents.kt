@@ -1,8 +1,6 @@
 ﻿package io.github.zapolyarnydev.ptktimetable.ui.schedule
 
 import android.app.DatePickerDialog
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -13,8 +11,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -40,8 +38,8 @@ import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.Update
 import androidx.compose.material3.Button
@@ -78,14 +76,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkCurrentWeekType
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkGroupInfo
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkWeekType
 import io.github.zapolyarnydev.ptktimetable.ui.theme.BorderSubtle
 import io.github.zapolyarnydev.ptktimetable.ui.theme.HeadingFontFamily
-import io.github.zapolyarnydev.ptktimetable.ui.theme.InkPrimary
 import io.github.zapolyarnydev.ptktimetable.ui.theme.InkMuted
+import io.github.zapolyarnydev.ptktimetable.ui.theme.InkPrimary
 import io.github.zapolyarnydev.ptktimetable.ui.theme.InkSecondary
 import io.github.zapolyarnydev.ptktimetable.ui.theme.MainFontFamily
 import io.github.zapolyarnydev.ptktimetable.ui.theme.NovsuBlue
@@ -100,7 +100,6 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-
 
 @Composable
 internal fun DayNavigatorPanel(
@@ -123,7 +122,7 @@ internal fun DayNavigatorPanel(
     selectedDay: ScheduleDay?,
     weekFilter: ScheduleWeekFilter,
     onSelectDay: (ScheduleDay) -> Unit,
-    onSelectWeekFilter: (ScheduleWeekFilter) -> Unit
+    onSelectWeekFilter: (ScheduleWeekFilter) -> Unit,
 ) {
     val context = LocalContext.current
 
@@ -134,7 +133,7 @@ internal fun DayNavigatorPanel(
                     selected = item == mode,
                     label = item.title,
                     icon = if (item == ScheduleMode.BY_DAY) Icons.Outlined.Schedule else Icons.Outlined.CalendarMonth,
-                    onClick = { onSelectMode(item) }
+                    onClick = { onSelectMode(item) },
                 )
             }
         }
@@ -144,37 +143,37 @@ internal fun DayNavigatorPanel(
         if (mode == ScheduleMode.BY_DAY) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 NavArrowButton(
                     icon = Icons.AutoMirrored.Outlined.ArrowBack,
                     enabled = canGoPrev,
-                    onClick = onPreviousDay
+                    onClick = onPreviousDay,
                 )
                 Column(
                     modifier = Modifier
                         .weight(1f)
                         .padding(horizontal = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
                         text = selectedDayTitle,
                         style = MaterialTheme.typography.titleMedium,
                         color = InkPrimary,
-                        fontFamily = HeadingFontFamily
+                        fontFamily = HeadingFontFamily,
                     )
                     if (totalDays > 0) {
                         Text(
                             text = "день ${dayIndex + 1} из $totalDays",
                             style = MaterialTheme.typography.bodySmall,
-                            color = InkMuted
+                            color = InkMuted,
                         )
                     }
                 }
                 NavArrowButton(
                     icon = Icons.AutoMirrored.Outlined.ArrowForward,
                     enabled = canGoNext,
-                    onClick = onNextDay
+                    onClick = onNextDay,
                 )
             }
 
@@ -192,7 +191,7 @@ internal fun DayNavigatorPanel(
                             labelColor = NovsuBlueDark,
                             selectedLabelColor = NovsuBlueDark,
                             iconColor = NovsuBlueDark,
-                            selectedLeadingIconColor = NovsuBlueDark
+                            selectedLeadingIconColor = NovsuBlueDark,
                         )
                     }
                 }
@@ -205,7 +204,7 @@ internal fun DayNavigatorPanel(
                         selected = filter == weekFilter,
                         label = filter.title,
                         icon = Icons.Outlined.Tune,
-                        onClick = { onSelectWeekFilter(filter) }
+                        onClick = { onSelectWeekFilter(filter) },
                     )
                 }
             }
@@ -216,48 +215,48 @@ internal fun DayNavigatorPanel(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
                         .background(SurfaceBlueTint)
-                        .padding(horizontal = 10.dp, vertical = 8.dp)
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
                 ) {
                     Text(
                         text = "Недели не совпадают: текущая ${weekTypeLabel(currentWeekType)}, " +
                             "показано расписание для ${weekFilter.title.lowercase(Locale.forLanguageTag("ru"))}.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
+                        color = MaterialTheme.colorScheme.error,
                     )
                 }
             }
         } else {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 NavArrowButton(
                     icon = Icons.AutoMirrored.Outlined.ArrowBack,
                     enabled = true,
-                    onClick = onPreviousDate
+                    onClick = onPreviousDate,
                 )
                 Column(
                     modifier = Modifier
                         .weight(1f)
                         .padding(horizontal = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
                         text = formatDateTitle(selectedDate),
                         style = MaterialTheme.typography.titleMedium,
                         color = InkPrimary,
-                        fontFamily = HeadingFontFamily
+                        fontFamily = HeadingFontFamily,
                     )
                     Text(
                         text = selectedDayTitle,
                         style = MaterialTheme.typography.bodySmall,
-                        color = InkMuted
+                        color = InkMuted,
                     )
                 }
                 NavArrowButton(
                     icon = Icons.AutoMirrored.Outlined.ArrowForward,
                     enabled = true,
-                    onClick = onNextDate
+                    onClick = onNextDate,
                 )
             }
 
@@ -266,7 +265,7 @@ internal fun DayNavigatorPanel(
                 OutlinedActionButton(
                     text = "Сегодня",
                     onClick = onGoToToday,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 )
                 OutlinedActionButton(
                     text = "Выбрать дату",
@@ -279,9 +278,9 @@ internal fun DayNavigatorPanel(
                             },
                             selectedDate.year,
                             selectedDate.monthValue - 1,
-                            selectedDate.dayOfMonth
+                            selectedDate.dayOfMonth,
                         ).show()
-                    }
+                    },
                 )
             }
         }

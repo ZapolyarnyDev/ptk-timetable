@@ -3,10 +3,10 @@ package io.github.zapolyarnydev.ptktimetable.data.remote.xls
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkRawLesson
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkWeekType
 import org.apache.poi.hssf.usermodel.HSSFWorkbook
+import org.apache.poi.ss.usermodel.BorderStyle
 import org.apache.poi.ss.usermodel.CellType
 import org.apache.poi.ss.usermodel.DataFormatter
 import org.apache.poi.ss.usermodel.Sheet
-import org.apache.poi.ss.usermodel.BorderStyle
 import org.apache.poi.ss.util.CellRangeAddress
 import java.io.ByteArrayInputStream
 import java.util.Locale
@@ -33,11 +33,7 @@ class PtkXlsScheduleParser {
         return removeAllWhenSpecificWeeksExist(distinct)
     }
 
-    private fun parseSheet(
-        sheet: Sheet,
-        normalizedGroupName: String,
-        formatter: DataFormatter
-    ): List<PtkRawLesson> {
+    private fun parseSheet(sheet: Sheet, normalizedGroupName: String, formatter: DataFormatter): List<PtkRawLesson> {
         val layout = findGroupLayout(sheet, normalizedGroupName, formatter) ?: return emptyList()
         val timeRows = collectTimeRows(sheet, layout.timeColumn, formatter)
         if (timeRows.isEmpty()) return emptyList()
@@ -59,7 +55,7 @@ class PtkXlsScheduleParser {
                 lessonColumn = layout.lessonColumn,
                 rowIndex = rowIndex,
                 nextTimeRow = nextTimeRow,
-                formatter = formatter
+                formatter = formatter,
             )
 
             lessonsForSlot.forEach { (lessonText, weekType) ->
@@ -71,7 +67,7 @@ class PtkXlsScheduleParser {
                     dayOfWeek = currentDay,
                     timeRange = timeRange,
                     rawText = lessonText,
-                    weekType = weekType
+                    weekType = weekType,
                 )
             }
         }
@@ -84,7 +80,7 @@ class PtkXlsScheduleParser {
         lessonColumn: Int,
         rowIndex: Int,
         nextTimeRow: Int,
-        formatter: DataFormatter
+        formatter: DataFormatter,
     ): List<Pair<String, PtkWeekType>> {
         val rawSegments = mutableListOf<RowSegment>()
         for (lessonRow in rowIndex until nextTimeRow) {
@@ -107,12 +103,12 @@ class PtkXlsScheduleParser {
                     sheet = sheet,
                     lessonColumn = lessonColumn,
                     fromRow = rowIndex,
-                    toRowExclusive = single.rowIndex
+                    toRowExclusive = single.rowIndex,
                 )
                 val dashedOnSegment = hasDashedBottomAtRow(
                     sheet = sheet,
                     lessonColumn = lessonColumn,
-                    rowIndex = single.rowIndex
+                    rowIndex = single.rowIndex,
                 )
                 if (dashedBefore || dashedOnSegment) return listOf(single.text to PtkWeekType.LOWER)
                 val splitPoint = rowIndex + ((nextTimeRow - rowIndex) / 2)
@@ -132,23 +128,18 @@ class PtkXlsScheduleParser {
                 sheet = sheet,
                 lessonColumn = lessonColumn,
                 fromRow = rowIndex,
-                toRowExclusive = segment.rowIndex
+                toRowExclusive = segment.rowIndex,
             )
             mapSingleCell(
                 segment = segment,
                 sheet = sheet,
                 lessonColumn = lessonColumn,
-                preferLowerForAmbiguous = dashedBefore
+                preferLowerForAmbiguous = dashedBefore,
             )
         }
     }
 
-    private fun hasDashedDividerBeforeRow(
-        sheet: Sheet,
-        lessonColumn: Int,
-        fromRow: Int,
-        toRowExclusive: Int
-    ): Boolean {
+    private fun hasDashedDividerBeforeRow(sheet: Sheet, lessonColumn: Int, fromRow: Int, toRowExclusive: Int): Boolean {
         if (fromRow >= toRowExclusive) return false
         for (rowIndex in fromRow until toRowExclusive) {
             val row = sheet.getRow(rowIndex)
@@ -161,23 +152,14 @@ class PtkXlsScheduleParser {
         return false
     }
 
-    private fun hasDashedBottomAtRow(
-        sheet: Sheet,
-        lessonColumn: Int,
-        rowIndex: Int
-    ): Boolean {
+    private fun hasDashedBottomAtRow(sheet: Sheet, lessonColumn: Int, rowIndex: Int): Boolean {
         val row = sheet.getRow(rowIndex) ?: return false
         val cell = row.getCell(lessonColumn) ?: return false
         val borderBottom = cell.cellStyle?.borderBottom ?: return false
         return isDashedBorder(borderBottom)
     }
 
-    private fun isSplitSlot(
-        sheet: Sheet,
-        lessonColumn: Int,
-        rowIndex: Int,
-        nextTimeRow: Int
-    ): Boolean {
+    private fun isSplitSlot(sheet: Sheet, lessonColumn: Int, rowIndex: Int, nextTimeRow: Int): Boolean {
         val slotHeight = nextTimeRow - rowIndex
         if (slotHeight < 2) return false
 
@@ -188,11 +170,7 @@ class PtkXlsScheduleParser {
         return true
     }
 
-    private fun findGroupLayout(
-        sheet: Sheet,
-        normalizedGroupName: String,
-        formatter: DataFormatter
-    ): GroupLayout? {
+    private fun findGroupLayout(sheet: Sheet, normalizedGroupName: String, formatter: DataFormatter): GroupLayout? {
         val maxColumn = findMaxColumn(sheet)
         val maxHeaderRow = minOf(sheet.lastRowNum, HEADER_SCAN_MAX_ROW)
         val candidates = mutableListOf<BlockCandidate>()
@@ -212,7 +190,7 @@ class PtkXlsScheduleParser {
                         layout = GroupLayout(dayColumn, timeColumn, lessonColumn),
                         rowIndex = rowIndex,
                         exact = text == normalizedGroupName,
-                        tokenCount = tokenize(text).size
+                        tokenCount = tokenize(text).size,
                     )
                 }
             }
@@ -226,17 +204,13 @@ class PtkXlsScheduleParser {
             .sortedWith(
                 compareByDescending<BlockCandidate> { it.exact }
                     .thenBy { it.tokenCount }
-                    .thenBy { it.rowIndex }
+                    .thenBy { it.rowIndex },
             )
             .first()
             .layout
     }
 
-    private fun collectTimeRows(
-        sheet: Sheet,
-        timeColumn: Int,
-        formatter: DataFormatter
-    ): List<Int> {
+    private fun collectTimeRows(sheet: Sheet, timeColumn: Int, formatter: DataFormatter): List<Int> {
         val rows = mutableListOf<Int>()
         for (rowIndex in 0..sheet.lastRowNum) {
             val merged = findMergedRegion(sheet, rowIndex, timeColumn)
@@ -255,10 +229,13 @@ class PtkXlsScheduleParser {
         return when {
             topHasLesson && bottomHasLesson -> listOf(
                 topText to PtkWeekType.UPPER,
-                bottomText to PtkWeekType.LOWER
+                bottomText to PtkWeekType.LOWER,
             )
+
             topHasLesson -> listOf(topText to PtkWeekType.UPPER)
+
             bottomHasLesson -> listOf(bottomText to PtkWeekType.LOWER)
+
             else -> emptyList()
         }
     }
@@ -267,7 +244,7 @@ class PtkXlsScheduleParser {
         segment: RowSegment,
         sheet: Sheet,
         lessonColumn: Int,
-        preferLowerForAmbiguous: Boolean
+        preferLowerForAmbiguous: Boolean,
     ): List<Pair<String, PtkWeekType>> {
         val text = segment.text
         if (!hasLessonText(text)) return emptyList()
@@ -283,12 +260,7 @@ class PtkXlsScheduleParser {
         return firstNonBlank > 0
     }
 
-    private fun getCellText(
-        sheet: Sheet,
-        rowIndex: Int,
-        columnIndex: Int,
-        formatter: DataFormatter
-    ): String {
+    private fun getCellText(sheet: Sheet, rowIndex: Int, columnIndex: Int, formatter: DataFormatter): String {
         if (rowIndex < 0 || columnIndex < 0) return ""
 
         val directValue = formatCell(sheet, rowIndex, columnIndex, formatter)
@@ -298,23 +270,14 @@ class PtkXlsScheduleParser {
         return formatCell(sheet, merged.firstRow, merged.firstColumn, formatter)
     }
 
-    private fun formatCell(
-        sheet: Sheet,
-        rowIndex: Int,
-        columnIndex: Int,
-        formatter: DataFormatter
-    ): String {
+    private fun formatCell(sheet: Sheet, rowIndex: Int, columnIndex: Int, formatter: DataFormatter): String {
         val row = sheet.getRow(rowIndex) ?: return ""
         val cell = row.getCell(columnIndex) ?: return ""
         if (cell.cellType == CellType.BLANK) return ""
         return formatter.formatCellValue(cell)
     }
 
-    private fun findMergedRegion(
-        sheet: Sheet,
-        rowIndex: Int,
-        columnIndex: Int
-    ): CellRangeAddress? {
+    private fun findMergedRegion(sheet: Sheet, rowIndex: Int, columnIndex: Int): CellRangeAddress? {
         for (i in 0 until sheet.numMergedRegions) {
             val region = sheet.getMergedRegion(i)
             if (region.isInRange(rowIndex, columnIndex)) return region
@@ -361,11 +324,9 @@ class PtkXlsScheduleParser {
         return tokenize(cellText).any { it == normalizedGroupName }
     }
 
-    private fun tokenize(text: String): List<String> {
-        return text.lowercase(Locale.ROOT)
-            .split(Regex("[^\\p{L}\\p{Nd}]+"))
-            .filter { it.isNotBlank() }
-    }
+    private fun tokenize(text: String): List<String> = text.lowercase(Locale.ROOT)
+        .split(Regex("[^\\p{L}\\p{Nd}]+"))
+        .filter { it.isNotBlank() }
 
     private fun hasLessonText(value: String): Boolean {
         val normalized = normalize(value)
@@ -373,18 +334,14 @@ class PtkXlsScheduleParser {
         return !DASH_ONLY_REGEX.matches(normalized)
     }
 
-    private fun normalize(value: String): String {
-        return value.replace(Regex("\\s+"), " ").trim()
-    }
+    private fun normalize(value: String): String = value.replace(Regex("\\s+"), " ").trim()
 
-    private fun isDashedBorder(borderStyle: BorderStyle): Boolean {
-        return borderStyle == BorderStyle.DASHED ||
-            borderStyle == BorderStyle.DOTTED ||
-            borderStyle == BorderStyle.MEDIUM_DASHED ||
-            borderStyle == BorderStyle.MEDIUM_DASH_DOT ||
-            borderStyle == BorderStyle.MEDIUM_DASH_DOT_DOT ||
-            borderStyle == BorderStyle.SLANTED_DASH_DOT
-    }
+    private fun isDashedBorder(borderStyle: BorderStyle): Boolean = borderStyle == BorderStyle.DASHED ||
+        borderStyle == BorderStyle.DOTTED ||
+        borderStyle == BorderStyle.MEDIUM_DASHED ||
+        borderStyle == BorderStyle.MEDIUM_DASH_DOT ||
+        borderStyle == BorderStyle.MEDIUM_DASH_DOT_DOT ||
+        borderStyle == BorderStyle.SLANTED_DASH_DOT
 
     private fun removeAllWhenSpecificWeeksExist(lessons: List<PtkRawLesson>): List<PtkRawLesson> {
         val grouped = lessons.groupBy { "${it.groupName}|${it.dayOfWeek}|${it.timeRange}|${it.rawText}" }
@@ -394,24 +351,16 @@ class PtkXlsScheduleParser {
         }
     }
 
-    private data class GroupLayout(
-        val dayColumn: Int,
-        val timeColumn: Int,
-        val lessonColumn: Int
-    )
+    private data class GroupLayout(val dayColumn: Int, val timeColumn: Int, val lessonColumn: Int)
 
     private data class BlockCandidate(
         val layout: GroupLayout,
         val rowIndex: Int,
         val exact: Boolean,
-        val tokenCount: Int
+        val tokenCount: Int,
     )
 
-    private data class RowSegment(
-        val rowIndex: Int,
-        val text: String,
-        val rawText: String
-    )
+    private data class RowSegment(val rowIndex: Int, val text: String, val rawText: String)
 
     private companion object {
         const val HEADER_SCAN_MAX_ROW = 20
@@ -432,7 +381,7 @@ class PtkXlsScheduleParser {
             "чт",
             "пт",
             "сб",
-            "вс"
+            "вс",
         )
     }
 }

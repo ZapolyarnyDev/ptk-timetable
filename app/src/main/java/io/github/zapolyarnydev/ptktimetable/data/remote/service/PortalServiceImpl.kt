@@ -7,10 +7,8 @@ import io.ktor.client.request.get
 import io.ktor.http.HttpStatusCode
 import java.net.URI
 
-class PortalServiceImpl(
-    private val client: HttpClient = HttpClient(OkHttp),
-    private val baseUrl: String = PORTAL_URL
-) : PortalService {
+class PortalServiceImpl(private val client: HttpClient = HttpClient(OkHttp), private val baseUrl: String = PORTAL_URL) :
+    PortalService {
 
     override suspend fun fetchPortalHtml(): String {
         val response = client.get(baseUrl)

@@ -1,25 +1,23 @@
 ﻿package io.github.zapolyarnydev.ptktimetable.ui.schedule
 
 import android.app.DatePickerDialog
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -40,16 +38,16 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.outlined.AccessTime
+import androidx.compose.material.icons.outlined.Badge
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.Update
-import androidx.compose.material.icons.outlined.Badge
 import androidx.compose.material.icons.outlined.ViewModule
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -85,12 +83,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkCurrentWeekType
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkGroupInfo
 import io.github.zapolyarnydev.ptktimetable.data.model.PtkWeekType
-import io.github.zapolyarnydev.ptktimetable.ui.theme.BorderSubtle
 import io.github.zapolyarnydev.ptktimetable.ui.theme.BorderStrong
+import io.github.zapolyarnydev.ptktimetable.ui.theme.BorderSubtle
 import io.github.zapolyarnydev.ptktimetable.ui.theme.HeadingFontFamily
 import io.github.zapolyarnydev.ptktimetable.ui.theme.InkPrimary
 import io.github.zapolyarnydev.ptktimetable.ui.theme.InkSecondary
@@ -130,7 +130,7 @@ fun ScheduleScreen(
     onSetLessonReminder: (ScheduleLessonItem, Boolean, Int) -> Unit,
     onDeleteLessonNote: (ScheduleLessonItem) -> Unit,
     onUpdateNoteById: (String, String) -> Unit,
-    onDeleteNoteById: (String) -> Unit
+    onDeleteNoteById: (String) -> Unit,
 ) {
     val uiState by state.collectAsStateWithLifecycle()
     ScheduleScreenContent(
@@ -154,7 +154,7 @@ fun ScheduleScreen(
         onSetLessonReminder = onSetLessonReminder,
         onDeleteLessonNote = onDeleteLessonNote,
         onUpdateNoteById = onUpdateNoteById,
-        onDeleteNoteById = onDeleteNoteById
+        onDeleteNoteById = onDeleteNoteById,
     )
 }
 
@@ -181,20 +181,22 @@ private fun ScheduleScreenContent(
     onSetLessonReminder: (ScheduleLessonItem, Boolean, Int) -> Unit,
     onDeleteLessonNote: (ScheduleLessonItem) -> Unit,
     onUpdateNoteById: (String, String) -> Unit,
-    onDeleteNoteById: (String) -> Unit
+    onDeleteNoteById: (String) -> Unit,
 ) {
     Scaffold(containerColor = White) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {
             AnimatedContent(
                 targetState = state.step,
                 transitionSpec = {
-                    (fadeIn(animationSpec = tween(durationMillis = 170)) +
-                        slideInVertically(
-                            initialOffsetY = { fullHeight -> fullHeight / 12 },
-                            animationSpec = tween(durationMillis = 170)
-                        )) togetherWith fadeOut(animationSpec = tween(durationMillis = 110))
+                    (
+                        fadeIn(animationSpec = tween(durationMillis = 170)) +
+                            slideInVertically(
+                                initialOffsetY = { fullHeight -> fullHeight / 12 },
+                                animationSpec = tween(durationMillis = 170),
+                            )
+                        ) togetherWith fadeOut(animationSpec = tween(durationMillis = 110))
                 },
-                label = "scheduleStepAnimatedContent"
+                label = "scheduleStepAnimatedContent",
             ) { step ->
                 when (step) {
                     ScheduleStep.COURSE_SELECTION -> CourseSelectionState(
@@ -202,7 +204,7 @@ private fun ScheduleScreenContent(
                         state = state,
                         onRefresh = onRefresh,
                         onRetry = onRetry,
-                        onCourseSelect = onCourseSelect
+                        onCourseSelect = onCourseSelect,
                     )
 
                     ScheduleStep.GROUP_SELECTION -> GroupSelectionState(
@@ -210,7 +212,7 @@ private fun ScheduleScreenContent(
                         state = state,
                         onRefresh = onRefresh,
                         onBackToCourses = onBackToCourses,
-                        onGroupSelect = onGroupSelect
+                        onGroupSelect = onGroupSelect,
                     )
 
                     ScheduleStep.SCHEDULE -> ScheduleState(
@@ -231,7 +233,7 @@ private fun ScheduleScreenContent(
                         onSetLessonReminder = onSetLessonReminder,
                         onDeleteLessonNote = onDeleteLessonNote,
                         onUpdateNoteById = onUpdateNoteById,
-                        onDeleteNoteById = onDeleteNoteById
+                        onDeleteNoteById = onDeleteNoteById,
                     )
                 }
             }
@@ -249,29 +251,29 @@ private fun LoadingOverlay() {
         modifier = Modifier
             .fillMaxSize()
             .background(InkPrimary.copy(alpha = 0.26f)),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         Surface(
             color = SurfaceBlueTint,
             shape = RoundedCornerShape(16.dp),
             border = BorderStroke(1.dp, BorderStrong),
             tonalElevation = 0.dp,
-            shadowElevation = 0.dp
+            shadowElevation = 0.dp,
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(22.dp),
                     color = NovsuBlue,
-                    strokeWidth = 2.4.dp
+                    strokeWidth = 2.4.dp,
                 )
                 Text(
                     text = "Загружаем данные...",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = InkPrimary
+                    color = InkPrimary,
                 )
             }
         }
@@ -284,7 +286,7 @@ private fun CourseSelectionState(
     state: ScheduleUiState,
     onRefresh: () -> Unit,
     onRetry: () -> Unit,
-    onCourseSelect: (CourseItem) -> Unit
+    onCourseSelect: (CourseItem) -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier
@@ -292,13 +294,13 @@ private fun CourseSelectionState(
             .padding(padding)
             .background(White),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
             HeaderPanel(
                 title = "Добро пожаловать",
                 subtitle = "Выберите курс, затем группу и получите расписание",
-                icon = Icons.Outlined.School
+                icon = Icons.Outlined.School,
             )
         }
 
@@ -308,16 +310,19 @@ private fun CourseSelectionState(
                     MetaRow(
                         icon = Icons.Outlined.Update,
                         text = "Обновлено: ${formatInstant(it)}",
-                        highlight = false
+                        highlight = false,
                     )
                 }
                 Spacer(Modifier.height(10.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     PrimaryActionButton(
                         text = "Обновить",
                         icon = Icons.Outlined.Refresh,
                         onClick = onRefresh,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     )
                     if (state.isLoading) InlineLoading()
                 }
@@ -342,7 +347,7 @@ private fun CourseSelectionState(
                     icon = { Icons.Outlined.ViewModule },
                     titleText = { it.title },
                     subtitleText = { "Курс №${it.course}" },
-                    onClick = onCourseSelect
+                    onClick = onCourseSelect,
                 )
             }
         }
@@ -355,7 +360,7 @@ private fun GroupSelectionState(
     state: ScheduleUiState,
     onRefresh: () -> Unit,
     onBackToCourses: () -> Unit,
-    onGroupSelect: (PtkGroupInfo) -> Unit
+    onGroupSelect: (PtkGroupInfo) -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier
@@ -363,21 +368,24 @@ private fun GroupSelectionState(
             .padding(padding)
             .background(White),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
             InfoPanel {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     OutlinedActionButton(
                         text = "К курсам",
                         onClick = onBackToCourses,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     )
                     PrimaryActionButton(
                         text = "Обновить",
                         icon = Icons.Outlined.Refresh,
                         onClick = onRefresh,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     )
                     if (state.isLoading) InlineLoading()
                 }
@@ -402,7 +410,7 @@ private fun GroupSelectionState(
                     icon = { Icons.Outlined.Badge },
                     titleText = { "Группа ${it.groupName}" },
                     subtitleText = { it.collegeName },
-                    onClick = onGroupSelect
+                    onClick = onGroupSelect,
                 )
             }
         }
@@ -428,7 +436,7 @@ private fun ScheduleState(
     onSetLessonReminder: (ScheduleLessonItem, Boolean, Int) -> Unit,
     onDeleteLessonNote: (ScheduleLessonItem) -> Unit,
     onUpdateNoteById: (String, String) -> Unit,
-    onDeleteNoteById: (String) -> Unit
+    onDeleteNoteById: (String) -> Unit,
 ) {
     var editingLesson by remember { mutableStateOf<ScheduleLessonItem?>(null) }
     var reminderLesson by remember { mutableStateOf<ScheduleLessonItem?>(null) }
@@ -447,7 +455,7 @@ private fun ScheduleState(
             timeRange = note.timeRange,
             weekType = note.weekType,
             subject = note.subject,
-            rawText = note.rawText
+            rawText = note.rawText,
         )
     }
     val noteTextMap = notesForGroup
@@ -458,7 +466,7 @@ private fun ScheduleState(
                 timeRange = note.timeRange,
                 weekType = note.weekType,
                 subject = note.subject,
-                rawText = note.rawText
+                rawText = note.rawText,
             )
         }
     val dayIndex = state.availableDays.indexOf(state.selectedDay).takeIf { it >= 0 } ?: 0
@@ -471,29 +479,32 @@ private fun ScheduleState(
             .padding(padding)
             .background(White),
         contentPadding = PaddingValues(vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
             Box(modifier = Modifier.padding(horizontal = 16.dp)) {
                 InfoPanel {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         OutlinedActionButton(
                             text = "К группам",
                             onClick = onBackToGroups,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
                         )
                         PrimaryActionButton(
                             text = "Обновить",
                             icon = Icons.Outlined.Refresh,
                             onClick = onRefresh,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
                         )
                         if (state.isLoading) InlineLoading()
                     }
                     Spacer(Modifier.height(10.dp))
                     MetaRow(
                         icon = Icons.Outlined.Groups,
-                        text = state.selectedGroup?.let { "Группа ${it.groupName}" } ?: "Группа не выбрана"
+                        text = state.selectedGroup?.let { "Группа ${it.groupName}" } ?: "Группа не выбрана",
                     )
                     Spacer(Modifier.height(6.dp))
                     val activeWeekType = if (state.mode == ScheduleMode.BY_DATE) {
@@ -507,14 +518,14 @@ private fun ScheduleState(
                             "Неделя на дату: ${weekTypeLabel(activeWeekType)}"
                         } else {
                             "Текущая неделя: ${weekTypeLabel(activeWeekType)}"
-                        }
+                        },
                     )
                     state.scheduleUpdatedAt?.let {
                         Spacer(Modifier.height(6.dp))
                         MetaRow(
                             icon = Icons.Outlined.Update,
                             text = "Обновлено: ${formatInstant(it)}",
-                            highlight = false
+                            highlight = false,
                         )
                     }
                     state.errorMessage?.let {
@@ -547,7 +558,7 @@ private fun ScheduleState(
                     selectedDay = state.selectedDay,
                     weekFilter = state.weekFilter,
                     onSelectDay = onSelectDay,
-                    onSelectWeekFilter = onSelectWeekFilter
+                    onSelectWeekFilter = onSelectWeekFilter,
                 )
             }
         }
@@ -562,7 +573,7 @@ private fun ScheduleState(
                             "Занятий не найдено"
                         } else {
                             "На выбранный день и неделю пар нет"
-                        }
+                        },
                     )
                 }
             } else {
@@ -580,7 +591,7 @@ private fun ScheduleState(
                     noteMap = noteTextMap,
                     reminderMap = lessonEntryMap,
                     onAddOrEditNote = { lesson -> editingLesson = lesson },
-                    onAddOrEditReminder = { lesson -> reminderLesson = lesson }
+                    onAddOrEditReminder = { lesson -> reminderLesson = lesson },
                 )
             }
         }
@@ -590,7 +601,7 @@ private fun ScheduleState(
         modifier = Modifier
             .fillMaxSize()
             .padding(bottom = 26.dp, end = 18.dp),
-        contentAlignment = Alignment.BottomEnd
+        contentAlignment = Alignment.BottomEnd,
     ) {
         OutlinedIconActionButton(
             icon = Icons.AutoMirrored.Outlined.Notes,
@@ -599,7 +610,7 @@ private fun ScheduleState(
             modifier = Modifier.size(56.dp),
             size = 56.dp,
             iconSize = 24.dp,
-            tint = NovsuBlueDark
+            tint = NovsuBlueDark,
         )
     }
 
@@ -610,16 +621,25 @@ private fun ScheduleState(
             onEdit = { noteId ->
                 editingNoteId = noteId
                 showNotesDialog = false
-            }
+            },
         )
     }
 
     editingLesson?.let { lesson ->
-        val note = noteTextMap[noteLessonKey(state.selectedDate, lesson.timeRange, lesson.weekType, lesson.subject, lesson.rawText)]
+        val note = noteTextMap[
+            noteLessonKey(
+                state.selectedDate,
+                lesson.timeRange,
+                lesson.weekType,
+                lesson.subject,
+                lesson.rawText,
+            ),
+        ]
         LessonNoteDialog(
             lesson = lesson,
             note = note,
-            canEdit = state.mode == ScheduleMode.BY_DATE && isLessonEditableNowOrFuture(state.selectedDate, lesson.timeRange),
+            canEdit =
+            state.mode == ScheduleMode.BY_DATE && isLessonEditableNowOrFuture(state.selectedDate, lesson.timeRange),
             onDismiss = { editingLesson = null },
             onSave = { text ->
                 onSaveLessonNote(lesson, text)
@@ -628,21 +648,30 @@ private fun ScheduleState(
             onDelete = {
                 onDeleteLessonNote(lesson)
                 editingLesson = null
-            }
+            },
         )
     }
 
     reminderLesson?.let { lesson ->
-        val note = lessonEntryMap[noteLessonKey(state.selectedDate, lesson.timeRange, lesson.weekType, lesson.subject, lesson.rawText)]
+        val note = lessonEntryMap[
+            noteLessonKey(
+                state.selectedDate,
+                lesson.timeRange,
+                lesson.weekType,
+                lesson.subject,
+                lesson.rawText,
+            ),
+        ]
         ReminderDialog(
             lesson = lesson,
             note = note,
-            canEdit = state.mode == ScheduleMode.BY_DATE && isLessonEditableNowOrFuture(state.selectedDate, lesson.timeRange),
+            canEdit =
+            state.mode == ScheduleMode.BY_DATE && isLessonEditableNowOrFuture(state.selectedDate, lesson.timeRange),
             onDismiss = { reminderLesson = null },
             onSave = { enabled, minutes ->
                 onSetLessonReminder(lesson, enabled, minutes)
                 reminderLesson = null
-            }
+            },
         )
     }
 
@@ -659,7 +688,7 @@ private fun ScheduleState(
                 onDelete = {
                     onDeleteNoteById(noteId)
                     editingNoteId = null
-                }
+                },
             )
         }
     }

@@ -38,7 +38,7 @@ class LessonReminderReceiver : BroadcastReceiver() {
             Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             },
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
@@ -58,7 +58,7 @@ class LessonReminderReceiver : BroadcastReceiver() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return true
         return ContextCompat.checkSelfPermission(
             context,
-            Manifest.permission.POST_NOTIFICATIONS
+            Manifest.permission.POST_NOTIFICATIONS,
         ) == PackageManager.PERMISSION_GRANTED
     }
 
@@ -71,10 +71,10 @@ class LessonReminderReceiver : BroadcastReceiver() {
             NotificationChannel(
                 CHANNEL_ID,
                 "Напоминания о парах",
-                NotificationManager.IMPORTANCE_HIGH
+                NotificationManager.IMPORTANCE_HIGH,
             ).apply {
                 description = "Уведомления перед началом занятия"
-            }
+            },
         )
     }
 
@@ -82,4 +82,3 @@ class LessonReminderReceiver : BroadcastReceiver() {
         const val CHANNEL_ID = "lesson_reminders_channel"
     }
 }
-

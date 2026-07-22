@@ -6,16 +6,11 @@ import io.github.zapolyarnydev.ptktimetable.domain.schedule.repository.Timetable
 import java.time.DayOfWeek
 import java.time.LocalDate
 
-class GetScheduleByDayUseCase(
-    private val repository: TimetableRepository
-) {
+class GetScheduleByDayUseCase(private val repository: TimetableRepository) {
     suspend operator fun invoke(
         groupName: String,
         dayOfWeek: DayOfWeek,
         weekFilter: WeekFilter,
-        anchorDate: LocalDate
-    ): List<LessonOccurrence> {
-        return repository.getOccurrencesByDayOfWeek(groupName, dayOfWeek, weekFilter, anchorDate)
-    }
+        anchorDate: LocalDate,
+    ): List<LessonOccurrence> = repository.getOccurrencesByDayOfWeek(groupName, dayOfWeek, weekFilter, anchorDate)
 }
-

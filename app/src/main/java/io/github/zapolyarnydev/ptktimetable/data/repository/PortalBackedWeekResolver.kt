@@ -15,7 +15,7 @@ class PortalBackedWeekResolver(
     private val scheduleRepository: ScheduleRepository,
     private val clock: Clock = Clock.systemDefaultZone(),
     private val fallbackReferenceDate: LocalDate = LocalDate.of(2025, 9, 1),
-    private val fallbackReferenceIsUpper: Boolean = true
+    private val fallbackReferenceIsUpper: Boolean = true,
 ) : WeekResolver {
 
     override suspend fun resolve(date: LocalDate): WeekInfo {
@@ -27,7 +27,7 @@ class PortalBackedWeekResolver(
                 return WeekInfo(
                     date = date,
                     isUpper = true,
-                    source = WeekSource.PORTAL
+                    source = WeekSource.PORTAL,
                 )
             }
 
@@ -35,7 +35,7 @@ class PortalBackedWeekResolver(
                 return WeekInfo(
                     date = date,
                     isUpper = false,
-                    source = WeekSource.PORTAL
+                    source = WeekSource.PORTAL,
                 )
             }
 
@@ -49,13 +49,13 @@ class PortalBackedWeekResolver(
             PtkCurrentWeekType.UPPER -> WeekInfo(
                 date = date,
                 isUpper = resolveByParity(date, isUpperAtAnchor = true, anchorDate = LocalDate.now(clock)),
-                source = WeekSource.PORTAL
+                source = WeekSource.PORTAL,
             )
 
             PtkCurrentWeekType.LOWER -> WeekInfo(
                 date = date,
                 isUpper = resolveByParity(date, isUpperAtAnchor = false, anchorDate = LocalDate.now(clock)),
-                source = WeekSource.PORTAL
+                source = WeekSource.PORTAL,
             )
 
             PtkCurrentWeekType.UNKNOWN -> WeekInfo(
@@ -63,9 +63,9 @@ class PortalBackedWeekResolver(
                 isUpper = resolveByParity(
                     date = date,
                     isUpperAtAnchor = fallbackReferenceIsUpper,
-                    anchorDate = fallbackReferenceDate
+                    anchorDate = fallbackReferenceDate,
                 ),
-                source = WeekSource.LOCAL_RULE
+                source = WeekSource.LOCAL_RULE,
             )
         }
     }
@@ -83,11 +83,7 @@ class PortalBackedWeekResolver(
         return result
     }
 
-    private fun resolveByParity(
-        date: LocalDate,
-        isUpperAtAnchor: Boolean,
-        anchorDate: LocalDate
-    ): Boolean {
+    private fun resolveByParity(date: LocalDate, isUpperAtAnchor: Boolean, anchorDate: LocalDate): Boolean {
         val anchorWeekStart = anchorDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
         val targetWeekStart = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
         val weeksDiff = ChronoUnit.WEEKS.between(anchorWeekStart, targetWeekStart)

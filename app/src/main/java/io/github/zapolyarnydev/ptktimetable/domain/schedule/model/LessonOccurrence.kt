@@ -13,6 +13,5 @@ data class LessonOccurrence(
     val subject: String,
     val teacher: String?,
     val room: String?,
-    val rawText: String
+    val rawText: String,
 )
-

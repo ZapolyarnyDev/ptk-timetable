@@ -24,7 +24,7 @@ class DomainTimetableRepositoryAdapter(
     private val scheduleRepository: ScheduleRepository = PtkScheduleRepository(),
     private val weekResolver: WeekResolver = PortalBackedWeekResolver(scheduleRepository),
     private val textNormalizer: LessonTextNormalizer = LessonTextNormalizer(),
-    private val clock: Clock = Clock.systemDefaultZone()
+    private val clock: Clock = Clock.systemDefaultZone(),
 ) : TimetableRepository {
 
     override suspend fun refreshGroupsAndTemplates(): RefreshResult {
@@ -32,20 +32,18 @@ class DomainTimetableRepositoryAdapter(
         runCatching { weekResolver.resolve(LocalDate.now(clock)) }
         return RefreshResult(
             groupsCount = groups.size,
-            refreshedAt = Instant.now(clock)
+            refreshedAt = Instant.now(clock),
         )
     }
 
-    override suspend fun getGroups(): List<TimetableGroup> {
-        return scheduleRepository.getGroups().map { raw ->
-            TimetableGroup(
-                collegeName = raw.collegeName,
-                course = raw.course,
-                courseName = raw.courseName,
-                groupName = raw.groupName,
-                sourceUrl = raw.xlsUrl
-            )
-        }
+    override suspend fun getGroups(): List<TimetableGroup> = scheduleRepository.getGroups().map { raw ->
+        TimetableGroup(
+            collegeName = raw.collegeName,
+            course = raw.course,
+            courseName = raw.courseName,
+            groupName = raw.groupName,
+            sourceUrl = raw.xlsUrl,
+        )
     }
 
     override suspend fun getTemplatesByGroup(groupName: String): List<LessonTemplate> {
@@ -55,7 +53,7 @@ class DomainTimetableRepositoryAdapter(
                 val dayOfWeek = parseDayOfWeek(raw.dayOfWeek) ?: return@mapNotNull null
                 val (startTime, endTime) = parseTimeRange(
                     rawValue = raw.timeRange,
-                    dayOfWeek = dayOfWeek
+                    dayOfWeek = dayOfWeek,
                 )
                 val normalized = textNormalizer.normalize(raw.rawText)
                 val weekType = raw.weekType.toDomainWeekType()
@@ -72,16 +70,13 @@ class DomainTimetableRepositoryAdapter(
                     teacher = normalized.teacher,
                     room = normalized.classroom,
                     rawText = raw.rawText,
-                    sourceUpdatedAt = sourceUpdatedAt
+                    sourceUpdatedAt = sourceUpdatedAt,
                 )
             }
             .sortedWith(compareBy<LessonTemplate> { it.dayOfWeek.value }.thenBy { it.startTime })
     }
 
-    override suspend fun getOccurrencesByDate(
-        groupName: String,
-        date: LocalDate
-    ): List<LessonOccurrence> {
+    override suspend fun getOccurrencesByDate(groupName: String, date: LocalDate): List<LessonOccurrence> {
         val templates = getTemplatesByGroup(groupName)
             .filter { it.dayOfWeek == date.dayOfWeek }
         val weekInfo = weekResolver.resolve(date)
@@ -98,7 +93,7 @@ class DomainTimetableRepositoryAdapter(
         groupName: String,
         dayOfWeek: DayOfWeek,
         weekFilter: WeekFilter,
-        anchorDate: LocalDate
+        anchorDate: LocalDate,
     ): List<LessonOccurrence> {
         val targetDate = anchorDate
             .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
@@ -136,10 +131,7 @@ class DomainTimetableRepositoryAdapter(
         }
     }
 
-    private fun parseTimeRange(
-        rawValue: String,
-        dayOfWeek: DayOfWeek
-    ): Pair<LocalTime, LocalTime> {
+    private fun parseTimeRange(rawValue: String, dayOfWeek: DayOfWeek): Pair<LocalTime, LocalTime> {
         saturdayOverride(rawValue, dayOfWeek)?.let { return it }
         val normalized = rawValue.replace('—', '-').replace('–', '-')
         val matches = TIME_REGEX.findAll(normalized).toList()
@@ -148,22 +140,17 @@ class DomainTimetableRepositoryAdapter(
         return start to end
     }
 
-    private fun saturdayOverride(
-        rawValue: String,
-        dayOfWeek: DayOfWeek
-    ): Pair<LocalTime, LocalTime>? {
+    private fun saturdayOverride(rawValue: String, dayOfWeek: DayOfWeek): Pair<LocalTime, LocalTime>? {
         if (dayOfWeek != DayOfWeek.SATURDAY) return null
         return SATURDAY_TIME_OVERRIDES[normalizeTimeKey(rawValue)]
     }
 
-    private fun normalizeTimeKey(rawValue: String): String {
-        return rawValue
-            .trim()
-            .replace('—', '-')
-            .replace('–', '-')
-            .replace(':', '.')
-            .replace(" ", "")
-    }
+    private fun normalizeTimeKey(rawValue: String): String = rawValue
+        .trim()
+        .replace('—', '-')
+        .replace('–', '-')
+        .replace(':', '.')
+        .replace(" ", "")
 
     private fun kotlin.text.MatchResult.toLocalTime(): LocalTime {
         val hours = groupValues.getOrNull(1)?.toIntOrNull()?.coerceIn(0, 23) ?: 0
@@ -175,7 +162,7 @@ class DomainTimetableRepositoryAdapter(
         raw: PtkRawLesson,
         dayOfWeek: DayOfWeek,
         startTime: LocalTime,
-        endTime: LocalTime
+        endTime: LocalTime,
     ): String {
         val payload = listOf(
             raw.groupName.trim(),
@@ -183,7 +170,7 @@ class DomainTimetableRepositoryAdapter(
             startTime.toString(),
             endTime.toString(),
             raw.weekType.name,
-            raw.rawText.trim()
+            raw.rawText.trim(),
         ).joinToString("|")
         return payload.hashCode().toUInt().toString(16)
     }
@@ -198,27 +185,23 @@ class DomainTimetableRepositoryAdapter(
         }
     }
 
-    private fun LessonTemplate.toOccurrence(date: LocalDate): LessonOccurrence {
-        return LessonOccurrence(
-            templateId = id,
-            groupName = groupName,
-            date = date,
-            startDateTime = LocalDateTime.of(date, startTime),
-            endDateTime = LocalDateTime.of(date, endTime),
-            weekTypeResolved = weekType,
-            subject = subject,
-            teacher = teacher,
-            room = room,
-            rawText = rawText
-        )
-    }
+    private fun LessonTemplate.toOccurrence(date: LocalDate): LessonOccurrence = LessonOccurrence(
+        templateId = id,
+        groupName = groupName,
+        date = date,
+        startDateTime = LocalDateTime.of(date, startTime),
+        endDateTime = LocalDateTime.of(date, endTime),
+        weekTypeResolved = weekType,
+        subject = subject,
+        teacher = teacher,
+        room = room,
+        rawText = rawText,
+    )
 
-    private fun PtkWeekType.toDomainWeekType(): WeekType {
-        return when (this) {
-            PtkWeekType.ALL -> WeekType.ALL
-            PtkWeekType.UPPER -> WeekType.UPPER
-            PtkWeekType.LOWER -> WeekType.LOWER
-        }
+    private fun PtkWeekType.toDomainWeekType(): WeekType = when (this) {
+        PtkWeekType.ALL -> WeekType.ALL
+        PtkWeekType.UPPER -> WeekType.UPPER
+        PtkWeekType.LOWER -> WeekType.LOWER
     }
 
     private companion object {
@@ -229,7 +212,7 @@ class DomainTimetableRepositoryAdapter(
             "10.20-12.00" to (LocalTime.of(9, 40) to LocalTime.of(10, 40)),
             "12.45-14.25" to (LocalTime.of(10, 50) to LocalTime.of(11, 50)),
             "14.35-16.15" to (LocalTime.of(12, 0) to LocalTime.of(13, 0)),
-            "16.25-18.05" to (LocalTime.of(13, 10) to LocalTime.of(14, 10))
+            "16.25-18.05" to (LocalTime.of(13, 10) to LocalTime.of(14, 10)),
         )
     }
 }

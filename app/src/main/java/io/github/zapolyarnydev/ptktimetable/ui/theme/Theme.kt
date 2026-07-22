@@ -23,24 +23,22 @@ private val AppColorScheme: ColorScheme = lightColorScheme(
     onSurfaceVariant = InkSecondary,
     outline = BorderSubtle,
     error = ErrorRed,
-    onError = White
+    onError = White,
 )
 
 private val AppShapes = Shapes(
     small = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
     medium = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-    large = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
+    large = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
 )
 
 @Composable
-fun PtkTheme(
-    content: @Composable () -> Unit
-) {
+fun PtkTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = AppColorScheme,
         typography = PtkTypography,
         shapes = AppShapes,
-        content = content
+        content = content,
     )
 }
 

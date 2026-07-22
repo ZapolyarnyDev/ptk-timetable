@@ -22,7 +22,7 @@ class PortalBackedWeekResolverTest {
         val clock = Clock.fixed(Instant.parse("2026-03-16T00:00:00Z"), ZoneOffset.UTC)
         val resolver = PortalBackedWeekResolver(
             scheduleRepository = FakeScheduleRepository(PtkCurrentWeekType.UPPER),
-            clock = clock
+            clock = clock,
         )
 
         val today = LocalDate.of(2026, 3, 16)
@@ -41,7 +41,7 @@ class PortalBackedWeekResolverTest {
             scheduleRepository = FakeScheduleRepository(PtkCurrentWeekType.UNKNOWN),
             clock = Clock.fixed(Instant.parse("2026-03-16T00:00:00Z"), ZoneOffset.UTC),
             fallbackReferenceDate = LocalDate.of(2026, 3, 16),
-            fallbackReferenceIsUpper = true
+            fallbackReferenceIsUpper = true,
         )
 
         val info = resolver.resolve(LocalDate.of(2026, 3, 30))
@@ -50,9 +50,7 @@ class PortalBackedWeekResolverTest {
         assertNotNull(info.isUpper)
     }
 
-    private class FakeScheduleRepository(
-        private val currentWeekType: PtkCurrentWeekType
-    ) : ScheduleRepository {
+    private class FakeScheduleRepository(private val currentWeekType: PtkCurrentWeekType) : ScheduleRepository {
 
         override suspend fun getGroups(): List<PtkGroupInfo> = emptyList()
 
@@ -60,7 +58,6 @@ class PortalBackedWeekResolverTest {
 
         override suspend fun getCurrentWeekType(): PtkCurrentWeekType = currentWeekType
 
-        override suspend fun getWeekTypeForDate(date: LocalDate): PtkCurrentWeekType =
-            PtkCurrentWeekType.UNKNOWN
+        override suspend fun getWeekTypeForDate(date: LocalDate): PtkCurrentWeekType = PtkCurrentWeekType.UNKNOWN
     }
 }

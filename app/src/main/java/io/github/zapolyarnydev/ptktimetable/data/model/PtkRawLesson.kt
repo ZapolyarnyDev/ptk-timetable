@@ -5,5 +5,5 @@ data class PtkRawLesson(
     val dayOfWeek: String,
     val timeRange: String,
     val rawText: String,
-    val weekType: PtkWeekType
+    val weekType: PtkWeekType,
 )
