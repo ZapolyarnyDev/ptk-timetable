@@ -33,7 +33,7 @@ PtkTimetable - Приложение для просмотра расписани
 .\gradlew.bat :app:assembleRelease
 ```
 
-Готовые APK лежат в `app/build/outputs/apk/...`
+Готовые APK лежат в `app/release/...`
 
 ### Перед коммитом
 Один раз настройте hook:
