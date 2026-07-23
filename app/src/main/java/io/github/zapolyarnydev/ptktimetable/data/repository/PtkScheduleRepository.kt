@@ -6,6 +6,7 @@ import io.github.zapolyarnydev.ptktimetable.data.remote.service.PortalService
 import io.github.zapolyarnydev.ptktimetable.data.remote.service.PortalServiceImpl
 import io.github.zapolyarnydev.ptktimetable.data.remote.xls.NovsuRawLesson
 import io.github.zapolyarnydev.ptktimetable.data.remote.xls.PtkXlsScheduleParser
+import io.github.zapolyarnydev.ptktimetable.data.remote.xls.ScheduleDocumentParser
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.Group
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekType
 import kotlinx.coroutines.sync.Mutex
@@ -20,7 +21,7 @@ class PtkScheduleRepository(
     private val portalService: PortalService = PortalServiceImpl(),
     private val groupsHtmlParser: PtkGroupsHtmlParser = PtkGroupsHtmlParser(),
     private val currentWeekHtmlParser: PtkCurrentWeekHtmlParser = PtkCurrentWeekHtmlParser(),
-    private val xlsScheduleParser: PtkXlsScheduleParser = PtkXlsScheduleParser(),
+    private val xlsScheduleParser: ScheduleDocumentParser = PtkXlsScheduleParser(),
     private val clock: Clock = Clock.systemDefaultZone(),
     private val calendarCacheTtl: Duration = Duration.ofMinutes(30),
 ) : ScheduleRepository {

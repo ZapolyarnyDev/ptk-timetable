@@ -1,6 +1,5 @@
 ﻿package io.github.zapolyarnydev.ptktimetable.ui.schedule
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -8,9 +7,6 @@ import io.github.zapolyarnydev.ptktimetable.data.local.LessonNote
 import io.github.zapolyarnydev.ptktimetable.data.local.LessonNotesStore
 import io.github.zapolyarnydev.ptktimetable.data.local.UserPreferencesStore
 import io.github.zapolyarnydev.ptktimetable.data.notification.LessonReminderScheduler
-import io.github.zapolyarnydev.ptktimetable.data.repository.DomainTimetableRepositoryAdapter
-import io.github.zapolyarnydev.ptktimetable.data.repository.PortalBackedWeekResolver
-import io.github.zapolyarnydev.ptktimetable.data.repository.PtkScheduleRepository
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.Group
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.Lesson
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.ScheduleMode
@@ -991,24 +987,23 @@ internal fun findRestoredGroup(groups: List<Group>, savedGroupName: String?): Gr
     return groups.firstOrNull { it.groupName.trim().equals(normalized, ignoreCase = true) }
 }
 
-class ScheduleViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
+class ScheduleViewModelFactory(
+    private val timetableRepository: TimetableRepository,
+    private val weekResolver: WeekResolver,
+    private val preferencesStore: UserPreferencesStore,
+    private val notesStore: LessonNotesStore,
+    private val reminderScheduler: LessonReminderScheduler,
+) : ViewModelProvider.Factory {
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ScheduleViewModel::class.java)) {
-            val baseRepository = PtkScheduleRepository()
-            val weekResolver = PortalBackedWeekResolver(baseRepository)
-            val timetableRepository = DomainTimetableRepositoryAdapter(
-                scheduleRepository = baseRepository,
-                weekResolver = weekResolver,
-            )
-
             @Suppress("UNCHECKED_CAST")
             return ScheduleViewModel(
                 timetableRepository = timetableRepository,
                 weekResolver = weekResolver,
-                preferencesStore = UserPreferencesStore(context.applicationContext),
-                notesStore = LessonNotesStore(context.applicationContext),
-                reminderScheduler = LessonReminderScheduler(context.applicationContext),
+                preferencesStore = preferencesStore,
+                notesStore = notesStore,
+                reminderScheduler = reminderScheduler,
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")

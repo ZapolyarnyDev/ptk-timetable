@@ -10,7 +10,6 @@ import androidx.core.app.ActivityCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleScreen
 import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleViewModel
-import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleViewModelFactory
 import io.github.zapolyarnydev.ptktimetable.ui.theme.PtkTheme
 
 class MainActivity : ComponentActivity() {
@@ -21,7 +20,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             PtkTheme {
                 val vm: ScheduleViewModel = viewModel(
-                    factory = ScheduleViewModelFactory(applicationContext),
+                    factory = (application as PtkApplication).container.scheduleViewModelFactory,
                 )
                 ScheduleScreen(
                     state = vm.state,
