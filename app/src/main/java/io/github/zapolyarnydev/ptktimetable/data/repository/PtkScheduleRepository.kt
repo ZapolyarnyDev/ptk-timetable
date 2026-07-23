@@ -1,13 +1,13 @@
 ﻿package io.github.zapolyarnydev.ptktimetable.data.repository
 
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkCurrentWeekType
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkGroupInfo
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkRawLesson
 import io.github.zapolyarnydev.ptktimetable.data.remote.html.PtkCurrentWeekHtmlParser
 import io.github.zapolyarnydev.ptktimetable.data.remote.html.PtkGroupsHtmlParser
 import io.github.zapolyarnydev.ptktimetable.data.remote.service.PortalService
 import io.github.zapolyarnydev.ptktimetable.data.remote.service.PortalServiceImpl
+import io.github.zapolyarnydev.ptktimetable.data.remote.xls.NovsuRawLesson
 import io.github.zapolyarnydev.ptktimetable.data.remote.xls.PtkXlsScheduleParser
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.Group
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekType
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.Clock
@@ -28,13 +28,13 @@ class PtkScheduleRepository(
     private val calendarCacheMutex = Mutex()
     private var calendarCache: CalendarCache? = null
 
-    override suspend fun getGroups(): List<PtkGroupInfo> {
+    override suspend fun getGroups(): List<Group> {
         val html = portalService.fetchPortalHtml()
         updateCalendarCache(html)
         return groupsHtmlParser.parseGroups(html, PortalServiceImpl.PORTAL_URL)
     }
 
-    override suspend fun getScheduleForGroup(groupName: String): List<PtkRawLesson> {
+    override suspend fun getScheduleForGroup(groupName: String): List<NovsuRawLesson> {
         val normalizedGroupName = groupName.trim()
         if (normalizedGroupName.isBlank()) return emptyList()
 
@@ -42,19 +42,19 @@ class PtkScheduleRepository(
         val selectedGroup = groups.firstOrNull { sameGroup(it.groupName, normalizedGroupName) }
             ?: return emptyList()
 
-        return downloadSchedule(selectedGroup.groupName, selectedGroup.xlsUrl)
+        return downloadSchedule(selectedGroup.groupName, selectedGroup.sourceUrl)
     }
 
-    override suspend fun getScheduleForGroup(groupName: String, xlsUrl: String): List<PtkRawLesson> {
+    override suspend fun getScheduleForGroup(groupName: String, xlsUrl: String): List<NovsuRawLesson> {
         val normalizedGroupName = groupName.trim()
         val normalizedXlsUrl = xlsUrl.trim()
         if (normalizedGroupName.isBlank() || normalizedXlsUrl.isBlank()) return emptyList()
         return downloadSchedule(normalizedGroupName, normalizedXlsUrl)
     }
 
-    override suspend fun getCurrentWeekType(): PtkCurrentWeekType = getWeekTypeForDate(LocalDate.now())
+    override suspend fun getCurrentWeekType(): WeekType? = getWeekTypeForDate(LocalDate.now())
 
-    override suspend fun getWeekTypeForDate(date: LocalDate): PtkCurrentWeekType {
+    override suspend fun getWeekTypeForDate(date: LocalDate): WeekType? {
         val html = getPortalHtmlForCalendar()
         return currentWeekHtmlParser.parseWeekTypeForDate(html, date)
     }
@@ -85,7 +85,7 @@ class PtkScheduleRepository(
         }
     }
 
-    private suspend fun downloadSchedule(groupName: String, xlsUrl: String): List<PtkRawLesson> {
+    private suspend fun downloadSchedule(groupName: String, xlsUrl: String): List<NovsuRawLesson> {
         val xlsBytes = portalService.downloadXls(xlsUrl)
         return xlsScheduleParser.parseSchedule(xlsBytes, groupName)
     }

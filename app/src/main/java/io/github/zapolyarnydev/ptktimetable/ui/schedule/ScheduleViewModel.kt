@@ -7,15 +7,14 @@ import androidx.lifecycle.viewModelScope
 import io.github.zapolyarnydev.ptktimetable.data.local.LessonNote
 import io.github.zapolyarnydev.ptktimetable.data.local.LessonNotesStore
 import io.github.zapolyarnydev.ptktimetable.data.local.UserPreferencesStore
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkCurrentWeekType
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkGroupInfo
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkWeekType
 import io.github.zapolyarnydev.ptktimetable.data.notification.LessonReminderScheduler
 import io.github.zapolyarnydev.ptktimetable.data.repository.DomainTimetableRepositoryAdapter
 import io.github.zapolyarnydev.ptktimetable.data.repository.PortalBackedWeekResolver
 import io.github.zapolyarnydev.ptktimetable.data.repository.PtkScheduleRepository
-import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.LessonTemplate
-import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.TimetableGroup
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.Group
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.Lesson
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.ScheduleMode
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekFilter
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekType
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.repository.TimetableRepository
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.service.WeekResolver
@@ -39,11 +38,6 @@ enum class ScheduleStep {
     SCHEDULE,
 }
 
-enum class ScheduleMode(val title: String) {
-    BY_DAY("По дням"),
-    BY_DATE("По дате"),
-}
-
 enum class ScheduleDay(val title: String, val shortTitle: String, val order: Int) {
     MONDAY("Понедельник", "Пн", 1),
     TUESDAY("Вторник", "Вт", 2),
@@ -55,31 +49,32 @@ enum class ScheduleDay(val title: String, val shortTitle: String, val order: Int
     UNKNOWN("Другое", "?", 99),
 }
 
-enum class ScheduleWeekFilter(val title: String) {
-    ALL("Обе"),
-    UPPER("Верхняя"),
-    LOWER("Нижняя"),
-}
-
 data class CourseItem(val course: Int, val title: String)
 
 data class ScheduleLessonItem(
     val day: ScheduleDay,
     val dayLabel: String,
-    val timeRange: String,
-    val weekType: PtkWeekType,
+    val startTime: LocalTime,
+    val endTime: LocalTime,
+    val weekType: WeekType,
     val subject: String,
     val teacher: String?,
     val classroom: String?,
     val rawText: String,
-)
+) {
+    val timeRange: String get() = "${TIME_FORMATTER.format(startTime)}-${TIME_FORMATTER.format(endTime)}"
+
+    private companion object {
+        val TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("H.mm")
+    }
+}
 
 data class ScheduleNoteItem(
     val noteId: String,
     val groupName: String,
     val date: LocalDate,
     val timeRange: String,
-    val weekType: PtkWeekType,
+    val weekType: WeekType,
     val subject: String,
     val teacher: String?,
     val classroom: String?,
@@ -94,19 +89,19 @@ data class ScheduleNoteItem(
 data class ScheduleUiState(
     val isLoading: Boolean = false,
     val step: ScheduleStep = ScheduleStep.COURSE_SELECTION,
-    val groups: List<PtkGroupInfo> = emptyList(),
+    val groups: List<Group> = emptyList(),
     val courses: List<CourseItem> = emptyList(),
     val selectedCourse: CourseItem? = null,
-    val courseGroups: List<PtkGroupInfo> = emptyList(),
-    val selectedGroup: PtkGroupInfo? = null,
+    val courseGroups: List<Group> = emptyList(),
+    val selectedGroup: Group? = null,
     val mode: ScheduleMode = ScheduleMode.BY_DAY,
     val selectedDate: LocalDate = LocalDate.now(),
     val lessons: List<ScheduleLessonItem> = emptyList(),
     val availableDays: List<ScheduleDay> = emptyList(),
     val selectedDay: ScheduleDay? = null,
-    val weekFilter: ScheduleWeekFilter = ScheduleWeekFilter.ALL,
-    val currentWeekType: PtkCurrentWeekType = PtkCurrentWeekType.UNKNOWN,
-    val selectedDateWeekType: PtkCurrentWeekType = PtkCurrentWeekType.UNKNOWN,
+    val weekFilter: WeekFilter = WeekFilter.ALL,
+    val currentWeekType: WeekType? = null,
+    val selectedDateWeekType: WeekType? = null,
     val notes: List<ScheduleNoteItem> = emptyList(),
     val groupsUpdatedAt: Instant? = null,
     val scheduleUpdatedAt: Instant? = null,
@@ -131,7 +126,7 @@ class ScheduleViewModel(
     )
     val state: StateFlow<ScheduleUiState> = _state.asStateFlow()
 
-    private var loadedTemplates: List<LessonTemplate> = emptyList()
+    private var loadedTemplates: List<Lesson> = emptyList()
 
     init {
         refreshNotes()
@@ -183,7 +178,7 @@ class ScheduleViewModel(
         }
     }
 
-    fun openGroup(group: PtkGroupInfo) {
+    fun openGroup(group: Group) {
         openGroupInternal(group, saveAsLastSelected = true, preserveUiSelection = false)
     }
 
@@ -266,7 +261,7 @@ class ScheduleViewModel(
         shiftDay(by = -1)
     }
 
-    fun selectWeekFilter(filter: ScheduleWeekFilter) {
+    fun selectWeekFilter(filter: WeekFilter) {
         _state.update { it.copy(weekFilter = filter, errorMessage = null) }
     }
 
@@ -451,8 +446,10 @@ class ScheduleViewModel(
                     val lesson = ScheduleLessonItem(
                         day = dayOfWeekToScheduleDay(updated.date.dayOfWeek),
                         dayLabel = dayOfWeekToScheduleDay(updated.date.dayOfWeek).title,
-                        timeRange = updated.timeRange,
-                        weekType = runCatching { PtkWeekType.valueOf(updated.weekType) }.getOrDefault(PtkWeekType.ALL),
+                        startTime = LessonNotesStore.parseStartTimeOrNull(updated.timeRange) ?: LocalTime.MIDNIGHT,
+                        endTime = LessonNotesStore.parseStartTimeOrNull(updated.timeRange.substringAfter("-"))
+                            ?: LocalTime.MIDNIGHT,
+                        weekType = runCatching { WeekType.valueOf(updated.weekType) }.getOrDefault(WeekType.ALL),
                         subject = updated.subject,
                         teacher = updated.teacher,
                         classroom = updated.classroom,
@@ -508,8 +505,7 @@ class ScheduleViewModel(
 
             runCatching {
                 val groups = timetableRepository.getGroups()
-                    .map { it.toUiGroup() }
-                    .sortedWith(compareBy<PtkGroupInfo> { it.course }.thenBy { it.groupName })
+                    .sortedWith(compareBy<Group> { it.course }.thenBy { it.groupName })
                 val currentWeekType = resolveCurrentWeekType()
                 Pair(groups, currentWeekType)
             }.onSuccess { (groups, currentWeekType) ->
@@ -625,7 +621,7 @@ class ScheduleViewModel(
         }
     }
 
-    private fun openGroupInternal(group: PtkGroupInfo, saveAsLastSelected: Boolean, preserveUiSelection: Boolean) {
+    private fun openGroupInternal(group: Group, saveAsLastSelected: Boolean, preserveUiSelection: Boolean) {
         val beforeLoading = state.value
         viewModelScope.launch(Dispatchers.IO) {
             _state.update {
@@ -642,7 +638,7 @@ class ScheduleViewModel(
                     runCatching { preferencesStore.setLastSelectedGroupName(group.groupName) }
                 }
 
-                timetableRepository.getTemplatesByGroup(group.groupName, group.xlsUrl)
+                timetableRepository.getTemplatesByGroup(group.groupName, group.sourceUrl)
             }.onSuccess { templates ->
                 loadedTemplates = templates
 
@@ -767,25 +763,25 @@ class ScheduleViewModel(
         }
     }
 
-    private suspend fun resolveCurrentWeekType(): PtkCurrentWeekType {
+    private suspend fun resolveCurrentWeekType(): WeekType? {
         val weekInfo = runCatching { weekResolver.resolve(todayProvider()) }.getOrNull()
         return when (weekInfo?.isUpper) {
-            true -> PtkCurrentWeekType.UPPER
-            false -> PtkCurrentWeekType.LOWER
-            null -> PtkCurrentWeekType.UNKNOWN
+            true -> WeekType.UPPER
+            false -> WeekType.LOWER
+            null -> null
         }
     }
 
     private fun buildDateLessonsFromTemplates(
-        templates: List<LessonTemplate>,
+        templates: List<Lesson>,
         date: LocalDate,
-        selectedDateWeekType: PtkCurrentWeekType,
+        selectedDateWeekType: WeekType?,
     ): List<ScheduleLessonItem> {
         val targetDay = dayOfWeekToScheduleDay(date.dayOfWeek)
         val isUpperWeek = when (selectedDateWeekType) {
-            PtkCurrentWeekType.UPPER -> true
-            PtkCurrentWeekType.LOWER -> false
-            PtkCurrentWeekType.UNKNOWN -> null
+            WeekType.UPPER -> true
+            WeekType.LOWER -> false
+            WeekType.ALL, null -> null
         }
 
         return templates
@@ -809,7 +805,7 @@ class ScheduleViewModel(
             val provisionalLessons = buildDateLessonsFromTemplates(
                 templates = loadedTemplates,
                 date = date,
-                selectedDateWeekType = PtkCurrentWeekType.UNKNOWN,
+                selectedDateWeekType = null,
             )
             _state.update {
                 if (it.selectedDate != date || it.mode != ScheduleMode.BY_DATE) {
@@ -818,7 +814,7 @@ class ScheduleViewModel(
                     it.copy(
                         lessons = provisionalLessons,
                         selectedDay = dayOfWeekToScheduleDay(date.dayOfWeek),
-                        selectedDateWeekType = PtkCurrentWeekType.UNKNOWN,
+                        selectedDateWeekType = null,
                         errorMessage = null,
                     )
                 }
@@ -845,12 +841,12 @@ class ScheduleViewModel(
         }
     }
 
-    private suspend fun resolveWeekTypeForDate(date: LocalDate): PtkCurrentWeekType {
+    private suspend fun resolveWeekTypeForDate(date: LocalDate): WeekType? {
         val weekInfo = runCatching { weekResolver.resolve(date) }.getOrNull()
         return when (weekInfo?.isUpper) {
-            true -> PtkCurrentWeekType.UPPER
-            false -> PtkCurrentWeekType.LOWER
-            null -> PtkCurrentWeekType.UNKNOWN
+            true -> WeekType.UPPER
+            false -> WeekType.LOWER
+            null -> null
         }
     }
 
@@ -882,7 +878,7 @@ class ScheduleViewModel(
     }
 
     private fun LessonNote.toUiNote(): ScheduleNoteItem? {
-        val weekType = runCatching { PtkWeekType.valueOf(weekType) }.getOrNull() ?: return null
+        val weekType = runCatching { WeekType.valueOf(weekType) }.getOrNull() ?: return null
         return ScheduleNoteItem(
             noteId = id,
             groupName = groupName,
@@ -937,7 +933,7 @@ class ScheduleViewModel(
         return if (note.isNotBlank()) "$base\nЗаметка: $note" else base
     }
 
-    private fun buildCourseItems(groups: List<PtkGroupInfo>): List<CourseItem> = groups
+    private fun buildCourseItems(groups: List<Group>): List<CourseItem> = groups
         .groupBy { it.course }
         .map { (course, items) ->
             val title = items.firstOrNull()?.courseName?.takeIf { it.isNotBlank() } ?: "$course курс"
@@ -969,10 +965,10 @@ class ScheduleViewModel(
         DayOfWeek.SUNDAY -> ScheduleDay.SUNDAY
     }
 
-    private fun defaultWeekFilter(currentWeekType: PtkCurrentWeekType): ScheduleWeekFilter = when (currentWeekType) {
-        PtkCurrentWeekType.UPPER -> ScheduleWeekFilter.UPPER
-        PtkCurrentWeekType.LOWER -> ScheduleWeekFilter.LOWER
-        PtkCurrentWeekType.UNKNOWN -> ScheduleWeekFilter.ALL
+    private fun defaultWeekFilter(currentWeekType: WeekType?): WeekFilter = when (currentWeekType) {
+        WeekType.UPPER -> WeekFilter.UPPER
+        WeekType.LOWER -> WeekFilter.LOWER
+        WeekType.ALL, null -> WeekFilter.ALL
     }
 
     private fun lessonSortKey(timeRange: String): Int {
@@ -983,43 +979,26 @@ class ScheduleViewModel(
         return hours * 60 + minutes
     }
 
-    private fun TimetableGroup.toUiGroup(): PtkGroupInfo = PtkGroupInfo(
-        collegeName = collegeName,
-        course = course,
-        courseName = courseName,
-        groupName = groupName,
-        xlsUrl = sourceUrl,
-    )
-
-    private fun LessonTemplate.toScheduleLessonItem(
+    private fun Lesson.toScheduleLessonItem(
         overrideDay: ScheduleDay = dayOfWeekToScheduleDay(dayOfWeek),
     ): ScheduleLessonItem = ScheduleLessonItem(
         day = overrideDay,
         dayLabel = overrideDay.title,
-        timeRange = formatTimeRange(startTime, endTime),
-        weekType = weekType.toUiWeekType(),
+        startTime = startTime,
+        endTime = endTime,
+        weekType = weekType,
         subject = subject,
         teacher = teacher,
         classroom = room,
         rawText = rawText,
     )
 
-    private fun WeekType.toUiWeekType(): PtkWeekType = when (this) {
-        WeekType.ALL -> PtkWeekType.ALL
-        WeekType.UPPER -> PtkWeekType.UPPER
-        WeekType.LOWER -> PtkWeekType.LOWER
-    }
-
-    private fun formatTimeRange(start: LocalTime, end: LocalTime): String =
-        "${TIME_FORMATTER.format(start)}-${TIME_FORMATTER.format(end)}"
-
     private companion object {
-        val TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("H.mm")
         val DATE_TITLE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
     }
 }
 
-internal fun findRestoredGroup(groups: List<PtkGroupInfo>, savedGroupName: String?): PtkGroupInfo? {
+internal fun findRestoredGroup(groups: List<Group>, savedGroupName: String?): Group? {
     val normalized = savedGroupName?.trim().orEmpty()
     if (normalized.isBlank()) return null
     return groups.firstOrNull { it.groupName.trim().equals(normalized, ignoreCase = true) }

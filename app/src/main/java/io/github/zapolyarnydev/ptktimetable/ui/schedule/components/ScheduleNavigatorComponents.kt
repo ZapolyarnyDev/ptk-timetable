@@ -25,7 +25,9 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkCurrentWeekType
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.ScheduleMode
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekFilter
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekType
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppIcons
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppShapes
 import io.github.zapolyarnydev.ptktimetable.ui.theme.MaterialThemeAppColors
@@ -37,7 +39,7 @@ internal fun DayNavigatorPanel(
     mode: ScheduleMode,
     selectedDayTitle: String,
     selectedDate: LocalDate,
-    currentWeekType: PtkCurrentWeekType,
+    currentWeekType: WeekType?,
     dayIndex: Int,
     totalDays: Int,
     canGoPrev: Boolean,
@@ -51,9 +53,9 @@ internal fun DayNavigatorPanel(
     onGoToToday: () -> Unit,
     availableDays: List<ScheduleDay>,
     selectedDay: ScheduleDay?,
-    weekFilter: ScheduleWeekFilter,
+    weekFilter: WeekFilter,
     onSelectDay: (ScheduleDay) -> Unit,
-    onSelectWeekFilter: (ScheduleWeekFilter) -> Unit,
+    onSelectWeekFilter: (WeekFilter) -> Unit,
     groupTitle: String? = null,
     courseTitle: String? = null,
     onBack: (() -> Unit)? = null,
@@ -195,7 +197,7 @@ internal fun DayNavigatorPanel(
             )
             Spacer(Modifier.height(7.dp))
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(ScheduleWeekFilter.entries, key = { it.name }) { filter ->
+                items(WeekFilter.entries, key = { it.name }) { filter ->
                     WeekChip(
                         selected = filter == weekFilter,
                         label = filter.title,
@@ -235,7 +237,7 @@ internal fun DayNavigatorPanel(
             Spacer(Modifier.height(9.dp))
             Text(
                 text = "Неделя на дату: ${weekTypeLabel(
-                    if (selectedDate == LocalDate.now()) currentWeekType else PtkCurrentWeekType.UNKNOWN,
+                    if (selectedDate == LocalDate.now()) currentWeekType else null,
                 )}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

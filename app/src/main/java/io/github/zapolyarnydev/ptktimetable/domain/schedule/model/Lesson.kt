@@ -4,7 +4,7 @@ import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalTime
 
-data class LessonTemplate(
+data class Lesson(
     val id: String,
     val groupName: String,
     val dayOfWeek: DayOfWeek,

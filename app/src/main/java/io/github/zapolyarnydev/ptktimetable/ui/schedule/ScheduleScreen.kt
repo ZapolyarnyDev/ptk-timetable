@@ -39,8 +39,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkCurrentWeekType
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkGroupInfo
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.Group
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.ScheduleMode
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekFilter
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppAnimations
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppDimensions
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppIcons
@@ -55,7 +56,7 @@ fun ScheduleScreen(
     onRetry: () -> Unit,
     onRefresh: () -> Unit,
     onCourseSelect: (CourseItem) -> Unit,
-    onGroupSelect: (PtkGroupInfo) -> Unit,
+    onGroupSelect: (Group) -> Unit,
     onBackToCourses: () -> Unit,
     onBackToGroups: () -> Unit,
     onSelectMode: (ScheduleMode) -> Unit,
@@ -66,7 +67,7 @@ fun ScheduleScreen(
     onPreviousDate: () -> Unit,
     onNextDate: () -> Unit,
     onGoToToday: () -> Unit,
-    onSelectWeekFilter: (ScheduleWeekFilter) -> Unit,
+    onSelectWeekFilter: (WeekFilter) -> Unit,
     onSaveLessonNote: (ScheduleLessonItem, String) -> Unit,
     onSetLessonReminder: (ScheduleLessonItem, Boolean, Int) -> Unit,
     onDeleteLessonNote: (ScheduleLessonItem) -> Unit,
@@ -105,7 +106,7 @@ private fun ScheduleScreenContent(
     onRetry: () -> Unit,
     onRefresh: () -> Unit,
     onCourseSelect: (CourseItem) -> Unit,
-    onGroupSelect: (PtkGroupInfo) -> Unit,
+    onGroupSelect: (Group) -> Unit,
     onBackToCourses: () -> Unit,
     onBackToGroups: () -> Unit,
     onSelectMode: (ScheduleMode) -> Unit,
@@ -116,7 +117,7 @@ private fun ScheduleScreenContent(
     onPreviousDate: () -> Unit,
     onNextDate: () -> Unit,
     onGoToToday: () -> Unit,
-    onSelectWeekFilter: (ScheduleWeekFilter) -> Unit,
+    onSelectWeekFilter: (WeekFilter) -> Unit,
     onSaveLessonNote: (ScheduleLessonItem, String) -> Unit,
     onSetLessonReminder: (ScheduleLessonItem, Boolean, Int) -> Unit,
     onDeleteLessonNote: (ScheduleLessonItem) -> Unit,
@@ -275,7 +276,7 @@ private fun GroupSelectionState(
     state: ScheduleUiState,
     onRefresh: () -> Unit,
     onBackToCourses: () -> Unit,
-    onGroupSelect: (PtkGroupInfo) -> Unit,
+    onGroupSelect: (Group) -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -401,7 +402,7 @@ private fun ScheduleState(
     onPreviousDate: () -> Unit,
     onNextDate: () -> Unit,
     onGoToToday: () -> Unit,
-    onSelectWeekFilter: (ScheduleWeekFilter) -> Unit,
+    onSelectWeekFilter: (WeekFilter) -> Unit,
     onSaveLessonNote: (ScheduleLessonItem, String) -> Unit,
     onSetLessonReminder: (ScheduleLessonItem, Boolean, Int) -> Unit,
     onDeleteLessonNote: (ScheduleLessonItem) -> Unit,

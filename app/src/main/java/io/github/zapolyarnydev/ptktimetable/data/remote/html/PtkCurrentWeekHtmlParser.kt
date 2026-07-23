@@ -1,6 +1,6 @@
 ﻿package io.github.zapolyarnydev.ptktimetable.data.remote.html
 
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkCurrentWeekType
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekType
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import java.time.LocalDate
@@ -9,10 +9,10 @@ import java.util.Locale
 
 class PtkCurrentWeekHtmlParser {
 
-    fun parseCurrentWeekType(html: String, today: LocalDate = LocalDate.now()): PtkCurrentWeekType =
+    fun parseCurrentWeekType(html: String, today: LocalDate = LocalDate.now()): WeekType? =
         parseWeekTypeForDate(html, today)
 
-    fun parseWeekTypeForDate(html: String, date: LocalDate): PtkCurrentWeekType {
+    fun parseWeekTypeForDate(html: String, date: LocalDate): WeekType? {
         val document = Jsoup.parse(html)
         val calendarRoot = findCalendarRoot(document.body())
 
@@ -20,10 +20,10 @@ class PtkCurrentWeekHtmlParser {
         parseByHighlightedCell(calendarRoot)?.let { return it }
         parseByInlineText(document.text())?.let { return it }
 
-        return PtkCurrentWeekType.UNKNOWN
+        return null
     }
 
-    private fun parseByRanges(calendarRoot: Element?, today: LocalDate): PtkCurrentWeekType? {
+    private fun parseByRanges(calendarRoot: Element?, today: LocalDate): WeekType? {
         val rows = calendarRoot
             ?.select("table.viewtable tr")
             .orEmpty()
@@ -34,19 +34,19 @@ class PtkCurrentWeekHtmlParser {
 
             val upper = parseRangeCell(cells[1])
             if (upper != null && !today.isBefore(upper.first) && !today.isAfter(upper.second)) {
-                return PtkCurrentWeekType.UPPER
+                return WeekType.UPPER
             }
 
             val lower = parseRangeCell(cells[3])
             if (lower != null && !today.isBefore(lower.first) && !today.isAfter(lower.second)) {
-                return PtkCurrentWeekType.LOWER
+                return WeekType.LOWER
             }
         }
 
         return null
     }
 
-    private fun parseByHighlightedCell(calendarRoot: Element?): PtkCurrentWeekType? {
+    private fun parseByHighlightedCell(calendarRoot: Element?): WeekType? {
         val rows = calendarRoot
             ?.select("table.viewtable tr")
             .orEmpty()
@@ -56,20 +56,20 @@ class PtkCurrentWeekHtmlParser {
             if (cells.size < 4) continue
 
             val upperStyle = cells[1].attr("style").lowercase(Locale.ROOT)
-            if (upperStyle.contains("silver")) return PtkCurrentWeekType.UPPER
+            if (upperStyle.contains("silver")) return WeekType.UPPER
 
             val lowerStyle = cells[3].attr("style").lowercase(Locale.ROOT)
-            if (lowerStyle.contains("silver")) return PtkCurrentWeekType.LOWER
+            if (lowerStyle.contains("silver")) return WeekType.LOWER
         }
 
         return null
     }
 
-    private fun parseByInlineText(textRaw: String): PtkCurrentWeekType? {
+    private fun parseByInlineText(textRaw: String): WeekType? {
         val text = textRaw.lowercase(Locale.ROOT)
         return when {
-            CURRENT_WEEK_LOWER.containsMatchIn(text) -> PtkCurrentWeekType.LOWER
-            CURRENT_WEEK_UPPER.containsMatchIn(text) -> PtkCurrentWeekType.UPPER
+            CURRENT_WEEK_LOWER.containsMatchIn(text) -> WeekType.LOWER
+            CURRENT_WEEK_UPPER.containsMatchIn(text) -> WeekType.UPPER
             else -> null
         }
     }

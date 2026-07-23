@@ -1,7 +1,6 @@
 package io.github.zapolyarnydev.ptktimetable.data.remote.xls
 
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkRawLesson
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkWeekType
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekType
 import org.apache.poi.hssf.usermodel.HSSFWorkbook
 import org.apache.poi.ss.usermodel.BorderStyle
 import org.apache.poi.ss.usermodel.CellType
@@ -13,13 +12,13 @@ import java.util.Locale
 
 class PtkXlsScheduleParser {
 
-    fun parseSchedule(xlsBytes: ByteArray, groupName: String): List<PtkRawLesson> {
+    fun parseSchedule(xlsBytes: ByteArray, groupName: String): List<NovsuRawLesson> {
         if (xlsBytes.isEmpty()) return emptyList()
         val normalizedGroupName = normalize(groupName)
         if (normalizedGroupName.isBlank()) return emptyList()
 
         val formatter = DataFormatter(Locale.forLanguageTag("ru-RU"))
-        val lessons = mutableListOf<PtkRawLesson>()
+        val lessons = mutableListOf<NovsuRawLesson>()
 
         HSSFWorkbook(ByteArrayInputStream(xlsBytes)).use { workbook ->
             workbook.forEach { sheet ->
@@ -33,12 +32,12 @@ class PtkXlsScheduleParser {
         return removeAllWhenSpecificWeeksExist(distinct)
     }
 
-    private fun parseSheet(sheet: Sheet, normalizedGroupName: String, formatter: DataFormatter): List<PtkRawLesson> {
+    private fun parseSheet(sheet: Sheet, normalizedGroupName: String, formatter: DataFormatter): List<NovsuRawLesson> {
         val layout = findGroupLayout(sheet, normalizedGroupName, formatter) ?: return emptyList()
         val timeRows = collectTimeRows(sheet, layout.timeColumn, formatter)
         if (timeRows.isEmpty()) return emptyList()
 
-        val result = mutableListOf<PtkRawLesson>()
+        val result = mutableListOf<NovsuRawLesson>()
         var currentDay = ""
 
         timeRows.forEachIndexed { index, rowIndex ->
@@ -62,7 +61,7 @@ class PtkXlsScheduleParser {
                 if (!hasLessonText(lessonText)) return@forEach
                 if (isHeaderNoise(lessonText)) return@forEach
 
-                result += PtkRawLesson(
+                result += NovsuRawLesson(
                     groupName = normalizedGroupName,
                     dayOfWeek = currentDay,
                     timeRange = timeRange,
@@ -81,7 +80,7 @@ class PtkXlsScheduleParser {
         rowIndex: Int,
         nextTimeRow: Int,
         formatter: DataFormatter,
-    ): List<Pair<String, PtkWeekType>> {
+    ): List<Pair<String, WeekType>> {
         val rawSegments = mutableListOf<RowSegment>()
         for (lessonRow in rowIndex until nextTimeRow) {
             val rawText = getCellText(sheet, lessonRow, lessonColumn, formatter)
@@ -110,12 +109,12 @@ class PtkXlsScheduleParser {
                     lessonColumn = lessonColumn,
                     rowIndex = single.rowIndex,
                 )
-                if (dashedBefore || dashedOnSegment) return listOf(single.text to PtkWeekType.LOWER)
+                if (dashedBefore || dashedOnSegment) return listOf(single.text to WeekType.LOWER)
                 val splitPoint = rowIndex + ((nextTimeRow - rowIndex) / 2)
                 if (single.rowIndex >= splitPoint) {
-                    listOf(single.text to PtkWeekType.LOWER)
+                    listOf(single.text to WeekType.LOWER)
                 } else {
-                    listOf(single.text to PtkWeekType.ALL)
+                    listOf(single.text to WeekType.ALL)
                 }
             }
         }
@@ -222,19 +221,19 @@ class PtkXlsScheduleParser {
         return rows
     }
 
-    private fun mapSplitRows(topText: String, bottomText: String): List<Pair<String, PtkWeekType>> {
+    private fun mapSplitRows(topText: String, bottomText: String): List<Pair<String, WeekType>> {
         val topHasLesson = hasLessonText(topText)
         val bottomHasLesson = hasLessonText(bottomText)
 
         return when {
             topHasLesson && bottomHasLesson -> listOf(
-                topText to PtkWeekType.UPPER,
-                bottomText to PtkWeekType.LOWER,
+                topText to WeekType.UPPER,
+                bottomText to WeekType.LOWER,
             )
 
-            topHasLesson -> listOf(topText to PtkWeekType.UPPER)
+            topHasLesson -> listOf(topText to WeekType.UPPER)
 
-            bottomHasLesson -> listOf(bottomText to PtkWeekType.LOWER)
+            bottomHasLesson -> listOf(bottomText to WeekType.LOWER)
 
             else -> emptyList()
         }
@@ -245,12 +244,12 @@ class PtkXlsScheduleParser {
         sheet: Sheet,
         lessonColumn: Int,
         preferLowerForAmbiguous: Boolean,
-    ): List<Pair<String, PtkWeekType>> {
+    ): List<Pair<String, WeekType>> {
         val text = segment.text
         if (!hasLessonText(text)) return emptyList()
-        if (looksLikeLowerOnlyCell(segment.rawText)) return listOf(text to PtkWeekType.LOWER)
-        if (preferLowerForAmbiguous) return listOf(text to PtkWeekType.LOWER)
-        return listOf(text to PtkWeekType.ALL)
+        if (looksLikeLowerOnlyCell(segment.rawText)) return listOf(text to WeekType.LOWER)
+        if (preferLowerForAmbiguous) return listOf(text to WeekType.LOWER)
+        return listOf(text to WeekType.ALL)
     }
 
     private fun looksLikeLowerOnlyCell(rawText: String): Boolean {
@@ -343,11 +342,11 @@ class PtkXlsScheduleParser {
         borderStyle == BorderStyle.MEDIUM_DASH_DOT_DOT ||
         borderStyle == BorderStyle.SLANTED_DASH_DOT
 
-    private fun removeAllWhenSpecificWeeksExist(lessons: List<PtkRawLesson>): List<PtkRawLesson> {
+    private fun removeAllWhenSpecificWeeksExist(lessons: List<NovsuRawLesson>): List<NovsuRawLesson> {
         val grouped = lessons.groupBy { "${it.groupName}|${it.dayOfWeek}|${it.timeRange}|${it.rawText}" }
         return grouped.values.flatMap { sameSlot ->
-            val hasSpecific = sameSlot.any { it.weekType == PtkWeekType.UPPER || it.weekType == PtkWeekType.LOWER }
-            if (hasSpecific) sameSlot.filterNot { it.weekType == PtkWeekType.ALL } else sameSlot
+            val hasSpecific = sameSlot.any { it.weekType == WeekType.UPPER || it.weekType == WeekType.LOWER }
+            if (hasSpecific) sameSlot.filterNot { it.weekType == WeekType.ALL } else sameSlot
         }
     }
 

@@ -1,14 +1,14 @@
 package io.github.zapolyarnydev.ptktimetable.data.remote.html
 
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkGroupInfo
 import io.github.zapolyarnydev.ptktimetable.data.remote.xls.CourseMeta
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.Group
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import java.util.Locale
 
 class PtkGroupsHtmlParser {
 
-    fun parseGroups(html: String, baseUrl: String): List<PtkGroupInfo> {
+    fun parseGroups(html: String, baseUrl: String): List<Group> {
         val document = Jsoup.parse(html, baseUrl)
         val root = document.selectFirst("body #body") ?: document.body() ?: return emptyList()
 
@@ -25,7 +25,7 @@ class PtkGroupsHtmlParser {
         val courseMetaByColumn = extractCourseMetaByColumn(headerRow)
         val collegeName = normalize(collegeHeader.ownText())
 
-        val result = mutableListOf<PtkGroupInfo>()
+        val result = mutableListOf<Group>()
         rows.drop(1).forEach { row ->
             row.select("td").forEachIndexed { columnIndex, cell ->
                 val courseMeta = courseMetaByColumn[columnIndex]
@@ -40,18 +40,18 @@ class PtkGroupsHtmlParser {
                     if (groupName.isBlank()) return@forEach
 
                     val absoluteUrl = link.absUrl("href").ifBlank { href }
-                    result += PtkGroupInfo(
+                    result += Group(
                         collegeName = collegeName,
                         course = course,
                         courseName = courseName,
                         groupName = groupName,
-                        xlsUrl = absoluteUrl,
+                        sourceUrl = absoluteUrl,
                     )
                 }
             }
         }
 
-        return result.distinctBy { "${it.groupName}|${it.course}|${it.xlsUrl}" }
+        return result.distinctBy { "${it.groupName}|${it.course}|${it.sourceUrl}" }
     }
 
     private fun findCollegeTable(collegeHeader: Element): Element? {

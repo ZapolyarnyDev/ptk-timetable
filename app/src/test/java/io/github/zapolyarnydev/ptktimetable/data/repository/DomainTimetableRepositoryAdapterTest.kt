@@ -1,11 +1,10 @@
 package io.github.zapolyarnydev.ptktimetable.data.repository
 
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkCurrentWeekType
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkGroupInfo
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkRawLesson
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkWeekType
+import io.github.zapolyarnydev.ptktimetable.data.remote.xls.NovsuRawLesson
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.Group
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekInfo
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekSource
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekType
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.service.WeekResolver
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -41,28 +40,28 @@ class DomainTimetableRepositoryAdapterTest {
         assertEquals("10:40", templates[2].endTime.toString())
     }
 
-    private fun rawLesson(dayOfWeek: String, timeRange: String, rawText: String) = PtkRawLesson(
+    private fun rawLesson(dayOfWeek: String, timeRange: String, rawText: String) = NovsuRawLesson(
         groupName = "ИСП-1",
         dayOfWeek = dayOfWeek,
         timeRange = timeRange,
         rawText = rawText,
-        weekType = PtkWeekType.ALL,
+        weekType = WeekType.ALL,
     )
 
-    private class FakeScheduleRepository(private val lessons: List<PtkRawLesson>) : ScheduleRepository {
+    private class FakeScheduleRepository(private val lessons: List<NovsuRawLesson>) : ScheduleRepository {
 
-        override suspend fun getGroups(): List<PtkGroupInfo> = emptyList()
+        override suspend fun getGroups(): List<Group> = emptyList()
 
-        override suspend fun getScheduleForGroup(groupName: String): List<PtkRawLesson> = lessons
+        override suspend fun getScheduleForGroup(groupName: String): List<NovsuRawLesson> = lessons
 
-        override suspend fun getCurrentWeekType(): PtkCurrentWeekType = PtkCurrentWeekType.UNKNOWN
+        override suspend fun getCurrentWeekType(): WeekType? = null
 
-        override suspend fun getWeekTypeForDate(date: LocalDate): PtkCurrentWeekType = PtkCurrentWeekType.UNKNOWN
+        override suspend fun getWeekTypeForDate(date: LocalDate): WeekType? = null
     }
 
     private class FakeWeekResolver : WeekResolver {
         override suspend fun resolve(date: LocalDate): WeekInfo =
-            WeekInfo(date = date, isUpper = null, source = WeekSource.UNKNOWN)
+            WeekInfo(date = date, weekType = null, source = WeekSource.UNKNOWN)
 
         override suspend fun resolveRange(from: LocalDate, to: LocalDate): Map<LocalDate, WeekInfo> = emptyMap()
     }

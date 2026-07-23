@@ -1,6 +1,6 @@
 package io.github.zapolyarnydev.ptktimetable.domain.schedule.usecase
 
-import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.LessonOccurrence
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.Lesson
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekFilter
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.repository.TimetableRepository
 import java.time.DayOfWeek
@@ -12,5 +12,5 @@ class GetScheduleByDayUseCase(private val repository: TimetableRepository) {
         dayOfWeek: DayOfWeek,
         weekFilter: WeekFilter,
         anchorDate: LocalDate,
-    ): List<LessonOccurrence> = repository.getOccurrencesByDayOfWeek(groupName, dayOfWeek, weekFilter, anchorDate)
+    ): List<Lesson> = repository.getOccurrencesByDayOfWeek(groupName, dayOfWeek, weekFilter, anchorDate)
 }

@@ -97,7 +97,7 @@ class PtkGroupsHtmlParserTest {
             val raw = item ?: throw AssertionError("List contains null element")
             val groupName = readString(raw, "groupName")
             val course = readInt(raw, "course")
-            val xlsUrl = readString(raw, "xlsUrl")
+            val xlsUrl = readString(raw, "sourceUrl")
             return GroupRef(groupName, course, xlsUrl)
         }
 

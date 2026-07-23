@@ -1,8 +1,8 @@
 package io.github.zapolyarnydev.ptktimetable.data.repository
 
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkCurrentWeekType
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekInfo
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekSource
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekType
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.service.WeekResolver
 import java.time.Clock
 import java.time.DayOfWeek
@@ -20,51 +20,59 @@ class PortalBackedWeekResolver(
 
     override suspend fun resolve(date: LocalDate): WeekInfo {
         val weekForDate = runCatching { scheduleRepository.getWeekTypeForDate(date) }
-            .getOrDefault(PtkCurrentWeekType.UNKNOWN)
+            .getOrNull()
 
         when (weekForDate) {
-            PtkCurrentWeekType.UPPER -> {
+            WeekType.UPPER -> {
                 return WeekInfo(
                     date = date,
-                    isUpper = true,
+                    weekType = WeekType.UPPER,
                     source = WeekSource.PORTAL,
                 )
             }
 
-            PtkCurrentWeekType.LOWER -> {
+            WeekType.LOWER -> {
                 return WeekInfo(
                     date = date,
-                    isUpper = false,
+                    weekType = WeekType.LOWER,
                     source = WeekSource.PORTAL,
                 )
             }
 
-            PtkCurrentWeekType.UNKNOWN -> Unit
+            WeekType.ALL, null -> Unit
         }
 
         val currentType = runCatching { scheduleRepository.getCurrentWeekType() }
-            .getOrDefault(PtkCurrentWeekType.UNKNOWN)
+            .getOrNull()
 
         return when (currentType) {
-            PtkCurrentWeekType.UPPER -> WeekInfo(
+            WeekType.UPPER -> WeekInfo(
                 date = date,
-                isUpper = resolveByParity(date, isUpperAtAnchor = true, anchorDate = LocalDate.now(clock)),
+                weekType = resolveByParity(
+                    date,
+                    isUpperAtAnchor = true,
+                    anchorDate = LocalDate.now(clock),
+                ).toWeekType(),
                 source = WeekSource.PORTAL,
             )
 
-            PtkCurrentWeekType.LOWER -> WeekInfo(
+            WeekType.LOWER -> WeekInfo(
                 date = date,
-                isUpper = resolveByParity(date, isUpperAtAnchor = false, anchorDate = LocalDate.now(clock)),
+                weekType = resolveByParity(
+                    date,
+                    isUpperAtAnchor = false,
+                    anchorDate = LocalDate.now(clock),
+                ).toWeekType(),
                 source = WeekSource.PORTAL,
             )
 
-            PtkCurrentWeekType.UNKNOWN -> WeekInfo(
+            WeekType.ALL, null -> WeekInfo(
                 date = date,
-                isUpper = resolveByParity(
+                weekType = resolveByParity(
                     date = date,
                     isUpperAtAnchor = fallbackReferenceIsUpper,
                     anchorDate = fallbackReferenceDate,
-                ),
+                ).toWeekType(),
                 source = WeekSource.LOCAL_RULE,
             )
         }
@@ -90,4 +98,6 @@ class PortalBackedWeekResolver(
         val isOddShift = abs(weeksDiff % 2L) == 1L
         return if (isOddShift) !isUpperAtAnchor else isUpperAtAnchor
     }
+
+    private fun Boolean.toWeekType(): WeekType = if (this) WeekType.UPPER else WeekType.LOWER
 }

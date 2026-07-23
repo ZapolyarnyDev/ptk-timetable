@@ -1,8 +1,9 @@
 package io.github.zapolyarnydev.ptktimetable.ui.schedule
 
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkCurrentWeekType
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkGroupInfo
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkWeekType
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.Group
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.ScheduleMode
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekFilter
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -14,10 +15,10 @@ class SchedulePresentationLogicTest {
 
     @Test
     fun `week filter keeps common lessons and matching week`() {
-        assertTrue(lessonMatchesWeekFilter(PtkWeekType.ALL, ScheduleWeekFilter.UPPER))
-        assertTrue(lessonMatchesWeekFilter(PtkWeekType.UPPER, ScheduleWeekFilter.UPPER))
-        assertFalse(lessonMatchesWeekFilter(PtkWeekType.LOWER, ScheduleWeekFilter.UPPER))
-        assertTrue(lessonMatchesWeekFilter(PtkWeekType.LOWER, ScheduleWeekFilter.ALL))
+        assertTrue(lessonMatchesWeekFilter(WeekType.ALL, WeekFilter.UPPER))
+        assertTrue(lessonMatchesWeekFilter(WeekType.UPPER, WeekFilter.UPPER))
+        assertFalse(lessonMatchesWeekFilter(WeekType.LOWER, WeekFilter.UPPER))
+        assertTrue(lessonMatchesWeekFilter(WeekType.LOWER, WeekFilter.ALL))
     }
 
     @Test
@@ -25,12 +26,12 @@ class SchedulePresentationLogicTest {
         val state = ScheduleUiState(
             mode = ScheduleMode.BY_DAY,
             selectedDay = ScheduleDay.TUESDAY,
-            weekFilter = ScheduleWeekFilter.UPPER,
+            weekFilter = WeekFilter.UPPER,
             lessons = listOf(
-                lesson(ScheduleDay.TUESDAY, "12.45-14.25", PtkWeekType.UPPER, "Second"),
-                lesson(ScheduleDay.MONDAY, "8.30-10.10", PtkWeekType.UPPER, "Wrong day"),
-                lesson(ScheduleDay.TUESDAY, "10.20-12.00", PtkWeekType.LOWER, "Wrong week"),
-                lesson(ScheduleDay.TUESDAY, "8.30-10.10", PtkWeekType.ALL, "First"),
+                lesson(ScheduleDay.TUESDAY, "12.45-14.25", WeekType.UPPER, "Second"),
+                lesson(ScheduleDay.MONDAY, "8.30-10.10", WeekType.UPPER, "Wrong day"),
+                lesson(ScheduleDay.TUESDAY, "10.20-12.00", WeekType.LOWER, "Wrong week"),
+                lesson(ScheduleDay.TUESDAY, "8.30-10.10", WeekType.ALL, "First"),
             ),
         )
 
@@ -42,10 +43,10 @@ class SchedulePresentationLogicTest {
         val state = ScheduleUiState(
             mode = ScheduleMode.BY_DATE,
             selectedDay = ScheduleDay.MONDAY,
-            weekFilter = ScheduleWeekFilter.LOWER,
+            weekFilter = WeekFilter.LOWER,
             lessons = listOf(
-                lesson(ScheduleDay.FRIDAY, "12.45-14.25", PtkWeekType.UPPER, "Second"),
-                lesson(ScheduleDay.TUESDAY, "8.30-10.10", PtkWeekType.ALL, "First"),
+                lesson(ScheduleDay.FRIDAY, "12.45-14.25", WeekType.UPPER, "Second"),
+                lesson(ScheduleDay.TUESDAY, "8.30-10.10", WeekType.ALL, "First"),
             ),
         )
 
@@ -56,9 +57,9 @@ class SchedulePresentationLogicTest {
     fun `time slots preserve week halves`() {
         val slots = buildTimeSlots(
             listOf(
-                lesson(ScheduleDay.MONDAY, "10.20-12.00", PtkWeekType.LOWER, "Lower"),
-                lesson(ScheduleDay.MONDAY, "8.30-10.10", PtkWeekType.ALL, "Common"),
-                lesson(ScheduleDay.MONDAY, "10.20-12.00", PtkWeekType.UPPER, "Upper"),
+                lesson(ScheduleDay.MONDAY, "10.20-12.00", WeekType.LOWER, "Lower"),
+                lesson(ScheduleDay.MONDAY, "8.30-10.10", WeekType.ALL, "Common"),
+                lesson(ScheduleDay.MONDAY, "10.20-12.00", WeekType.UPPER, "Upper"),
             ),
         )
 
@@ -94,30 +95,33 @@ class SchedulePresentationLogicTest {
     fun `day mapping and week mismatch rules stay explicit`() {
         assertEquals(ScheduleDay.MONDAY, dayOfWeekToScheduleDay(DayOfWeek.MONDAY))
         assertEquals(ScheduleDay.SUNDAY, dayOfWeekToScheduleDay(DayOfWeek.SUNDAY))
-        assertTrue(isWeekMismatchWarningNeeded(ScheduleWeekFilter.LOWER, PtkCurrentWeekType.UPPER))
-        assertFalse(isWeekMismatchWarningNeeded(ScheduleWeekFilter.ALL, PtkCurrentWeekType.UPPER))
+        assertTrue(isWeekMismatchWarningNeeded(WeekFilter.LOWER, WeekType.UPPER))
+        assertFalse(isWeekMismatchWarningNeeded(WeekFilter.ALL, WeekType.UPPER))
     }
 
     @Test
     fun `restored group lookup ignores case and surrounding spaces`() {
         val groups = listOf(
-            PtkGroupInfo("College", 1, "Course", "ISP-1", "first.xls"),
-            PtkGroupInfo("College", 2, "Course", "ISP-2", "second.xls"),
+            Group("College", 1, "Course", "ISP-1", "first.xls"),
+            Group("College", 2, "Course", "ISP-2", "second.xls"),
         )
 
         assertEquals("ISP-2", findRestoredGroup(groups, "  isp-2  ")?.groupName)
         assertEquals(null, findRestoredGroup(groups, "missing"))
     }
 
-    private fun lesson(day: ScheduleDay, timeRange: String, weekType: PtkWeekType, subject: String) =
-        ScheduleLessonItem(
-            day = day,
-            dayLabel = day.title,
-            timeRange = timeRange,
-            weekType = weekType,
-            subject = subject,
-            teacher = null,
-            classroom = null,
-            rawText = subject,
-        )
+    private fun lesson(day: ScheduleDay, timeRange: String, weekType: WeekType, subject: String) = ScheduleLessonItem(
+        day = day,
+        dayLabel = day.title,
+        startTime = parseTime(timeRange.substringBefore("-")),
+        endTime = parseTime(timeRange.substringAfter("-")),
+        weekType = weekType,
+        subject = subject,
+        teacher = null,
+        classroom = null,
+        rawText = subject,
+    )
+
+    private fun parseTime(value: String) =
+        java.time.LocalTime.parse(value, java.time.format.DateTimeFormatter.ofPattern("H.mm"))
 }

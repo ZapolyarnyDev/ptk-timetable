@@ -1,6 +1,6 @@
 package io.github.zapolyarnydev.ptktimetable.data.remote.html
 
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkCurrentWeekType
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekType
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.LocalDate
@@ -34,7 +34,7 @@ class PtkCurrentWeekHtmlParserTest {
             today = LocalDate.of(2026, 3, 17),
         )
 
-        assertEquals(PtkCurrentWeekType.LOWER, lower)
-        assertEquals(PtkCurrentWeekType.UPPER, upper)
+        assertEquals(WeekType.LOWER, lower)
+        assertEquals(WeekType.UPPER, upper)
     }
 }

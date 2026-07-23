@@ -1,9 +1,9 @@
 package io.github.zapolyarnydev.ptktimetable.data.repository
 
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkCurrentWeekType
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkGroupInfo
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkRawLesson
+import io.github.zapolyarnydev.ptktimetable.data.remote.xls.NovsuRawLesson
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.Group
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekSource
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekType
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -21,7 +21,7 @@ class PortalBackedWeekResolverTest {
     fun `resolve uses portal parity relative to current week`() = runBlocking {
         val clock = Clock.fixed(Instant.parse("2026-03-16T00:00:00Z"), ZoneOffset.UTC)
         val resolver = PortalBackedWeekResolver(
-            scheduleRepository = FakeScheduleRepository(PtkCurrentWeekType.UPPER),
+            scheduleRepository = FakeScheduleRepository(WeekType.UPPER),
             clock = clock,
         )
 
@@ -38,7 +38,7 @@ class PortalBackedWeekResolverTest {
     @Test
     fun `resolve falls back to local rule when portal week unknown`() = runBlocking {
         val resolver = PortalBackedWeekResolver(
-            scheduleRepository = FakeScheduleRepository(PtkCurrentWeekType.UNKNOWN),
+            scheduleRepository = FakeScheduleRepository(null),
             clock = Clock.fixed(Instant.parse("2026-03-16T00:00:00Z"), ZoneOffset.UTC),
             fallbackReferenceDate = LocalDate.of(2026, 3, 16),
             fallbackReferenceIsUpper = true,
@@ -50,14 +50,14 @@ class PortalBackedWeekResolverTest {
         assertNotNull(info.isUpper)
     }
 
-    private class FakeScheduleRepository(private val currentWeekType: PtkCurrentWeekType) : ScheduleRepository {
+    private class FakeScheduleRepository(private val currentWeekType: WeekType?) : ScheduleRepository {
 
-        override suspend fun getGroups(): List<PtkGroupInfo> = emptyList()
+        override suspend fun getGroups(): List<Group> = emptyList()
 
-        override suspend fun getScheduleForGroup(groupName: String): List<PtkRawLesson> = emptyList()
+        override suspend fun getScheduleForGroup(groupName: String): List<NovsuRawLesson> = emptyList()
 
-        override suspend fun getCurrentWeekType(): PtkCurrentWeekType = currentWeekType
+        override suspend fun getCurrentWeekType(): WeekType? = currentWeekType
 
-        override suspend fun getWeekTypeForDate(date: LocalDate): PtkCurrentWeekType = PtkCurrentWeekType.UNKNOWN
+        override suspend fun getWeekTypeForDate(date: LocalDate): WeekType? = null
     }
 }

@@ -34,8 +34,9 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkCurrentWeekType
-import io.github.zapolyarnydev.ptktimetable.data.model.PtkWeekType
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.ScheduleMode
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekFilter
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekType
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppDimensions
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppIcons
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppShapes
@@ -49,8 +50,8 @@ import java.util.Locale
 @Composable
 internal fun LessonTableCard(
     timeSlots: List<TimeSlotUi>,
-    currentWeekType: PtkCurrentWeekType,
-    weekFilter: ScheduleWeekFilter,
+    currentWeekType: WeekType?,
+    weekFilter: WeekFilter,
     date: LocalDate,
     selectedDay: ScheduleDay?,
     isDateMode: Boolean,
@@ -108,8 +109,8 @@ internal fun LessonTableCard(
 @Composable
 internal fun LessonTableRow(
     slot: TimeSlotUi,
-    currentWeekType: PtkCurrentWeekType,
-    weekFilter: ScheduleWeekFilter,
+    currentWeekType: WeekType?,
+    weekFilter: WeekFilter,
     date: LocalDate,
     selectedDay: ScheduleDay?,
     isDateMode: Boolean,
@@ -221,8 +222,8 @@ internal fun LessonTableRow(
 @Composable
 internal fun SplitWeekCell(
     slot: TimeSlotUi,
-    currentWeekType: PtkCurrentWeekType,
-    weekFilter: ScheduleWeekFilter,
+    currentWeekType: WeekType?,
+    weekFilter: WeekFilter,
     date: LocalDate,
     isDateMode: Boolean,
     noteMap: Map<String, ScheduleNoteItem>,
@@ -244,8 +245,8 @@ internal fun SplitWeekCell(
             )
         }
         val blocks = when {
-            !isDateMode && weekFilter == ScheduleWeekFilter.UPPER -> listOf("Верхняя" to slot.upperLessons)
-            !isDateMode && weekFilter == ScheduleWeekFilter.LOWER -> listOf("Нижняя" to slot.lowerLessons)
+            !isDateMode && weekFilter == WeekFilter.UPPER -> listOf("Верхняя" to slot.upperLessons)
+            !isDateMode && weekFilter == WeekFilter.LOWER -> listOf("Нижняя" to slot.lowerLessons)
             else -> listOf("Верхняя" to slot.upperLessons, "Нижняя" to slot.lowerLessons)
         }
         blocks.forEachIndexed { index, (title, lessons) ->
@@ -253,7 +254,7 @@ internal fun SplitWeekCell(
             WeekHalfBlock(
                 title,
                 lessons,
-                if (title == "Верхняя") PtkWeekType.UPPER else PtkWeekType.LOWER,
+                if (title == "Верхняя") WeekType.UPPER else WeekType.LOWER,
                 currentWeekType,
                 date,
                 isDateMode,
@@ -270,8 +271,8 @@ internal fun SplitWeekCell(
 internal fun WeekHalfBlock(
     title: String,
     lessons: List<ScheduleLessonItem>,
-    weekType: PtkWeekType,
-    currentWeekType: PtkCurrentWeekType,
+    weekType: WeekType,
+    currentWeekType: WeekType?,
     date: LocalDate,
     isDateMode: Boolean,
     noteMap: Map<String, ScheduleNoteItem>,
@@ -314,7 +315,7 @@ internal fun WeekHalfBlock(
 @Composable
 internal fun LessonTextBlock(
     lessons: List<ScheduleLessonItem>,
-    currentWeekType: PtkCurrentWeekType,
+    currentWeekType: WeekType?,
     date: LocalDate,
     isDateMode: Boolean,
     noteMap: Map<String, ScheduleNoteItem>,
@@ -346,7 +347,7 @@ internal fun LessonTextBlock(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
-                        if (lesson.weekType != PtkWeekType.ALL) {
+                        if (lesson.weekType != WeekType.ALL) {
                             Text(
                                 text = weekTypeTitle(lesson.weekType),
                                 style = MaterialTheme.typography.labelSmall,
@@ -414,17 +415,17 @@ internal fun LessonTextBlock(
     }
 }
 
-private fun weekTypeTitle(type: PtkWeekType): String = when (type) {
-    PtkWeekType.ALL -> "Обе недели"
-    PtkWeekType.UPPER -> "Верхняя неделя"
-    PtkWeekType.LOWER -> "Нижняя неделя"
+private fun weekTypeTitle(type: WeekType): String = when (type) {
+    WeekType.ALL -> "Обе недели"
+    WeekType.UPPER -> "Верхняя неделя"
+    WeekType.LOWER -> "Нижняя неделя"
 }
 
-internal fun weekTypeMatchesCurrent(lessonWeekType: PtkWeekType, currentWeekType: PtkCurrentWeekType): Boolean =
+internal fun weekTypeMatchesCurrent(lessonWeekType: WeekType, currentWeekType: WeekType?): Boolean =
     when (currentWeekType) {
-        PtkCurrentWeekType.UNKNOWN -> true
-        PtkCurrentWeekType.UPPER -> lessonWeekType == PtkWeekType.UPPER || lessonWeekType == PtkWeekType.ALL
-        PtkCurrentWeekType.LOWER -> lessonWeekType == PtkWeekType.LOWER || lessonWeekType == PtkWeekType.ALL
+        null, WeekType.ALL -> true
+        WeekType.UPPER -> lessonWeekType == WeekType.UPPER || lessonWeekType == WeekType.ALL
+        WeekType.LOWER -> lessonWeekType == WeekType.LOWER || lessonWeekType == WeekType.ALL
     }
 
 @Composable
@@ -457,9 +458,9 @@ internal fun buildTimeSlots(lessons: List<ScheduleLessonItem>): List<TimeSlotUi>
     .map { (timeRange, rows) ->
         TimeSlotUi(
             timeRange = timeRange,
-            allLessons = rows.filter { it.weekType == PtkWeekType.ALL },
-            upperLessons = rows.filter { it.weekType == PtkWeekType.UPPER },
-            lowerLessons = rows.filter { it.weekType == PtkWeekType.LOWER },
+            allLessons = rows.filter { it.weekType == WeekType.ALL },
+            upperLessons = rows.filter { it.weekType == WeekType.UPPER },
+            lowerLessons = rows.filter { it.weekType == WeekType.LOWER },
         )
     }
     .sortedBy { lessonSortKey(it.timeRange) }
@@ -473,10 +474,10 @@ internal fun filterLessons(state: ScheduleUiState): List<ScheduleLessonItem> {
         .sortedBy { lessonSortKey(it.timeRange) }
 }
 
-internal fun lessonMatchesWeekFilter(weekType: PtkWeekType, filter: ScheduleWeekFilter): Boolean = when (filter) {
-    ScheduleWeekFilter.ALL -> true
-    ScheduleWeekFilter.UPPER -> weekType == PtkWeekType.UPPER || weekType == PtkWeekType.ALL
-    ScheduleWeekFilter.LOWER -> weekType == PtkWeekType.LOWER || weekType == PtkWeekType.ALL
+internal fun lessonMatchesWeekFilter(weekType: WeekType, filter: WeekFilter): Boolean = when (filter) {
+    WeekFilter.ALL -> true
+    WeekFilter.UPPER -> weekType == WeekType.UPPER || weekType == WeekType.ALL
+    WeekFilter.LOWER -> weekType == WeekType.LOWER || weekType == WeekType.ALL
 }
 
 internal fun lessonSortKey(timeRange: String): Int {
@@ -494,7 +495,7 @@ internal fun splitTimeRange(timeRange: String): Pair<String, String> {
 internal fun noteLessonKey(
     date: LocalDate,
     timeRange: String,
-    weekType: PtkWeekType,
+    weekType: WeekType,
     subject: String,
     rawText: String,
 ): String = listOf(
@@ -569,21 +570,18 @@ internal fun dayOfWeekToScheduleDay(dayOfWeek: java.time.DayOfWeek): ScheduleDay
 internal fun formatDateTitle(date: LocalDate): String =
     DateTimeFormatter.ofPattern("d MMMM", Locale.forLanguageTag("ru")).format(date)
 
-internal fun weekTypeLabel(type: PtkCurrentWeekType): String = when (type) {
-    PtkCurrentWeekType.UPPER -> "верхняя"
-    PtkCurrentWeekType.LOWER -> "нижняя"
-    PtkCurrentWeekType.UNKNOWN -> "не определена"
+internal fun weekTypeLabel(type: WeekType?): String = when (type) {
+    WeekType.UPPER -> "верхняя"
+    WeekType.LOWER -> "нижняя"
+    WeekType.ALL, null -> "не определена"
 }
 
-internal fun isWeekMismatchWarningNeeded(
-    selectedFilter: ScheduleWeekFilter,
-    currentWeekType: PtkCurrentWeekType,
-): Boolean {
-    if (selectedFilter == ScheduleWeekFilter.ALL) return false
+internal fun isWeekMismatchWarningNeeded(selectedFilter: WeekFilter, currentWeekType: WeekType?): Boolean {
+    if (selectedFilter == WeekFilter.ALL) return false
     return when (currentWeekType) {
-        PtkCurrentWeekType.UNKNOWN -> false
-        PtkCurrentWeekType.UPPER -> selectedFilter == ScheduleWeekFilter.LOWER
-        PtkCurrentWeekType.LOWER -> selectedFilter == ScheduleWeekFilter.UPPER
+        WeekType.ALL, null -> false
+        WeekType.UPPER -> selectedFilter == WeekFilter.LOWER
+        WeekType.LOWER -> selectedFilter == WeekFilter.UPPER
     }
 }
 
