@@ -206,7 +206,7 @@ internal fun DayNavigatorPanel(
                     )
                 }
             }
-            if (isWeekMismatchWarningNeeded(weekFilter, currentWeekType)) {
+            if (ScheduleRules.isWeekMismatch(weekFilter, currentWeekType)) {
                 Spacer(Modifier.height(12.dp))
                 Text(
                     text = "Сейчас ${weekTypeLabel(

@@ -37,12 +37,12 @@ import androidx.compose.ui.unit.dp
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.ScheduleMode
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekFilter
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekType
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.service.WeekRules
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppDimensions
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppIcons
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppShapes
 import io.github.zapolyarnydev.ptktimetable.ui.theme.MaterialThemeAppColors
 import java.time.LocalDate
-import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -60,10 +60,12 @@ internal fun LessonTableCard(
     onAddOrEditNote: (ScheduleLessonItem) -> Unit,
     onAddOrEditReminder: (ScheduleLessonItem) -> Unit,
 ) {
-    val nextTimeRange = timeSlots
-        .filter { isFutureLessonSlot(date, selectedDay, isDateMode, it.timeRange) }
-        .minByOrNull { lessonSortKey(it.timeRange) }
-        ?.timeRange
+    val nextStartTime = ScheduleRules.nextLesson(
+        lessons = timeSlots.flatMap { it.lessons },
+        date = date,
+        selectedDay = selectedDay,
+        isDateMode = isDateMode,
+    )?.startTime
 
     SectionCard(padding = 0.dp) {
         Row(
@@ -94,7 +96,7 @@ internal fun LessonTableCard(
                         date = date,
                         selectedDay = selectedDay,
                         isDateMode = isDateMode,
-                        isNextSlot = slot.timeRange == nextTimeRange,
+                        isNextSlot = slot.startTime == nextStartTime,
                         noteMap = noteMap,
                         reminderMap = reminderMap,
                         onAddOrEditNote = onAddOrEditNote,
@@ -121,8 +123,14 @@ internal fun LessonTableRow(
     onAddOrEditReminder: (ScheduleLessonItem) -> Unit,
 ) {
     val colors = MaterialThemeAppColors
-    val (startTime, endTime) = splitTimeRange(slot.timeRange)
-    val isCurrentSlot = isCurrentLessonSlot(date, selectedDay, isDateMode, slot.timeRange)
+    val startTime = formatTime(slot.startTime)
+    val endTime = formatTime(slot.endTime)
+    val isCurrentSlot = ScheduleRules.currentLesson(
+        lessons = slot.lessons,
+        date = date,
+        selectedDay = selectedDay,
+        isDateMode = isDateMode,
+    ) != null
     val accent = when {
         isCurrentSlot -> colors.currentLesson
         isNextSlot -> colors.nextLesson
@@ -280,7 +288,7 @@ internal fun WeekHalfBlock(
     onAddOrEditNote: (ScheduleLessonItem) -> Unit,
     onAddOrEditReminder: (ScheduleLessonItem) -> Unit,
 ) {
-    val isCurrent = weekTypeMatchesCurrent(weekType, currentWeekType)
+    val isCurrent = WeekRules.matches(weekType, currentWeekType)
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(
             title,
@@ -325,7 +333,7 @@ internal fun LessonTextBlock(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
         lessons.forEachIndexed { index, lesson ->
-            val isCurrent = weekTypeMatchesCurrent(lesson.weekType, currentWeekType)
+            val isCurrent = WeekRules.matches(lesson.weekType, currentWeekType)
             val note = noteMap[noteLessonKey(date, lesson.timeRange, lesson.weekType, lesson.subject, lesson.rawText)]
             val reminder = reminderMap[
                 noteLessonKey(date, lesson.timeRange, lesson.weekType, lesson.subject, lesson.rawText),
@@ -421,13 +429,6 @@ private fun weekTypeTitle(type: WeekType): String = when (type) {
     WeekType.LOWER -> "Нижняя неделя"
 }
 
-internal fun weekTypeMatchesCurrent(lessonWeekType: WeekType, currentWeekType: WeekType?): Boolean =
-    when (currentWeekType) {
-        null, WeekType.ALL -> true
-        WeekType.UPPER -> lessonWeekType == WeekType.UPPER || lessonWeekType == WeekType.ALL
-        WeekType.LOWER -> lessonWeekType == WeekType.LOWER || lessonWeekType == WeekType.ALL
-    }
-
 @Composable
 internal fun DashedHorizontalDivider(color: Color = MaterialTheme.colorScheme.outlineVariant, stroke: Dp = 1.dp) {
     Box(
@@ -445,52 +446,29 @@ internal fun DashedHorizontalDivider(color: Color = MaterialTheme.colorScheme.ou
 }
 
 data class TimeSlotUi(
-    val timeRange: String,
+    val startTime: LocalTime,
+    val endTime: LocalTime,
     val allLessons: List<ScheduleLessonItem>,
     val upperLessons: List<ScheduleLessonItem>,
     val lowerLessons: List<ScheduleLessonItem>,
 ) {
     val isSplitByWeek: Boolean get() = upperLessons.isNotEmpty() || lowerLessons.isNotEmpty()
+    val lessons: List<ScheduleLessonItem> get() = allLessons + upperLessons + lowerLessons
+    val timeRange: String get() = "${formatTime(startTime)}-${formatTime(endTime)}"
 }
 
 internal fun buildTimeSlots(lessons: List<ScheduleLessonItem>): List<TimeSlotUi> = lessons
-    .groupBy { it.timeRange }
-    .map { (timeRange, rows) ->
+    .groupBy { it.startTime to it.endTime }
+    .map { (range, rows) ->
         TimeSlotUi(
-            timeRange = timeRange,
+            startTime = range.first,
+            endTime = range.second,
             allLessons = rows.filter { it.weekType == WeekType.ALL },
             upperLessons = rows.filter { it.weekType == WeekType.UPPER },
             lowerLessons = rows.filter { it.weekType == WeekType.LOWER },
         )
     }
-    .sortedBy { lessonSortKey(it.timeRange) }
-
-internal fun filterLessons(state: ScheduleUiState): List<ScheduleLessonItem> {
-    if (state.mode == ScheduleMode.BY_DATE) return state.lessons.sortedBy { lessonSortKey(it.timeRange) }
-    val selectedDay = state.selectedDay ?: return emptyList()
-    return state.lessons
-        .filter { it.day == selectedDay }
-        .filter { lessonMatchesWeekFilter(it.weekType, state.weekFilter) }
-        .sortedBy { lessonSortKey(it.timeRange) }
-}
-
-internal fun lessonMatchesWeekFilter(weekType: WeekType, filter: WeekFilter): Boolean = when (filter) {
-    WeekFilter.ALL -> true
-    WeekFilter.UPPER -> weekType == WeekType.UPPER || weekType == WeekType.ALL
-    WeekFilter.LOWER -> weekType == WeekType.LOWER || weekType == WeekType.ALL
-}
-
-internal fun lessonSortKey(timeRange: String): Int {
-    val normalized = timeRange.replace('—', '-').replace('–', '-')
-    val match = Regex("(\\d{1,2})[.:](\\d{2})").find(normalized) ?: return Int.MAX_VALUE
-    return (match.groupValues[1].toIntOrNull() ?: 99) * 60 + (match.groupValues[2].toIntOrNull() ?: 99)
-}
-
-internal fun splitTimeRange(timeRange: String): Pair<String, String> {
-    val normalized = timeRange.replace('—', '-').replace('–', '-').replace(" ", "")
-    val parts = normalized.split("-", limit = 2)
-    return parts.getOrNull(0).orEmpty().ifBlank { timeRange } to parts.getOrNull(1).orEmpty()
-}
+    .sortedBy { it.startTime }
 
 internal fun noteLessonKey(
     date: LocalDate,
@@ -506,56 +484,7 @@ internal fun noteLessonKey(
     rawText.trim().hashCode().toString(),
 ).joinToString("|")
 
-internal fun isLessonEditableNowOrFuture(date: LocalDate, timeRange: String): Boolean {
-    val start = parseStartDateTime(date, timeRange) ?: return false
-    return !start.isBefore(LocalDateTime.now())
-}
-
-internal fun isCurrentLessonSlot(
-    date: LocalDate,
-    selectedDay: ScheduleDay?,
-    isDateMode: Boolean,
-    timeRange: String,
-): Boolean {
-    val now = LocalDateTime.now()
-    val isMatchingDay = if (isDateMode) {
-        now.toLocalDate() == date
-    } else {
-        selectedDay == dayOfWeekToScheduleDay(now.dayOfWeek)
-    }
-    if (!isMatchingDay) return false
-    val (startRaw, endRaw) = splitTimeRange(timeRange)
-    val start = parseTime(now.toLocalDate(), startRaw) ?: return false
-    val end = parseTime(now.toLocalDate(), endRaw) ?: return false
-    return !now.isBefore(start) && now.isBefore(end)
-}
-
-internal fun isFutureLessonSlot(
-    date: LocalDate,
-    selectedDay: ScheduleDay?,
-    isDateMode: Boolean,
-    timeRange: String,
-): Boolean {
-    val today = LocalDate.now()
-    val targetDate = if (isDateMode) {
-        date
-    } else {
-        if (selectedDay != dayOfWeekToScheduleDay(today.dayOfWeek)) return false
-        today
-    }
-    val start = parseStartDateTime(targetDate, timeRange) ?: return false
-    return start.isAfter(LocalDateTime.now())
-}
-
-private fun parseStartDateTime(date: LocalDate, timeRange: String): LocalDateTime? =
-    parseTime(date, splitTimeRange(timeRange).first)
-
-private fun parseTime(date: LocalDate, text: String): LocalDateTime? {
-    val match = Regex("(\\d{1,2})[.:](\\d{2})").find(text) ?: return null
-    val hour = match.groupValues[1].toIntOrNull() ?: return null
-    val minute = match.groupValues[2].toIntOrNull() ?: return null
-    return runCatching { LocalDateTime.of(date, LocalTime.of(hour, minute)) }.getOrNull()
-}
+private fun formatTime(value: LocalTime): String = DateTimeFormatter.ofPattern("H.mm").format(value)
 
 internal fun dayOfWeekToScheduleDay(dayOfWeek: java.time.DayOfWeek): ScheduleDay = when (dayOfWeek) {
     java.time.DayOfWeek.MONDAY -> ScheduleDay.MONDAY
@@ -574,15 +503,6 @@ internal fun weekTypeLabel(type: WeekType?): String = when (type) {
     WeekType.UPPER -> "верхняя"
     WeekType.LOWER -> "нижняя"
     WeekType.ALL, null -> "не определена"
-}
-
-internal fun isWeekMismatchWarningNeeded(selectedFilter: WeekFilter, currentWeekType: WeekType?): Boolean {
-    if (selectedFilter == WeekFilter.ALL) return false
-    return when (currentWeekType) {
-        WeekType.ALL, null -> false
-        WeekType.UPPER -> selectedFilter == WeekFilter.LOWER
-        WeekType.LOWER -> selectedFilter == WeekFilter.UPPER
-    }
 }
 
 internal fun formatInstant(value: java.time.Instant): String =

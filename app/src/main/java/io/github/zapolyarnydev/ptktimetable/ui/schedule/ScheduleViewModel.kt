@@ -18,6 +18,7 @@ import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekFilter
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekType
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.repository.TimetableRepository
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.service.WeekResolver
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.service.WeekRules
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -644,7 +645,7 @@ class ScheduleViewModel(
 
                 val allLessons = templates
                     .map { it.toScheduleLessonItem() }
-                    .sortedBy { lessonSortKey(it.timeRange) }
+                    .sortedBy { it.startTime }
 
                 val availableDays = allLessons
                     .map { it.day }
@@ -729,7 +730,7 @@ class ScheduleViewModel(
         val current = state.value
         val allLessons = loadedTemplates
             .map { it.toScheduleLessonItem() }
-            .sortedBy { lessonSortKey(it.timeRange) }
+            .sortedBy { it.startTime }
 
         val availableDays = allLessons
             .map { it.day }
@@ -778,24 +779,13 @@ class ScheduleViewModel(
         selectedDateWeekType: WeekType?,
     ): List<ScheduleLessonItem> {
         val targetDay = dayOfWeekToScheduleDay(date.dayOfWeek)
-        val isUpperWeek = when (selectedDateWeekType) {
-            WeekType.UPPER -> true
-            WeekType.LOWER -> false
-            WeekType.ALL, null -> null
-        }
 
         return templates
             .asSequence()
             .filter { it.dayOfWeek == date.dayOfWeek }
-            .filter { template ->
-                when (template.weekType) {
-                    WeekType.ALL -> true
-                    WeekType.UPPER -> isUpperWeek != false
-                    WeekType.LOWER -> isUpperWeek != true
-                }
-            }
+            .filter { template -> WeekRules.matches(template.weekType, selectedDateWeekType) }
             .map { template -> template.toScheduleLessonItem(overrideDay = targetDay) }
-            .sortedBy { lessonSortKey(it.timeRange) }
+            .sortedBy { it.startTime }
             .toList()
     }
 
@@ -972,11 +962,8 @@ class ScheduleViewModel(
     }
 
     private fun lessonSortKey(timeRange: String): Int {
-        val normalized = timeRange.replace('—', '-').replace('–', '-')
-        val match = Regex("(\\d{1,2})[.:](\\d{2})").find(normalized) ?: return Int.MAX_VALUE
-        val hours = match.groupValues[1].toIntOrNull() ?: return Int.MAX_VALUE
-        val minutes = match.groupValues[2].toIntOrNull() ?: return Int.MAX_VALUE
-        return hours * 60 + minutes
+        val start = LessonNotesStore.parseStartTimeOrNull(timeRange) ?: return Int.MAX_VALUE
+        return start.hour * 60 + start.minute
     }
 
     private fun Lesson.toScheduleLessonItem(

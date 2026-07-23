@@ -4,6 +4,7 @@ import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.Group
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.ScheduleMode
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekFilter
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekType
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.service.WeekRules
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -15,10 +16,10 @@ class SchedulePresentationLogicTest {
 
     @Test
     fun `week filter keeps common lessons and matching week`() {
-        assertTrue(lessonMatchesWeekFilter(WeekType.ALL, WeekFilter.UPPER))
-        assertTrue(lessonMatchesWeekFilter(WeekType.UPPER, WeekFilter.UPPER))
-        assertFalse(lessonMatchesWeekFilter(WeekType.LOWER, WeekFilter.UPPER))
-        assertTrue(lessonMatchesWeekFilter(WeekType.LOWER, WeekFilter.ALL))
+        assertTrue(WeekRules.matches(WeekType.ALL, WeekFilter.UPPER))
+        assertTrue(WeekRules.matches(WeekType.UPPER, WeekFilter.UPPER))
+        assertFalse(WeekRules.matches(WeekType.LOWER, WeekFilter.UPPER))
+        assertTrue(WeekRules.matches(WeekType.LOWER, WeekFilter.ALL))
     }
 
     @Test
@@ -35,7 +36,7 @@ class SchedulePresentationLogicTest {
             ),
         )
 
-        assertEquals(listOf("First", "Second"), filterLessons(state).map { it.subject })
+        assertEquals(listOf("First", "Second"), ScheduleRules.visibleLessons(state).map { it.subject })
     }
 
     @Test
@@ -50,7 +51,7 @@ class SchedulePresentationLogicTest {
             ),
         )
 
-        assertEquals(listOf("First", "Second"), filterLessons(state).map { it.subject })
+        assertEquals(listOf("First", "Second"), ScheduleRules.visibleLessons(state).map { it.subject })
     }
 
     @Test
@@ -73,20 +74,24 @@ class SchedulePresentationLogicTest {
     fun `date and day guards reject unrelated lesson slots`() {
         val today = LocalDate.now()
 
-        assertFalse(
-            isCurrentLessonSlot(
+        assertEquals(
+            null,
+            ScheduleRules.currentLesson(
+                lessons = listOf(lesson(ScheduleDay.MONDAY, "00.00-23.59", WeekType.ALL, "Past")),
                 date = today.minusDays(1),
                 selectedDay = dayOfWeekToScheduleDay(today.dayOfWeek),
                 isDateMode = true,
-                timeRange = "00.00-23.59",
+                now = today.atTime(12, 0),
             ),
         )
-        assertFalse(
-            isFutureLessonSlot(
+        assertEquals(
+            null,
+            ScheduleRules.nextLesson(
+                lessons = listOf(lesson(ScheduleDay.MONDAY, "23.59-23.59", WeekType.ALL, "Past")),
                 date = today.minusDays(1),
                 selectedDay = dayOfWeekToScheduleDay(today.dayOfWeek),
                 isDateMode = true,
-                timeRange = "23.59-23.59",
+                now = today.atTime(12, 0),
             ),
         )
     }
@@ -95,8 +100,8 @@ class SchedulePresentationLogicTest {
     fun `day mapping and week mismatch rules stay explicit`() {
         assertEquals(ScheduleDay.MONDAY, dayOfWeekToScheduleDay(DayOfWeek.MONDAY))
         assertEquals(ScheduleDay.SUNDAY, dayOfWeekToScheduleDay(DayOfWeek.SUNDAY))
-        assertTrue(isWeekMismatchWarningNeeded(WeekFilter.LOWER, WeekType.UPPER))
-        assertFalse(isWeekMismatchWarningNeeded(WeekFilter.ALL, WeekType.UPPER))
+        assertTrue(ScheduleRules.isWeekMismatch(WeekFilter.LOWER, WeekType.UPPER))
+        assertFalse(ScheduleRules.isWeekMismatch(WeekFilter.ALL, WeekType.UPPER))
     }
 
     @Test

@@ -414,7 +414,7 @@ private fun ScheduleState(
     var editingNoteId by remember { mutableStateOf<String?>(null) }
     var showNotesDialog by remember { mutableStateOf(false) }
 
-    val filteredLessons = filterLessons(state)
+    val filteredLessons = ScheduleRules.visibleLessons(state)
     val timeSlots = buildTimeSlots(filteredLessons)
     val activeGroup = state.selectedGroup?.groupName
     val notesForGroup = state.notes.filter { activeGroup.isNullOrBlank() || it.groupName == activeGroup }
@@ -427,19 +427,18 @@ private fun ScheduleState(
     val dayIndex = state.availableDays.indexOf(state.selectedDay).takeIf { it >= 0 } ?: 0
     val canGoPrev = if (state.mode == ScheduleMode.BY_DAY) dayIndex > 0 else true
     val canGoNext = if (state.mode == ScheduleMode.BY_DAY) dayIndex < state.availableDays.lastIndex else true
-    val currentLesson = filteredLessons.firstOrNull {
-        isCurrentLessonSlot(
-            state.selectedDate,
-            state.selectedDay,
-            state.mode == ScheduleMode.BY_DATE,
-            it.timeRange,
-        )
-    }
-    val nextLesson = filteredLessons
-        .filter {
-            isFutureLessonSlot(state.selectedDate, state.selectedDay, state.mode == ScheduleMode.BY_DATE, it.timeRange)
-        }
-        .minByOrNull { lessonSortKey(it.timeRange) }
+    val currentLesson = ScheduleRules.currentLesson(
+        lessons = filteredLessons,
+        date = state.selectedDate,
+        selectedDay = state.selectedDay,
+        isDateMode = state.mode == ScheduleMode.BY_DATE,
+    )
+    val nextLesson = ScheduleRules.nextLesson(
+        lessons = filteredLessons,
+        date = state.selectedDate,
+        selectedDay = state.selectedDay,
+        isDateMode = state.mode == ScheduleMode.BY_DATE,
+    )
 
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
@@ -556,7 +555,7 @@ private fun ScheduleState(
             lesson = lesson,
             note = note,
             canEdit =
-            state.mode == ScheduleMode.BY_DATE && isLessonEditableNowOrFuture(state.selectedDate, lesson.timeRange),
+            state.mode == ScheduleMode.BY_DATE && ScheduleRules.isEditable(state.selectedDate, lesson),
             onDismiss = { editingLesson = null },
             onSave = { text ->
                 onSaveLessonNote(lesson, text)
@@ -582,7 +581,7 @@ private fun ScheduleState(
             lesson = lesson,
             note = note,
             canEdit =
-            state.mode == ScheduleMode.BY_DATE && isLessonEditableNowOrFuture(state.selectedDate, lesson.timeRange),
+            state.mode == ScheduleMode.BY_DATE && ScheduleRules.isEditable(state.selectedDate, lesson),
             onDismiss = { reminderLesson = null },
             onSave = { enabled, minutes ->
                 onSetLessonReminder(lesson, enabled, minutes)
