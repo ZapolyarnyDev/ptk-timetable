@@ -635,7 +635,7 @@ class ScheduleViewModel(
                     runCatching { preferencesStore.setLastSelectedGroupName(group.groupName) }
                 }
 
-                timetableRepository.getTemplatesByGroup(group.groupName, group.sourceUrl)
+                timetableRepository.getLessons(group)
             }.onSuccess { templates ->
                 loadedTemplates = templates
 

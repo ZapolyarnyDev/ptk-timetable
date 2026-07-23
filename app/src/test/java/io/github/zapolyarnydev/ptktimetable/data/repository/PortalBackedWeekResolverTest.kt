@@ -1,5 +1,6 @@
 package io.github.zapolyarnydev.ptktimetable.data.repository
 
+import io.github.zapolyarnydev.ptktimetable.data.remote.NovsuScheduleDataSource
 import io.github.zapolyarnydev.ptktimetable.data.remote.xls.NovsuRawLesson
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.Group
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekSource
@@ -21,7 +22,7 @@ class PortalBackedWeekResolverTest {
     fun `resolve uses portal parity relative to current week`() = runBlocking {
         val clock = Clock.fixed(Instant.parse("2026-03-16T00:00:00Z"), ZoneOffset.UTC)
         val resolver = PortalBackedWeekResolver(
-            scheduleRepository = FakeScheduleRepository(WeekType.UPPER),
+            scheduleDataSource = FakeScheduleDataSource(WeekType.UPPER),
             clock = clock,
         )
 
@@ -38,7 +39,7 @@ class PortalBackedWeekResolverTest {
     @Test
     fun `resolve falls back to local rule when portal week unknown`() = runBlocking {
         val resolver = PortalBackedWeekResolver(
-            scheduleRepository = FakeScheduleRepository(null),
+            scheduleDataSource = FakeScheduleDataSource(null),
             clock = Clock.fixed(Instant.parse("2026-03-16T00:00:00Z"), ZoneOffset.UTC),
             fallbackReferenceDate = LocalDate.of(2026, 3, 16),
             fallbackReferenceIsUpper = true,
@@ -50,11 +51,11 @@ class PortalBackedWeekResolverTest {
         assertNotNull(info.isUpper)
     }
 
-    private class FakeScheduleRepository(private val currentWeekType: WeekType?) : ScheduleRepository {
+    private class FakeScheduleDataSource(private val currentWeekType: WeekType?) : NovsuScheduleDataSource {
 
         override suspend fun getGroups(): List<Group> = emptyList()
 
-        override suspend fun getScheduleForGroup(groupName: String): List<NovsuRawLesson> = emptyList()
+        override suspend fun getScheduleForGroup(groupName: String, xlsUrl: String): List<NovsuRawLesson> = emptyList()
 
         override suspend fun getCurrentWeekType(): WeekType? = currentWeekType
 

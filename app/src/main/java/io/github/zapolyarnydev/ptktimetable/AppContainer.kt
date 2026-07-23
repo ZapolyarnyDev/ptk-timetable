@@ -6,13 +6,13 @@ import io.github.zapolyarnydev.ptktimetable.data.local.UserPreferencesStore
 import io.github.zapolyarnydev.ptktimetable.data.mapper.NovsuLessonMapper
 import io.github.zapolyarnydev.ptktimetable.data.normalize.LessonTextNormalizer
 import io.github.zapolyarnydev.ptktimetable.data.notification.LessonReminderScheduler
+import io.github.zapolyarnydev.ptktimetable.data.remote.NovsuScheduleRemoteDataSource
 import io.github.zapolyarnydev.ptktimetable.data.remote.html.PtkCurrentWeekHtmlParser
 import io.github.zapolyarnydev.ptktimetable.data.remote.html.PtkGroupsHtmlParser
 import io.github.zapolyarnydev.ptktimetable.data.remote.service.PortalServiceImpl
 import io.github.zapolyarnydev.ptktimetable.data.remote.xls.PtkXlsScheduleParser
-import io.github.zapolyarnydev.ptktimetable.data.repository.DomainTimetableRepositoryAdapter
+import io.github.zapolyarnydev.ptktimetable.data.repository.DefaultTimetableRepository
 import io.github.zapolyarnydev.ptktimetable.data.repository.PortalBackedWeekResolver
-import io.github.zapolyarnydev.ptktimetable.data.repository.PtkScheduleRepository
 import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleViewModelFactory
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
@@ -23,7 +23,7 @@ class AppContainer(context: Context) {
     private val httpClient by lazy { HttpClient(OkHttp) }
     private val portalService by lazy { PortalServiceImpl(httpClient) }
     private val sourceRepository by lazy {
-        PtkScheduleRepository(
+        NovsuScheduleRemoteDataSource(
             portalService = portalService,
             groupsHtmlParser = PtkGroupsHtmlParser(),
             currentWeekHtmlParser = PtkCurrentWeekHtmlParser(),
@@ -32,9 +32,8 @@ class AppContainer(context: Context) {
     }
     private val weekResolver by lazy { PortalBackedWeekResolver(sourceRepository) }
     private val timetableRepository by lazy {
-        DomainTimetableRepositoryAdapter(
-            scheduleRepository = sourceRepository,
-            weekResolver = weekResolver,
+        DefaultTimetableRepository(
+            remoteDataSource = sourceRepository,
             lessonMapper = NovsuLessonMapper(LessonTextNormalizer()),
         )
     }

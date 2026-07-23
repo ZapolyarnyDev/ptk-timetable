@@ -1,5 +1,6 @@
 package io.github.zapolyarnydev.ptktimetable.data.repository
 
+import io.github.zapolyarnydev.ptktimetable.data.remote.NovsuScheduleDataSource
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekInfo
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekSource
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekType
@@ -12,14 +13,14 @@ import java.time.temporal.TemporalAdjusters
 import kotlin.math.abs
 
 class PortalBackedWeekResolver(
-    private val scheduleRepository: ScheduleRepository,
+    private val scheduleDataSource: NovsuScheduleDataSource,
     private val clock: Clock = Clock.systemDefaultZone(),
     private val fallbackReferenceDate: LocalDate = LocalDate.of(2025, 9, 1),
     private val fallbackReferenceIsUpper: Boolean = true,
 ) : WeekResolver {
 
     override suspend fun resolve(date: LocalDate): WeekInfo {
-        val weekForDate = runCatching { scheduleRepository.getWeekTypeForDate(date) }
+        val weekForDate = runCatching { scheduleDataSource.getWeekTypeForDate(date) }
             .getOrNull()
 
         when (weekForDate) {
@@ -42,7 +43,7 @@ class PortalBackedWeekResolver(
             WeekType.ALL, null -> Unit
         }
 
-        val currentType = runCatching { scheduleRepository.getCurrentWeekType() }
+        val currentType = runCatching { scheduleDataSource.getCurrentWeekType() }
             .getOrNull()
 
         return when (currentType) {
