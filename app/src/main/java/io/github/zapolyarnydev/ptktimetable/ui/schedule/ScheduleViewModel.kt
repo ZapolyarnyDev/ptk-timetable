@@ -527,7 +527,7 @@ class ScheduleViewModel(
                     val lastSelectedGroupName = runCatching {
                         preferencesStore.getLastSelectedGroupName()
                     }.getOrNull()?.trim().orEmpty()
-                    groups.firstOrNull { it.groupName == lastSelectedGroupName }
+                    findRestoredGroup(groups, lastSelectedGroupName)
                 } else {
                     null
                 }
@@ -1017,6 +1017,12 @@ class ScheduleViewModel(
         val TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("H.mm")
         val DATE_TITLE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
     }
+}
+
+internal fun findRestoredGroup(groups: List<PtkGroupInfo>, savedGroupName: String?): PtkGroupInfo? {
+    val normalized = savedGroupName?.trim().orEmpty()
+    if (normalized.isBlank()) return null
+    return groups.firstOrNull { it.groupName.trim().equals(normalized, ignoreCase = true) }
 }
 
 class ScheduleViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
