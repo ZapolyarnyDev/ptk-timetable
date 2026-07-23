@@ -7,7 +7,7 @@ import org.apache.poi.ss.usermodel.Sheet
 internal class PtkLessonSlotInterpreter(private val reader: XlsSheetReader) {
 
     fun read(sheet: Sheet, lessonColumn: Int, rowIndex: Int, nextTimeRow: Int): List<Pair<String, WeekType>> {
-        val rawSegments = buildList {
+        val rawSegments = buildList<RowSegment> {
             for (lessonRow in rowIndex until nextTimeRow) {
                 val rawText = reader.text(sheet, lessonRow, lessonColumn)
                 val text = normalize(rawText)
