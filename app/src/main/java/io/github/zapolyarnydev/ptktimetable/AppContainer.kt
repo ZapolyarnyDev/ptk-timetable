@@ -5,7 +5,9 @@ import androidx.room.Room
 import io.github.zapolyarnydev.ptktimetable.data.local.LessonNotesStore
 import io.github.zapolyarnydev.ptktimetable.data.local.UserPreferencesStore
 import io.github.zapolyarnydev.ptktimetable.data.local.database.AppDatabase
+import io.github.zapolyarnydev.ptktimetable.data.local.schedule.RoomScheduleLocalDataSource
 import io.github.zapolyarnydev.ptktimetable.data.mapper.NovsuLessonMapper
+import io.github.zapolyarnydev.ptktimetable.data.mapper.RoomScheduleMapper
 import io.github.zapolyarnydev.ptktimetable.data.normalize.LessonTextNormalizer
 import io.github.zapolyarnydev.ptktimetable.data.notification.LessonReminderScheduler
 import io.github.zapolyarnydev.ptktimetable.data.remote.NovsuScheduleRemoteDataSource
@@ -43,6 +45,10 @@ class AppContainer(context: Context) {
     private val timetableRepository by lazy {
         DefaultTimetableRepository(
             remoteDataSource = sourceRepository,
+            localDataSource = RoomScheduleLocalDataSource(
+                database = database,
+                mapper = RoomScheduleMapper(),
+            ),
             lessonMapper = NovsuLessonMapper(LessonTextNormalizer()),
         )
     }
@@ -51,7 +57,6 @@ class AppContainer(context: Context) {
     private val reminderScheduler by lazy { LessonReminderScheduler(applicationContext) }
 
     val scheduleViewModelFactory by lazy {
-        database
         ScheduleViewModelFactory(
             timetableRepository = timetableRepository,
             weekResolver = weekResolver,
