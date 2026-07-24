@@ -1,8 +1,10 @@
 package io.github.zapolyarnydev.ptktimetable
 
 import android.content.Context
+import androidx.room.Room
 import io.github.zapolyarnydev.ptktimetable.data.local.LessonNotesStore
 import io.github.zapolyarnydev.ptktimetable.data.local.UserPreferencesStore
+import io.github.zapolyarnydev.ptktimetable.data.local.database.AppDatabase
 import io.github.zapolyarnydev.ptktimetable.data.mapper.NovsuLessonMapper
 import io.github.zapolyarnydev.ptktimetable.data.normalize.LessonTextNormalizer
 import io.github.zapolyarnydev.ptktimetable.data.notification.LessonReminderScheduler
@@ -20,6 +22,13 @@ import io.ktor.client.engine.okhttp.OkHttp
 class AppContainer(context: Context) {
 
     private val applicationContext = context.applicationContext
+    private val database by lazy {
+        Room.databaseBuilder(
+            applicationContext,
+            AppDatabase::class.java,
+            DATABASE_NAME,
+        ).build()
+    }
     private val httpClient by lazy { HttpClient(OkHttp) }
     private val portalService by lazy { PortalServiceImpl(httpClient) }
     private val sourceRepository by lazy {
@@ -42,6 +51,7 @@ class AppContainer(context: Context) {
     private val reminderScheduler by lazy { LessonReminderScheduler(applicationContext) }
 
     val scheduleViewModelFactory by lazy {
+        database
         ScheduleViewModelFactory(
             timetableRepository = timetableRepository,
             weekResolver = weekResolver,
@@ -49,5 +59,9 @@ class AppContainer(context: Context) {
             notesStore = notesStore,
             reminderScheduler = reminderScheduler,
         )
+    }
+
+    private companion object {
+        const val DATABASE_NAME = "ptk_timetable.db"
     }
 }
