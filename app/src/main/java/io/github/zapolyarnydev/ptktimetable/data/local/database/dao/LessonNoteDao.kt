@@ -36,6 +36,27 @@ interface LessonNoteDao {
     @Query("SELECT * FROM lesson_notes WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): LessonNoteEntity?
 
+    @Query(
+        """
+        SELECT * FROM lesson_notes
+        WHERE groupName = :groupName
+            AND dateEpochDay = :dateEpochDay
+            AND startMinute = :startMinute
+            AND endMinute = :endMinute
+            AND weekType = :weekType
+            AND rawText = :rawText
+        LIMIT 1
+        """,
+    )
+    suspend fun findForLesson(
+        groupName: String,
+        dateEpochDay: Long,
+        startMinute: Int,
+        endMinute: Int,
+        weekType: String,
+        rawText: String,
+    ): LessonNoteEntity?
+
     @Upsert
     suspend fun upsert(note: LessonNoteEntity)
 

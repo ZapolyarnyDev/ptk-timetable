@@ -53,7 +53,7 @@ class AppContainer(context: Context) {
         )
     }
     private val preferencesStore by lazy { UserPreferencesStore(applicationContext) }
-    private val notesStore by lazy { LessonNotesStore(applicationContext) }
+    private val notesStore by lazy { LessonNotesStore(database.lessonNoteDao()) }
     private val reminderScheduler by lazy { LessonReminderScheduler(applicationContext) }
 
     val scheduleViewModelFactory by lazy {

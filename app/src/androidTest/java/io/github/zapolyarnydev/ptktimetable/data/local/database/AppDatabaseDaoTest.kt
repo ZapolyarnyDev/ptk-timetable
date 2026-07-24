@@ -4,10 +4,13 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import io.github.zapolyarnydev.ptktimetable.data.local.LessonNote
+import io.github.zapolyarnydev.ptktimetable.data.local.LessonNotesStore
 import io.github.zapolyarnydev.ptktimetable.data.local.database.entity.GroupEntity
 import io.github.zapolyarnydev.ptktimetable.data.local.database.entity.LessonNoteEntity
 import io.github.zapolyarnydev.ptktimetable.data.local.database.entity.LessonTemplateEntity
 import io.github.zapolyarnydev.ptktimetable.data.local.database.entity.SyncMetadataEntity
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekType
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -16,6 +19,9 @@ import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.time.LocalDate
+import java.time.LocalTime
+import java.util.UUID
 
 @RunWith(AndroidJUnit4::class)
 class AppDatabaseDaoTest {
@@ -79,6 +85,46 @@ class AppDatabaseDaoTest {
         assertEquals(
             listOf(target),
             database.lessonNoteDao().getByGroupAndDate("ISP-1", 20L),
+        )
+    }
+
+    @Test
+    fun notesStoreUsesUuidAndFindsLessonSlot() = runBlocking {
+        val store = LessonNotesStore(database.lessonNoteDao())
+        val id = store.newId()
+        val date = LocalDate.of(2026, 7, 24)
+        val note = LessonNote(
+            id = id,
+            groupName = "ISP-1",
+            date = date,
+            startTime = LocalTime.of(8, 30),
+            endTime = LocalTime.of(10, 10),
+            weekType = WeekType.ALL,
+            subject = "Math",
+            teacher = null,
+            classroom = "101",
+            rawText = "Math 101",
+            noteText = "Read",
+            reminderEnabled = false,
+            reminderMinutes = null,
+            remindAtEpochMillis = null,
+            createdAtEpochMillis = 100L,
+        )
+
+        store.upsert(note)
+
+        assertEquals(id, UUID.fromString(id).toString())
+        assertEquals(listOf(note), store.getByGroupAndDate("ISP-1", date))
+        assertEquals(
+            note,
+            store.findForLesson(
+                groupName = "ISP-1",
+                date = date,
+                startTime = note.startTime,
+                endTime = note.endTime,
+                weekType = note.weekType,
+                rawText = note.rawText,
+            ),
         )
     }
 
