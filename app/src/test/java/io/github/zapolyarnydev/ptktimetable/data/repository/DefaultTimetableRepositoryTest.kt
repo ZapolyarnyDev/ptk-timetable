@@ -82,7 +82,9 @@ class DefaultTimetableRepositoryTest {
 
         repository.refreshGroups()
 
-        assertEquals(listOf(group), repository.observeGroups().first().data)
+        val cached = repository.observeGroups().first()
+        assertEquals(listOf(group), cached.data)
+        assertEquals(Instant.now(fixedClock), cached.updatedAt)
     }
 
     @Test
@@ -97,9 +99,11 @@ class DefaultTimetableRepositoryTest {
         )
 
         val result = runCatching { repository.refreshLessons(group) }
+        val cached = repository.observeLessons(group.groupName).first()
 
         assertTrue(result.isFailure)
-        assertEquals(listOf(cachedLesson), repository.observeLessons(group.groupName).first().data)
+        assertEquals(listOf(cachedLesson), cached.data)
+        assertEquals(Instant.EPOCH, cached.updatedAt)
     }
 
     @Test

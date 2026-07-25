@@ -166,8 +166,8 @@ private fun ScheduleScreenContent(
                 }
             }
 
-            if (state.isLoading && state.groups.isNotEmpty()) LoadingOverlay()
-            if (state.isLoading && state.groups.isEmpty() && state.courses.isEmpty()) InitialLoadingState()
+            if (state.isRefreshing) RefreshingIndicator()
+            if (state.isInitialLoading) InitialLoadingState()
         }
     }
 }
@@ -200,12 +200,12 @@ private fun InitialLoadingState() {
 }
 
 @Composable
-private fun LoadingOverlay() {
+private fun RefreshingIndicator() {
     Box(
-        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.35f)),
-        contentAlignment = Alignment.Center,
+        Modifier.fillMaxSize().padding(top = AppDimensions.screenVerticalPadding),
+        contentAlignment = Alignment.TopCenter,
     ) {
-        Surface(shape = AppShapes.large, color = MaterialTheme.colorScheme.surface, tonalElevation = 4.dp) {
+        Surface(shape = AppShapes.large, color = MaterialTheme.colorScheme.surface, shadowElevation = 4.dp) {
             Row(
                 modifier = Modifier.padding(horizontal = 22.dp, vertical = 17.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -247,13 +247,13 @@ private fun CourseSelectionState(
                 actionIcon = AppIcons.refresh,
                 onAction = onRefresh,
                 updatedAt = state.groupsUpdatedAt?.let(::formatInstant),
-                errorMessage = state.errorMessage,
+                errorMessage = syncMessage(state),
                 onErrorAction = onRetry,
             )
         }
         item {
             when {
-                state.isLoading && state.courses.isEmpty() -> SelectionListSkeleton(rows = 4)
+                state.isInitialLoading && state.courses.isEmpty() -> SelectionListSkeleton(rows = 4)
 
                 state.courses.isEmpty() -> EmptyStateBlock("Курсы не найдены. Обновите список и попробуйте ещё раз.")
 
@@ -302,12 +302,12 @@ private fun GroupSelectionState(
                 secondaryText = "К курсам",
                 onSecondary = onBackToCourses,
                 updatedAt = state.groupsUpdatedAt?.let(::formatInstant),
-                errorMessage = state.errorMessage,
+                errorMessage = syncMessage(state),
             )
         }
         item {
             when {
-                state.isLoading && state.courseGroups.isEmpty() -> SelectionListSkeleton(rows = 6)
+                state.isInitialLoading && state.courseGroups.isEmpty() -> SelectionListSkeleton(rows = 6)
 
                 state.courseGroups.isEmpty() -> EmptyStateBlock("Для выбранного курса группы не найдены.")
 
@@ -479,7 +479,7 @@ private fun ScheduleState(
                         courseTitle = state.selectedCourse?.title,
                         onBack = onBackToGroups,
                         onRefresh = onRefresh,
-                        errorMessage = state.errorMessage,
+                        errorMessage = syncMessage(state),
                     )
                 }
             }
@@ -493,7 +493,7 @@ private fun ScheduleState(
             item {
                 Box(Modifier.padding(horizontal = AppDimensions.screenHorizontalPadding)) {
                     when {
-                        state.isLoading && state.lessons.isEmpty() -> LessonTableSkeleton()
+                        state.isInitialLoading && state.lessons.isEmpty() -> LessonTableSkeleton()
 
                         timeSlots.isEmpty() -> EmptyStateBlock(
                             if (state.lessons.isEmpty()) "Занятий не найдено" else "На выбранный день и неделю пар нет",
@@ -677,5 +677,15 @@ private fun StatusCard(
                 )
             }
         }
+    }
+}
+
+private fun syncMessage(state: ScheduleUiState): String? {
+    state.errorMessage?.let { return it }
+    val syncError = state.syncError ?: return null
+    return if (state.isOffline) {
+        "Офлайн. Показаны сохранённые данные. $syncError"
+    } else {
+        syncError
     }
 }

@@ -88,7 +88,11 @@ data class ScheduleNoteItem(
 )
 
 data class ScheduleUiState(
-    val isLoading: Boolean = false,
+    val isInitialLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
+    val syncError: String? = null,
+    val hasCachedData: Boolean = false,
+    val isOffline: Boolean = false,
     val step: ScheduleStep = ScheduleStep.COURSE_SELECTION,
     val groups: List<Group> = emptyList(),
     val courses: List<CourseItem> = emptyList(),
@@ -121,7 +125,7 @@ class ScheduleViewModel(
 
     private val _state = MutableStateFlow(
         ScheduleUiState(
-            isLoading = true,
+            isInitialLoading = true,
             selectedDate = todayProvider(),
         ),
     )
@@ -447,7 +451,17 @@ class ScheduleViewModel(
         val previous = state.value
         catalogJob?.cancel()
         catalogJob = viewModelScope.launch(Dispatchers.IO) {
-            _state.update { it.copy(isLoading = true, errorMessage = null) }
+            _state.update {
+                val hasCache = it.groups.isNotEmpty()
+                it.copy(
+                    isInitialLoading = !hasCache,
+                    isRefreshing = hasCache,
+                    syncError = null,
+                    hasCachedData = hasCache,
+                    isOffline = false,
+                    errorMessage = null,
+                )
+            }
 
             val savedGroupName = if (restoreLastSelectedGroupOnLaunch) {
                 runCatching { preferencesStore.getLastSelectedGroupName() }
@@ -506,14 +520,23 @@ class ScheduleViewModel(
                 }
 
                 if (activeGroup == null) {
-                    _state.update { it.copy(isLoading = false) }
+                    _state.update {
+                        it.copy(
+                            isInitialLoading = false,
+                            isRefreshing = false,
+                        )
+                    }
                 }
             } catch (error: Throwable) {
                 if (error is CancellationException) throw error
                 _state.update {
+                    val hasCache = it.groups.isNotEmpty()
                     it.copy(
-                        isLoading = false,
-                        errorMessage = error.message ?: "Не удалось загрузить список групп",
+                        isInitialLoading = false,
+                        isRefreshing = false,
+                        syncError = error.message ?: "Не удалось обновить список групп",
+                        hasCachedData = hasCache,
+                        isOffline = hasCache,
                     )
                 }
             }
@@ -526,8 +549,13 @@ class ScheduleViewModel(
         lessonsJob?.cancel()
         lessonsJob = viewModelScope.launch(Dispatchers.IO) {
             _state.update {
+                val hasCache = sameGroup && it.lessons.isNotEmpty()
                 it.copy(
-                    isLoading = true,
+                    isInitialLoading = !hasCache,
+                    isRefreshing = hasCache,
+                    syncError = null,
+                    hasCachedData = hasCache,
+                    isOffline = false,
                     step = ScheduleStep.SCHEDULE,
                     selectedGroup = group,
                     lessons = if (sameGroup) it.lessons else emptyList(),
@@ -548,7 +576,7 @@ class ScheduleViewModel(
                     group = group,
                     beforeLoading = beforeLoading,
                     preserveUiSelection = preserveUiSelection,
-                    isLoading = true,
+                    isRefreshInProgress = true,
                 )
 
                 timetableRepository.refreshLessons(group)
@@ -558,7 +586,7 @@ class ScheduleViewModel(
                     group = group,
                     beforeLoading = beforeLoading,
                     preserveUiSelection = preserveUiSelection,
-                    isLoading = false,
+                    isRefreshInProgress = false,
                 )
             } catch (error: Throwable) {
                 if (error is CancellationException) throw error
@@ -566,9 +594,13 @@ class ScheduleViewModel(
                     if (!it.selectedGroup?.groupName.equals(group.groupName, ignoreCase = true)) {
                         it
                     } else {
+                        val hasCache = it.lessons.isNotEmpty()
                         it.copy(
-                            isLoading = false,
-                            errorMessage = error.message ?: "Не удалось обновить расписание",
+                            isInitialLoading = false,
+                            isRefreshing = false,
+                            syncError = error.message ?: "Не удалось обновить расписание",
+                            hasCachedData = hasCache,
+                            isOffline = hasCache,
                         )
                     }
                 }
@@ -605,10 +637,15 @@ class ScheduleViewModel(
             groups.filter { it.course == selected.course }.sortedBy { it.groupName }
         }.orEmpty()
         val sameGroup = selectedGroup?.groupName.equals(previous.selectedGroup?.groupName, ignoreCase = true)
+        val hasCache = groups.isNotEmpty()
 
         _state.update {
             it.copy(
-                isLoading = true,
+                isInitialLoading = !hasCache,
+                isRefreshing = hasCache,
+                syncError = null,
+                hasCachedData = hasCache,
+                isOffline = false,
                 step = if (selectedGroup != null) {
                     ScheduleStep.SCHEDULE
                 } else if (selectedCourse != null) {
@@ -639,7 +676,7 @@ class ScheduleViewModel(
         group: Group,
         beforeLoading: ScheduleUiState,
         preserveUiSelection: Boolean,
-        isLoading: Boolean,
+        isRefreshInProgress: Boolean,
     ) {
         if (!state.value.selectedGroup?.groupName.equals(group.groupName, ignoreCase = true)) return
 
@@ -681,13 +718,18 @@ class ScheduleViewModel(
         } else {
             allLessons
         }
+        val hasCache = snapshot.data.isNotEmpty()
 
         _state.update {
             if (!it.selectedGroup?.groupName.equals(group.groupName, ignoreCase = true)) {
                 it
             } else {
                 it.copy(
-                    isLoading = isLoading,
+                    isInitialLoading = isRefreshInProgress && !hasCache,
+                    isRefreshing = isRefreshInProgress && hasCache,
+                    syncError = null,
+                    hasCachedData = hasCache,
+                    isOffline = false,
                     step = ScheduleStep.SCHEDULE,
                     selectedGroup = group,
                     selectedDate = selectedDate,
