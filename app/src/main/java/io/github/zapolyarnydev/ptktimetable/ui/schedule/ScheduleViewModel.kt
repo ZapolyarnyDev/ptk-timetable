@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import io.github.zapolyarnydev.ptktimetable.data.local.LessonNote
 import io.github.zapolyarnydev.ptktimetable.data.local.LessonNotesStore
 import io.github.zapolyarnydev.ptktimetable.data.local.UserPreferencesStore
-import io.github.zapolyarnydev.ptktimetable.data.notification.LessonReminderScheduler
+import io.github.zapolyarnydev.ptktimetable.data.notification.LessonReminderWorkflow
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.CachedData
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.Group
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.Lesson
@@ -114,7 +114,7 @@ class ScheduleViewModel(
     private val weekResolver: WeekResolver,
     private val preferencesStore: UserPreferencesStore,
     private val notesStore: LessonNotesStore,
-    private val reminderScheduler: LessonReminderScheduler,
+    private val reminderWorkflow: LessonReminderWorkflow,
     private val nowProvider: () -> Instant = { Instant.now() },
     private val todayProvider: () -> LocalDate = { LocalDate.now() },
 ) : ViewModel() {
@@ -302,18 +302,14 @@ class ScheduleViewModel(
                     classroom = lesson.classroom,
                     rawText = lesson.rawText,
                     noteText = trimmedText,
+                    reminderId = existing?.reminderId,
                     reminderEnabled = existing?.reminderEnabled == true,
                     reminderMinutes = existing?.reminderMinutes,
                     remindAtEpochMillis = existing?.remindAtEpochMillis,
                     createdAtEpochMillis = existing?.createdAtEpochMillis ?: nowMillis,
                 )
 
-                notesStore.upsert(note)
-                if (note.reminderEnabled && note.remindAtEpochMillis != null && note.remindAtEpochMillis > nowMillis) {
-                    scheduleReminder(note = note, lesson = lesson)
-                } else {
-                    reminderScheduler.cancel(note.id)
-                }
+                notesStore.upsert(reminderWorkflow.reschedule(note))
 
                 refreshNotesInternal()
                 _state.update { it.copy(errorMessage = null) }
@@ -338,25 +334,7 @@ class ScheduleViewModel(
             runCatching {
                 val nowMillis = nowProvider().toEpochMilli()
                 val existing = findNoteForLesson(group.groupName, date, lesson)
-                val startDateTime = parseLessonStartDateTime(date, lesson.startTime)
-                val remindAtMillis = if (enabled) {
-                    startDateTime
-                        .minusMinutes(reminderMinutes.toLong())
-                        .atZone(ZoneId.systemDefault())
-                        .toInstant()
-                        .toEpochMilli()
-                } else {
-                    null
-                }
-
-                if (enabled && (remindAtMillis == null || remindAtMillis <= nowMillis)) {
-                    _state.update {
-                        it.copy(errorMessage = "Слишком поздно для уведомления, увеличьте время напоминания")
-                    }
-                    return@runCatching
-                }
-
-                val updated = LessonNote(
+                val baseNote = LessonNote(
                     id = existing?.id ?: notesStore.newId(),
                     groupName = group.groupName,
                     date = date,
@@ -368,19 +346,20 @@ class ScheduleViewModel(
                     classroom = lesson.classroom,
                     rawText = lesson.rawText,
                     noteText = existing?.noteText.orEmpty(),
-                    reminderEnabled = enabled,
-                    reminderMinutes = reminderMinutes.takeIf { enabled },
-                    remindAtEpochMillis = remindAtMillis?.takeIf { enabled },
+                    reminderId = existing?.reminderId,
+                    reminderEnabled = existing?.reminderEnabled == true,
+                    reminderMinutes = existing?.reminderMinutes,
+                    remindAtEpochMillis = existing?.remindAtEpochMillis,
                     createdAtEpochMillis = existing?.createdAtEpochMillis ?: nowMillis,
                 )
-
-                notesStore.upsert(updated)
-
-                if (enabled && updated.remindAtEpochMillis != null) {
-                    scheduleReminder(note = updated, lesson = lesson)
+                val updated = if (!enabled) {
+                    reminderWorkflow.cancel(baseNote)
+                } else if (existing?.reminderEnabled == true) {
+                    reminderWorkflow.change(baseNote, reminderMinutes)
                 } else {
-                    reminderScheduler.cancel(updated.id)
+                    reminderWorkflow.create(baseNote, reminderMinutes)
                 }
+                notesStore.upsert(updated)
 
                 refreshNotesInternal()
                 _state.update { it.copy(errorMessage = null) }
@@ -400,10 +379,9 @@ class ScheduleViewModel(
             runCatching {
                 val existing = findNoteForLesson(group.groupName, date, lesson)
                 if (existing != null && existing.reminderEnabled) {
-                    notesStore.upsert(existing.copy(noteText = ""))
+                    notesStore.upsert(reminderWorkflow.reschedule(existing.copy(noteText = "")))
                 } else if (existing != null) {
                     notesStore.remove(existing.id)
-                    reminderScheduler.cancel(existing.id)
                 }
                 refreshNotesInternal()
                 _state.update { it.copy(errorMessage = null) }
@@ -424,24 +402,7 @@ class ScheduleViewModel(
             runCatching {
                 val existing = notesStore.getById(noteId) ?: return@runCatching
                 val updated = existing.copy(noteText = trimmed)
-                notesStore.upsert(updated)
-
-                if (updated.reminderEnabled && updated.remindAtEpochMillis != null &&
-                    updated.remindAtEpochMillis > nowProvider().toEpochMilli()
-                ) {
-                    val lesson = ScheduleLessonItem(
-                        day = dayOfWeekToScheduleDay(updated.date.dayOfWeek),
-                        dayLabel = dayOfWeekToScheduleDay(updated.date.dayOfWeek).title,
-                        startTime = updated.startTime,
-                        endTime = updated.endTime,
-                        weekType = updated.weekType,
-                        subject = updated.subject,
-                        teacher = updated.teacher,
-                        classroom = updated.classroom,
-                        rawText = updated.rawText,
-                    )
-                    scheduleReminder(updated, lesson)
-                }
+                notesStore.upsert(reminderWorkflow.reschedule(updated))
 
                 refreshNotesInternal()
                 _state.update { it.copy(errorMessage = null) }
@@ -456,10 +417,9 @@ class ScheduleViewModel(
             runCatching {
                 val existing = notesStore.getById(noteId)
                 if (existing != null && existing.reminderEnabled) {
-                    notesStore.upsert(existing.copy(noteText = ""))
+                    notesStore.upsert(reminderWorkflow.reschedule(existing.copy(noteText = "")))
                 } else {
                     notesStore.remove(noteId)
-                    reminderScheduler.cancel(noteId)
                 }
                 refreshNotesInternal()
                 _state.update { it.copy(errorMessage = null) }
@@ -925,22 +885,6 @@ class ScheduleViewModel(
     private fun parseLessonStartDateTime(date: LocalDate, startTime: LocalTime): LocalDateTime =
         LocalDateTime.of(date, startTime)
 
-    private fun scheduleReminder(note: LessonNote, lesson: ScheduleLessonItem) {
-        val trigger = note.remindAtEpochMillis ?: return
-        reminderScheduler.schedule(
-            noteId = note.id,
-            triggerAtMillis = trigger,
-            title = "Скоро пара: ${lesson.subject.ifBlank { "занятие" }}",
-            message = buildReminderMessage(note.groupName, note.date, lesson.timeRange, note.noteText),
-        )
-    }
-
-    private fun buildReminderMessage(groupName: String, date: LocalDate, timeRange: String, noteText: String?): String {
-        val base = "Группа $groupName, $timeRange, ${date.format(DATE_TITLE_FORMATTER)}"
-        val note = noteText?.trim().orEmpty()
-        return if (note.isNotBlank()) "$base\nЗаметка: $note" else base
-    }
-
     private fun buildCourseItems(groups: List<Group>): List<CourseItem> = groups
         .groupBy { it.course }
         .map { (course, items) ->
@@ -992,10 +936,6 @@ class ScheduleViewModel(
         classroom = room,
         rawText = rawText,
     )
-
-    private companion object {
-        val DATE_TITLE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
-    }
 }
 
 internal fun findRestoredGroup(groups: List<Group>, savedGroupName: String?): Group? {
@@ -1009,7 +949,7 @@ class ScheduleViewModelFactory(
     private val weekResolver: WeekResolver,
     private val preferencesStore: UserPreferencesStore,
     private val notesStore: LessonNotesStore,
-    private val reminderScheduler: LessonReminderScheduler,
+    private val reminderWorkflow: LessonReminderWorkflow,
 ) : ViewModelProvider.Factory {
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -1020,7 +960,7 @@ class ScheduleViewModelFactory(
                 weekResolver = weekResolver,
                 preferencesStore = preferencesStore,
                 notesStore = notesStore,
-                reminderScheduler = reminderScheduler,
+                reminderWorkflow = reminderWorkflow,
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")

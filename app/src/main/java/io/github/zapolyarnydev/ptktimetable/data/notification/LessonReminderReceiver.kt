@@ -51,7 +51,11 @@ class LessonReminderReceiver : BroadcastReceiver() {
             .setContentIntent(contentIntent)
             .build()
 
-        NotificationManagerCompat.from(context).notify(noteId.hashCode(), notification)
+        try {
+            NotificationManagerCompat.from(context).notify(noteId.hashCode(), notification)
+        } catch (_: SecurityException) {
+            return
+        }
     }
 
     private fun canPostNotifications(context: Context): Boolean {

@@ -5,16 +5,18 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import io.github.zapolyarnydev.ptktimetable.domain.reminder.ReminderScheduler
+import io.github.zapolyarnydev.ptktimetable.domain.reminder.ScheduledReminder
 
-class LessonReminderScheduler(private val context: Context) {
+class LessonReminderScheduler(private val context: Context) : ReminderScheduler {
 
-    fun schedule(noteId: String, triggerAtMillis: Long, title: String, message: String) {
+    override fun schedule(reminder: ScheduledReminder) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val pendingIntent = buildPendingIntent(
             context = context,
-            noteId = noteId,
-            title = title,
-            message = message,
+            noteId = reminder.id,
+            title = reminder.title,
+            message = reminder.message,
             flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         ) ?: return
 
@@ -22,13 +24,13 @@ class LessonReminderScheduler(private val context: Context) {
             if (canUseExactAlarms(alarmManager)) {
                 alarmManager.setExactAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
-                    triggerAtMillis,
+                    reminder.triggerAtEpochMillis,
                     pendingIntent,
                 )
             } else {
                 alarmManager.setAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
-                    triggerAtMillis,
+                    reminder.triggerAtEpochMillis,
                     pendingIntent,
                 )
             }
@@ -36,18 +38,18 @@ class LessonReminderScheduler(private val context: Context) {
             runCatching {
                 alarmManager.setAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
-                    triggerAtMillis,
+                    reminder.triggerAtEpochMillis,
                     pendingIntent,
                 )
             }
         }
     }
 
-    fun cancel(noteId: String) {
+    override fun cancel(reminderId: String) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val pendingIntent = buildPendingIntent(
             context = context,
-            noteId = noteId,
+            noteId = reminderId,
             title = "",
             message = "",
             flags = PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,

@@ -5,11 +5,13 @@ import androidx.room.Room
 import io.github.zapolyarnydev.ptktimetable.data.local.LessonNotesStore
 import io.github.zapolyarnydev.ptktimetable.data.local.UserPreferencesStore
 import io.github.zapolyarnydev.ptktimetable.data.local.database.AppDatabase
+import io.github.zapolyarnydev.ptktimetable.data.local.database.MIGRATION_1_2
 import io.github.zapolyarnydev.ptktimetable.data.local.schedule.RoomScheduleLocalDataSource
 import io.github.zapolyarnydev.ptktimetable.data.mapper.NovsuLessonMapper
 import io.github.zapolyarnydev.ptktimetable.data.mapper.RoomScheduleMapper
 import io.github.zapolyarnydev.ptktimetable.data.normalize.LessonTextNormalizer
 import io.github.zapolyarnydev.ptktimetable.data.notification.LessonReminderScheduler
+import io.github.zapolyarnydev.ptktimetable.data.notification.LessonReminderWorkflow
 import io.github.zapolyarnydev.ptktimetable.data.remote.NovsuScheduleRemoteDataSource
 import io.github.zapolyarnydev.ptktimetable.data.remote.html.PtkCurrentWeekHtmlParser
 import io.github.zapolyarnydev.ptktimetable.data.remote.html.PtkGroupsHtmlParser
@@ -17,6 +19,7 @@ import io.github.zapolyarnydev.ptktimetable.data.remote.service.PortalServiceImp
 import io.github.zapolyarnydev.ptktimetable.data.remote.xls.PtkXlsScheduleParser
 import io.github.zapolyarnydev.ptktimetable.data.repository.DefaultTimetableRepository
 import io.github.zapolyarnydev.ptktimetable.data.repository.PortalBackedWeekResolver
+import io.github.zapolyarnydev.ptktimetable.domain.reminder.ReminderTimeCalculator
 import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleViewModelFactory
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
@@ -29,7 +32,7 @@ class AppContainer(context: Context) {
             applicationContext,
             AppDatabase::class.java,
             DATABASE_NAME,
-        ).build()
+        ).addMigrations(MIGRATION_1_2).build()
     }
     private val httpClient by lazy { HttpClient(OkHttp) }
     private val portalService by lazy { PortalServiceImpl(httpClient) }
@@ -55,6 +58,12 @@ class AppContainer(context: Context) {
     private val preferencesStore by lazy { UserPreferencesStore(applicationContext) }
     private val notesStore by lazy { LessonNotesStore(database.lessonNoteDao()) }
     private val reminderScheduler by lazy { LessonReminderScheduler(applicationContext) }
+    private val reminderWorkflow by lazy {
+        LessonReminderWorkflow(
+            scheduler = reminderScheduler,
+            timeCalculator = ReminderTimeCalculator(java.time.ZoneId.systemDefault()),
+        )
+    }
 
     val scheduleViewModelFactory by lazy {
         ScheduleViewModelFactory(
@@ -62,7 +71,7 @@ class AppContainer(context: Context) {
             weekResolver = weekResolver,
             preferencesStore = preferencesStore,
             notesStore = notesStore,
-            reminderScheduler = reminderScheduler,
+            reminderWorkflow = reminderWorkflow,
         )
     }
 

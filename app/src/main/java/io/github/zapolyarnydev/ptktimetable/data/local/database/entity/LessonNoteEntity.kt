@@ -23,6 +23,7 @@ data class LessonNoteEntity(
     val room: String?,
     val rawText: String,
     val noteText: String,
+    val reminderId: String?,
     val reminderEnabled: Boolean,
     val reminderMinutes: Int?,
     val remindAtEpochMillis: Long?,

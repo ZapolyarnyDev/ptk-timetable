@@ -18,7 +18,7 @@ import io.github.zapolyarnydev.ptktimetable.data.local.database.entity.SyncMetad
         SyncMetadataEntity::class,
         LessonNoteEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
