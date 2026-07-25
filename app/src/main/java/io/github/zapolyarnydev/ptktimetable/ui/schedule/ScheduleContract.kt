@@ -38,23 +38,6 @@ data class ScheduleLessonItem(
     }
 }
 
-data class ScheduleNoteItem(
-    val noteId: String,
-    val groupName: String,
-    val date: LocalDate,
-    val timeRange: String,
-    val weekType: WeekType,
-    val subject: String,
-    val teacher: String?,
-    val classroom: String?,
-    val rawText: String,
-    val noteText: String,
-    val reminderEnabled: Boolean,
-    val reminderMinutes: Int?,
-    val remindAtEpochMillis: Long?,
-    val createdAtEpochMillis: Long,
-)
-
 data class TimeSlotUi(
     val startTime: LocalTime,
     val endTime: LocalTime,
@@ -72,23 +55,12 @@ data class ScheduleDataPresentation(
     val timeSlots: List<TimeSlotUi> = emptyList(),
     val currentLesson: ScheduleLessonItem? = null,
     val nextLesson: ScheduleLessonItem? = null,
-    val noteTextMap: Map<String, ScheduleNoteItem> = emptyMap(),
-    val reminderMap: Map<String, ScheduleNoteItem> = emptyMap(),
-    val canEditDialog: Boolean = false,
-)
-
-data class ScheduleDialogState(
-    val noteLesson: ScheduleLessonItem? = null,
-    val reminderLesson: ScheduleLessonItem? = null,
-    val editingNoteId: String? = null,
-    val showNotesOverview: Boolean = false,
 )
 
 data class ScheduleDataState(
     val selectedGroup: Group?,
     val lessons: List<ScheduleLessonItem>,
     val availableDays: List<ScheduleDay>,
-    val notes: List<ScheduleNoteItem>,
     val presentation: ScheduleDataPresentation,
     val isInitialLoading: Boolean,
     val isRefreshing: Boolean,
@@ -126,18 +98,15 @@ data class ScheduleUiState(
     val weekFilter: WeekFilter = WeekFilter.ALL,
     val currentWeekType: WeekType? = null,
     val selectedDateWeekType: WeekType? = null,
-    val notes: List<ScheduleNoteItem> = emptyList(),
     val scheduleUpdatedAt: Instant? = null,
     val errorMessage: String? = null,
     val presentation: ScheduleDataPresentation = ScheduleDataPresentation(),
-    val dialogs: ScheduleDialogState = ScheduleDialogState(),
 ) {
     val data: ScheduleDataState
         get() = ScheduleDataState(
             selectedGroup = selectedGroup,
             lessons = lessons,
             availableDays = availableDays,
-            notes = notes,
             presentation = presentation,
             isInitialLoading = isInitialLoading,
             isRefreshing = isRefreshing,
@@ -187,26 +156,6 @@ sealed interface ScheduleUiAction {
     data object Today : ScheduleUiAction
 
     data class SelectWeekFilter(val filter: WeekFilter) : ScheduleUiAction
-
-    data class OpenNote(val lesson: ScheduleLessonItem) : ScheduleUiAction
-
-    data class OpenReminder(val lesson: ScheduleLessonItem) : ScheduleUiAction
-
-    data object OpenNotesOverview : ScheduleUiAction
-
-    data class EditNote(val noteId: String) : ScheduleUiAction
-
-    data object DismissDialog : ScheduleUiAction
-
-    data class SaveLessonNote(val text: String) : ScheduleUiAction
-
-    data object DeleteLessonNote : ScheduleUiAction
-
-    data class SaveReminder(val enabled: Boolean, val minutes: Int) : ScheduleUiAction
-
-    data class UpdateNote(val text: String) : ScheduleUiAction
-
-    data object DeleteNote : ScheduleUiAction
 }
 
 sealed interface ScheduleUiEvent {
@@ -225,19 +174,5 @@ internal fun buildTimeSlots(lessons: List<ScheduleLessonItem>): List<TimeSlotUi>
         )
     }
     .sortedBy { it.startTime }
-
-internal fun noteLessonKey(
-    date: LocalDate,
-    timeRange: String,
-    weekType: WeekType,
-    subject: String,
-    rawText: String,
-): String = listOf(
-    date.toString(),
-    timeRange.trim(),
-    weekType.name,
-    subject.trim(),
-    rawText.trim().hashCode().toString(),
-).joinToString("|")
 
 private fun formatTime(value: LocalTime): String = DateTimeFormatter.ofPattern("H.mm").format(value)

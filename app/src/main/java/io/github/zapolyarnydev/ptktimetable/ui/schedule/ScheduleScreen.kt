@@ -32,6 +32,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.ScheduleMode
+import io.github.zapolyarnydev.ptktimetable.feature.notes.LessonNoteDialog
+import io.github.zapolyarnydev.ptktimetable.feature.notes.NoteEditByIdDialog
+import io.github.zapolyarnydev.ptktimetable.feature.notes.NotesOverviewDialog
+import io.github.zapolyarnydev.ptktimetable.feature.notes.NotesUiAction
+import io.github.zapolyarnydev.ptktimetable.feature.notes.NotesUiState
+import io.github.zapolyarnydev.ptktimetable.feature.notes.NotesViewModel
+import io.github.zapolyarnydev.ptktimetable.feature.notes.noteLessonKey
+import io.github.zapolyarnydev.ptktimetable.feature.reminders.ReminderDialog
+import io.github.zapolyarnydev.ptktimetable.feature.reminders.rememberPermissionAwareNotesAction
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppAnimations
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppDimensions
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppIcons
@@ -39,24 +48,47 @@ import io.github.zapolyarnydev.ptktimetable.ui.theme.AppShapes
 import io.github.zapolyarnydev.ptktimetable.ui.theme.MaterialThemeAppColors
 
 @Composable
-fun ScheduleRoute(viewModel: ScheduleViewModel, onBack: () -> Unit) {
+fun ScheduleRoute(viewModel: ScheduleViewModel, notesViewModel: NotesViewModel, onBack: () -> Unit) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val notesState by notesViewModel.state.collectAsStateWithLifecycle()
+    val onNotesAction = rememberPermissionAwareNotesAction(notesViewModel::onAction)
     LaunchedEffect(viewModel, onBack) {
         viewModel.events.collect { event ->
             if (event == ScheduleUiEvent.NavigateBack) onBack()
         }
     }
-    ScheduleScreen(state = state, onAction = viewModel::onAction)
+    LaunchedEffect(state.selectedGroup?.groupName, state.selectedDate, state.mode) {
+        notesViewModel.onAction(
+            NotesUiAction.UpdateScheduleContext(
+                groupName = state.selectedGroup?.groupName,
+                selectedDate = state.selectedDate,
+                mode = state.mode,
+            ),
+        )
+    }
+    ScheduleScreen(
+        state = state,
+        notesState = notesState,
+        onAction = viewModel::onAction,
+        onNotesAction = onNotesAction,
+    )
 }
 
 @Composable
-fun ScheduleScreen(state: ScheduleUiState, onAction: (ScheduleUiAction) -> Unit) {
+fun ScheduleScreen(
+    state: ScheduleUiState,
+    notesState: NotesUiState,
+    onAction: (ScheduleUiAction) -> Unit,
+    onNotesAction: (NotesUiAction) -> Unit,
+) {
     val colors = MaterialThemeAppColors
     Scaffold(containerColor = colors.canvas) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             ScheduleState(
                 state = state,
+                notesState = notesState,
                 onAction = onAction,
+                onNotesAction = onNotesAction,
             )
 
             if (state.isRefreshing) RefreshingIndicator()
@@ -112,7 +144,12 @@ private fun RefreshingIndicator() {
 }
 
 @Composable
-private fun ScheduleState(state: ScheduleUiState, onAction: (ScheduleUiAction) -> Unit) {
+private fun ScheduleState(
+    state: ScheduleUiState,
+    notesState: NotesUiState,
+    onAction: (ScheduleUiAction) -> Unit,
+    onNotesAction: (NotesUiAction) -> Unit,
+) {
     val data = state.data
     val navigation = state.dateNavigation
     val presentation = data.presentation
@@ -157,7 +194,7 @@ private fun ScheduleState(state: ScheduleUiState, onAction: (ScheduleUiAction) -
                         courseTitle = data.selectedGroup?.courseName,
                         onBack = { onAction(ScheduleUiAction.Back) },
                         onRefresh = { onAction(ScheduleUiAction.Refresh) },
-                        errorMessage = syncMessage(state),
+                        errorMessage = notesState.errorMessage ?: syncMessage(state),
                     )
                 }
             }
@@ -191,10 +228,10 @@ private fun ScheduleState(state: ScheduleUiState, onAction: (ScheduleUiAction) -
                             isDateMode = navigation.mode == ScheduleMode.BY_DATE,
                             currentLesson = presentation.currentLesson,
                             nextLesson = presentation.nextLesson,
-                            noteMap = presentation.noteTextMap,
-                            reminderMap = presentation.reminderMap,
-                            onAddOrEditNote = { onAction(ScheduleUiAction.OpenNote(it)) },
-                            onAddOrEditReminder = { onAction(ScheduleUiAction.OpenReminder(it)) },
+                            noteMap = notesState.noteTextMap,
+                            reminderMap = notesState.reminderMap,
+                            onAddOrEditNote = { onNotesAction(NotesUiAction.OpenNote(it)) },
+                            onAddOrEditReminder = { onNotesAction(NotesUiAction.OpenReminder(it)) },
                         )
                     }
                 }
@@ -202,7 +239,7 @@ private fun ScheduleState(state: ScheduleUiState, onAction: (ScheduleUiAction) -
         }
 
         FloatingActionButton(
-            onClick = { onAction(ScheduleUiAction.OpenNotesOverview) },
+            onClick = { onNotesAction(NotesUiAction.OpenOverview) },
             modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp),
             shape = AppShapes.medium,
             containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -210,15 +247,15 @@ private fun ScheduleState(state: ScheduleUiState, onAction: (ScheduleUiAction) -
         ) { Icon(AppIcons.notes, contentDescription = "Все заметки") }
     }
 
-    if (state.dialogs.showNotesOverview) {
+    if (notesState.dialogs.showOverview) {
         NotesOverviewDialog(
-            notes = data.notes.filter { it.noteText.isNotBlank() },
-            onDismiss = { onAction(ScheduleUiAction.DismissDialog) },
-            onEdit = { onAction(ScheduleUiAction.EditNote(it)) },
+            notes = notesState.notes.filter { it.noteText.isNotBlank() },
+            onDismiss = { onNotesAction(NotesUiAction.DismissDialog) },
+            onEdit = { onNotesAction(NotesUiAction.EditNote(it)) },
         )
     }
-    state.dialogs.noteLesson?.let { lesson ->
-        val note = presentation.noteTextMap[
+    notesState.dialogs.noteLesson?.let { lesson ->
+        val note = notesState.noteTextMap[
             noteLessonKey(
                 navigation.selectedDate,
                 lesson.timeRange,
@@ -230,14 +267,14 @@ private fun ScheduleState(state: ScheduleUiState, onAction: (ScheduleUiAction) -
         LessonNoteDialog(
             lesson = lesson,
             note = note,
-            canEdit = presentation.canEditDialog,
-            onDismiss = { onAction(ScheduleUiAction.DismissDialog) },
-            onSave = { onAction(ScheduleUiAction.SaveLessonNote(it)) },
-            onDelete = { onAction(ScheduleUiAction.DeleteLessonNote) },
+            canEdit = notesState.canEditDialog,
+            onDismiss = { onNotesAction(NotesUiAction.DismissDialog) },
+            onSave = { onNotesAction(NotesUiAction.SaveLessonNote(it)) },
+            onDelete = { onNotesAction(NotesUiAction.DeleteLessonNote) },
         )
     }
-    state.dialogs.reminderLesson?.let { lesson ->
-        val note = presentation.reminderMap[
+    notesState.dialogs.reminderLesson?.let { lesson ->
+        val note = notesState.reminderMap[
             noteLessonKey(
                 navigation.selectedDate,
                 lesson.timeRange,
@@ -249,18 +286,19 @@ private fun ScheduleState(state: ScheduleUiState, onAction: (ScheduleUiAction) -
         ReminderDialog(
             lesson = lesson,
             note = note,
-            canEdit = presentation.canEditDialog,
-            onDismiss = { onAction(ScheduleUiAction.DismissDialog) },
-            onSave = { enabled, minutes -> onAction(ScheduleUiAction.SaveReminder(enabled, minutes)) },
+            canEdit = notesState.canEditDialog,
+            errorMessage = notesState.errorMessage,
+            onDismiss = { onNotesAction(NotesUiAction.DismissDialog) },
+            onSave = { enabled, minutes -> onNotesAction(NotesUiAction.SaveReminder(enabled, minutes)) },
         )
     }
-    state.dialogs.editingNoteId?.let { noteId ->
-        data.notes.firstOrNull { it.noteId == noteId }?.let { note ->
+    notesState.dialogs.editingNoteId?.let { noteId ->
+        notesState.notes.firstOrNull { it.noteId == noteId }?.let { note ->
             NoteEditByIdDialog(
                 note = note,
-                onDismiss = { onAction(ScheduleUiAction.DismissDialog) },
-                onSave = { onAction(ScheduleUiAction.UpdateNote(it)) },
-                onDelete = { onAction(ScheduleUiAction.DeleteNote) },
+                onDismiss = { onNotesAction(NotesUiAction.DismissDialog) },
+                onSave = { onNotesAction(NotesUiAction.UpdateNote(it)) },
+                onDelete = { onNotesAction(NotesUiAction.DeleteNote) },
             )
         }
     }

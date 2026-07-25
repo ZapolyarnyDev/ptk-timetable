@@ -3,10 +3,7 @@
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import io.github.zapolyarnydev.ptktimetable.data.local.LessonNote
-import io.github.zapolyarnydev.ptktimetable.data.local.LessonNotesStore
 import io.github.zapolyarnydev.ptktimetable.data.local.UserPreferencesStore
-import io.github.zapolyarnydev.ptktimetable.data.notification.LessonReminderWorkflow
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.CachedData
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.Group
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.Lesson
@@ -33,15 +30,12 @@ import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.LocalTime
 import java.time.ZoneId
 
 class ScheduleViewModel(
     private val timetableRepository: TimetableRepository,
     private val weekResolver: WeekResolver,
     private val preferencesStore: UserPreferencesStore,
-    private val notesStore: LessonNotesStore,
-    private val reminderWorkflow: LessonReminderWorkflow,
     private val nowProvider: () -> Instant = { Instant.now() },
     private val todayProvider: () -> LocalDate = { LocalDate.now() },
 ) : ViewModel() {
@@ -65,10 +59,6 @@ class ScheduleViewModel(
 
     private var loadedTemplates: List<Lesson> = emptyList()
     private var lessonsJob: Job? = null
-
-    init {
-        refreshNotes()
-    }
 
     fun onAction(action: ScheduleUiAction) {
         when (action) {
@@ -95,54 +85,6 @@ class ScheduleViewModel(
             ScheduleUiAction.Today -> goToToday()
 
             is ScheduleUiAction.SelectWeekFilter -> selectWeekFilter(action.filter)
-
-            is ScheduleUiAction.OpenNote -> updateDialogs {
-                it.copy(noteLesson = action.lesson)
-            }
-
-            is ScheduleUiAction.OpenReminder -> updateDialogs {
-                it.copy(reminderLesson = action.lesson)
-            }
-
-            ScheduleUiAction.OpenNotesOverview -> updateDialogs {
-                it.copy(showNotesOverview = true)
-            }
-
-            is ScheduleUiAction.EditNote -> updateDialogs {
-                it.copy(
-                    editingNoteId = action.noteId,
-                    showNotesOverview = false,
-                )
-            }
-
-            ScheduleUiAction.DismissDialog -> updateDialogs { ScheduleDialogState() }
-
-            is ScheduleUiAction.SaveLessonNote -> {
-                state.value.dialogs.noteLesson?.let { saveNoteForLesson(it, action.text) }
-                updateDialogs { ScheduleDialogState() }
-            }
-
-            ScheduleUiAction.DeleteLessonNote -> {
-                state.value.dialogs.noteLesson?.let(::deleteNoteForLesson)
-                updateDialogs { ScheduleDialogState() }
-            }
-
-            is ScheduleUiAction.SaveReminder -> {
-                state.value.dialogs.reminderLesson?.let {
-                    setReminderForLesson(it, action.enabled, action.minutes)
-                }
-                updateDialogs { ScheduleDialogState() }
-            }
-
-            is ScheduleUiAction.UpdateNote -> {
-                state.value.dialogs.editingNoteId?.let { updateNoteById(it, action.text) }
-                updateDialogs { ScheduleDialogState() }
-            }
-
-            ScheduleUiAction.DeleteNote -> {
-                state.value.dialogs.editingNoteId?.let(::deleteNoteById)
-                updateDialogs { ScheduleDialogState() }
-            }
         }
     }
 
@@ -222,186 +164,9 @@ class ScheduleViewModel(
         _state.update { it.copy(weekFilter = filter, errorMessage = null) }
     }
 
-    fun saveNoteForLesson(lesson: ScheduleLessonItem, noteText: String) {
-        val current = state.value
-        val group = current.selectedGroup ?: return
-        if (current.mode != ScheduleMode.BY_DATE) return
-        val date = current.selectedDate
-
-        if (!canEditNote(date, lesson.startTime)) {
-            _state.update { it.copy(errorMessage = "Заметки доступны только для текущих и будущих пар") }
-            return
-        }
-
-        val trimmedText = noteText.trim()
-        if (trimmedText.isBlank()) {
-            _state.update { it.copy(errorMessage = "Введите текст заметки") }
-            return
-        }
-
-        viewModelScope.launch(Dispatchers.IO) {
-            runCatching {
-                val nowMillis = nowProvider().toEpochMilli()
-                val existing = findNoteForLesson(group.groupName, date, lesson)
-
-                val note = LessonNote(
-                    id = existing?.id ?: notesStore.newId(),
-                    groupName = group.groupName,
-                    date = date,
-                    startTime = lesson.startTime,
-                    endTime = lesson.endTime,
-                    weekType = lesson.weekType,
-                    subject = lesson.subject,
-                    teacher = lesson.teacher,
-                    classroom = lesson.classroom,
-                    rawText = lesson.rawText,
-                    noteText = trimmedText,
-                    reminderId = existing?.reminderId,
-                    reminderEnabled = existing?.reminderEnabled == true,
-                    reminderMinutes = existing?.reminderMinutes,
-                    remindAtEpochMillis = existing?.remindAtEpochMillis,
-                    createdAtEpochMillis = existing?.createdAtEpochMillis ?: nowMillis,
-                )
-
-                notesStore.upsert(reminderWorkflow.reschedule(note))
-
-                refreshNotesInternal()
-                _state.update { it.copy(errorMessage = null) }
-            }.onFailure { error ->
-                _state.update { it.copy(errorMessage = error.message ?: "Не удалось сохранить заметку") }
-            }
-        }
-    }
-
-    fun setReminderForLesson(lesson: ScheduleLessonItem, enabled: Boolean, reminderMinutes: Int) {
-        val current = state.value
-        val group = current.selectedGroup ?: return
-        if (current.mode != ScheduleMode.BY_DATE) return
-        val date = current.selectedDate
-
-        if (!canEditNote(date, lesson.startTime)) {
-            _state.update { it.copy(errorMessage = "Нельзя ставить уведомление на прошедшую пару") }
-            return
-        }
-
-        viewModelScope.launch(Dispatchers.IO) {
-            runCatching {
-                val nowMillis = nowProvider().toEpochMilli()
-                val existing = findNoteForLesson(group.groupName, date, lesson)
-                val baseNote = LessonNote(
-                    id = existing?.id ?: notesStore.newId(),
-                    groupName = group.groupName,
-                    date = date,
-                    startTime = lesson.startTime,
-                    endTime = lesson.endTime,
-                    weekType = lesson.weekType,
-                    subject = lesson.subject,
-                    teacher = lesson.teacher,
-                    classroom = lesson.classroom,
-                    rawText = lesson.rawText,
-                    noteText = existing?.noteText.orEmpty(),
-                    reminderId = existing?.reminderId,
-                    reminderEnabled = existing?.reminderEnabled == true,
-                    reminderMinutes = existing?.reminderMinutes,
-                    remindAtEpochMillis = existing?.remindAtEpochMillis,
-                    createdAtEpochMillis = existing?.createdAtEpochMillis ?: nowMillis,
-                )
-                val updated = if (!enabled) {
-                    reminderWorkflow.cancel(baseNote)
-                } else if (existing?.reminderEnabled == true) {
-                    reminderWorkflow.change(baseNote, reminderMinutes)
-                } else {
-                    reminderWorkflow.create(baseNote, reminderMinutes)
-                }
-                notesStore.upsert(updated)
-
-                refreshNotesInternal()
-                _state.update { it.copy(errorMessage = null) }
-            }.onFailure { error ->
-                _state.update { it.copy(errorMessage = error.message ?: "Не удалось сохранить уведомление") }
-            }
-        }
-    }
-
-    fun deleteNoteForLesson(lesson: ScheduleLessonItem) {
-        val current = state.value
-        val group = current.selectedGroup ?: return
-        if (current.mode != ScheduleMode.BY_DATE) return
-        val date = current.selectedDate
-
-        viewModelScope.launch(Dispatchers.IO) {
-            runCatching {
-                val existing = findNoteForLesson(group.groupName, date, lesson)
-                if (existing != null && existing.reminderEnabled) {
-                    notesStore.upsert(reminderWorkflow.reschedule(existing.copy(noteText = "")))
-                } else if (existing != null) {
-                    notesStore.remove(existing.id)
-                }
-                refreshNotesInternal()
-                _state.update { it.copy(errorMessage = null) }
-            }.onFailure { error ->
-                _state.update { it.copy(errorMessage = error.message ?: "Не удалось удалить заметку") }
-            }
-        }
-    }
-
-    fun updateNoteById(noteId: String, newText: String) {
-        val trimmed = newText.trim()
-        if (trimmed.isBlank()) {
-            _state.update { it.copy(errorMessage = "Текст заметки не может быть пустым") }
-            return
-        }
-
-        viewModelScope.launch(Dispatchers.IO) {
-            runCatching {
-                val existing = notesStore.getById(noteId) ?: return@runCatching
-                val updated = existing.copy(noteText = trimmed)
-                notesStore.upsert(reminderWorkflow.reschedule(updated))
-
-                refreshNotesInternal()
-                _state.update { it.copy(errorMessage = null) }
-            }.onFailure { error ->
-                _state.update { it.copy(errorMessage = error.message ?: "Не удалось обновить заметку") }
-            }
-        }
-    }
-
-    fun deleteNoteById(noteId: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            runCatching {
-                val existing = notesStore.getById(noteId)
-                if (existing != null && existing.reminderEnabled) {
-                    notesStore.upsert(reminderWorkflow.reschedule(existing.copy(noteText = "")))
-                } else {
-                    notesStore.remove(noteId)
-                }
-                refreshNotesInternal()
-                _state.update { it.copy(errorMessage = null) }
-            }.onFailure { error ->
-                _state.update { it.copy(errorMessage = error.message ?: "Не удалось удалить заметку") }
-            }
-        }
-    }
-
-    private fun updateDialogs(transform: (ScheduleDialogState) -> ScheduleDialogState) {
-        _state.update { it.copy(dialogs = transform(it.dialogs)) }
-    }
-
     private fun buildPresentation(raw: ScheduleUiState): ScheduleUiState {
         val visibleLessons = ScheduleRules.visibleLessons(raw)
-        val notes = raw.notes.filter {
-            raw.selectedGroup == null || it.groupName == raw.selectedGroup.groupName
-        }
-        val reminderMap = notes.associateBy {
-            noteLessonKey(it.date, it.timeRange, it.weekType, it.subject, it.rawText)
-        }
-        val noteTextMap = notes
-            .filter { it.noteText.isNotBlank() }
-            .associateBy {
-                noteLessonKey(it.date, it.timeRange, it.weekType, it.subject, it.rawText)
-            }
         val now = LocalDateTime.ofInstant(nowProvider(), ZoneId.systemDefault())
-        val dialogLesson = raw.dialogs.noteLesson ?: raw.dialogs.reminderLesson
 
         return raw.copy(
             presentation = ScheduleDataPresentation(
@@ -421,11 +186,6 @@ class ScheduleViewModel(
                     isDateMode = raw.mode == ScheduleMode.BY_DATE,
                     now = now,
                 ),
-                noteTextMap = noteTextMap,
-                reminderMap = reminderMap,
-                canEditDialog = dialogLesson != null &&
-                    raw.mode == ScheduleMode.BY_DATE &&
-                    ScheduleRules.isEditable(raw.selectedDate, dialogLesson, now),
             ),
         )
     }
@@ -712,72 +472,6 @@ class ScheduleViewModel(
         }
     }
 
-    private fun refreshNotes() {
-        viewModelScope.launch(Dispatchers.IO) {
-            refreshNotesInternal()
-        }
-    }
-
-    private suspend fun refreshNotesInternal() {
-        runCatching {
-            notesStore.getAll()
-                .sortedWith(
-                    compareBy<LessonNote> {
-                        it.date
-                    }.thenBy { it.startTime }.thenBy { it.createdAtEpochMillis },
-                )
-                .mapNotNull { it.toUiNote() }
-        }.onSuccess { notes ->
-            _state.update { current -> current.copy(notes = notes) }
-        }.onFailure { error ->
-            _state.update { current ->
-                current.copy(
-                    notes = emptyList(),
-                    errorMessage = error.message ?: "Не удалось загрузить заметки",
-                )
-            }
-        }
-    }
-
-    private fun LessonNote.toUiNote(): ScheduleNoteItem? = ScheduleNoteItem(
-        noteId = id,
-        groupName = groupName,
-        date = date,
-        timeRange = timeRange,
-        weekType = weekType,
-        subject = subject,
-        teacher = teacher,
-        classroom = classroom,
-        rawText = rawText,
-        noteText = noteText,
-        reminderEnabled = reminderEnabled,
-        reminderMinutes = reminderMinutes,
-        remindAtEpochMillis = remindAtEpochMillis,
-        createdAtEpochMillis = createdAtEpochMillis,
-    )
-
-    private suspend fun findNoteForLesson(
-        groupName: String,
-        date: LocalDate,
-        lesson: ScheduleLessonItem,
-    ): LessonNote? = notesStore.findForLesson(
-        groupName = groupName,
-        date = date,
-        startTime = lesson.startTime,
-        endTime = lesson.endTime,
-        weekType = lesson.weekType,
-        rawText = lesson.rawText,
-    )
-
-    private fun canEditNote(date: LocalDate, startTime: LocalTime): Boolean {
-        val now = nowProvider().atZone(ZoneId.systemDefault()).toLocalDateTime()
-        val startDateTime = parseLessonStartDateTime(date, startTime)
-        return !startDateTime.isBefore(now)
-    }
-
-    private fun parseLessonStartDateTime(date: LocalDate, startTime: LocalTime): LocalDateTime =
-        LocalDateTime.of(date, startTime)
-
     private fun resolveSelectedDay(
         preserveUiSelection: Boolean,
         previousSelectedDay: ScheduleDay?,
@@ -827,8 +521,6 @@ class ScheduleViewModelFactory(
     private val timetableRepository: TimetableRepository,
     private val weekResolver: WeekResolver,
     private val preferencesStore: UserPreferencesStore,
-    private val notesStore: LessonNotesStore,
-    private val reminderWorkflow: LessonReminderWorkflow,
 ) : ViewModelProvider.Factory {
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -838,8 +530,6 @@ class ScheduleViewModelFactory(
                 timetableRepository = timetableRepository,
                 weekResolver = weekResolver,
                 preferencesStore = preferencesStore,
-                notesStore = notesStore,
-                reminderWorkflow = reminderWorkflow,
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")

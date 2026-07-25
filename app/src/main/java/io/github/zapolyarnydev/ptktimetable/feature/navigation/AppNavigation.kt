@@ -24,6 +24,7 @@ import io.github.zapolyarnydev.ptktimetable.feature.catalog.course.CourseRoute
 import io.github.zapolyarnydev.ptktimetable.feature.catalog.course.CourseViewModel
 import io.github.zapolyarnydev.ptktimetable.feature.catalog.group.GroupRoute
 import io.github.zapolyarnydev.ptktimetable.feature.catalog.group.GroupViewModel
+import io.github.zapolyarnydev.ptktimetable.feature.notes.NotesViewModel
 import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleRoute
 import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleViewModel
 
@@ -70,11 +71,13 @@ fun AppNavigation(container: AppContainer, navigationViewModel: AppNavigationVie
         ) { entry ->
             val groupId = Uri.decode(requireNotNull(entry.arguments?.getString(AppRoute.GROUP_ID)))
             val scheduleViewModel: ScheduleViewModel = viewModel(factory = container.scheduleViewModelFactory)
+            val notesViewModel: NotesViewModel = viewModel(factory = container.notesViewModelFactory)
             LaunchedEffect(groupId) {
                 scheduleViewModel.openGroup(groupId)
             }
             ScheduleRoute(
                 viewModel = scheduleViewModel,
+                notesViewModel = notesViewModel,
                 onBack = { navController.navigateUp() },
             )
         }

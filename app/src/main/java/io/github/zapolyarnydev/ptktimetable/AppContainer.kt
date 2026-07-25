@@ -23,6 +23,7 @@ import io.github.zapolyarnydev.ptktimetable.domain.reminder.ReminderTimeCalculat
 import io.github.zapolyarnydev.ptktimetable.feature.catalog.course.CourseViewModelFactory
 import io.github.zapolyarnydev.ptktimetable.feature.catalog.group.GroupViewModelFactory
 import io.github.zapolyarnydev.ptktimetable.feature.navigation.AppNavigationViewModelFactory
+import io.github.zapolyarnydev.ptktimetable.feature.notes.NotesViewModelFactory
 import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleViewModelFactory
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
@@ -81,8 +82,6 @@ class AppContainer(context: Context) {
             timetableRepository = timetableRepository,
             weekResolver = weekResolver,
             preferencesStore = preferencesStore,
-            notesStore = notesStore,
-            reminderWorkflow = reminderWorkflow,
         )
     }
 
@@ -90,6 +89,13 @@ class AppContainer(context: Context) {
         AppNavigationViewModelFactory(
             timetableRepository = timetableRepository,
             preferencesStore = preferencesStore,
+        )
+    }
+
+    val notesViewModelFactory by lazy {
+        NotesViewModelFactory(
+            notesStore = notesStore,
+            reminderWorkflow = reminderWorkflow,
         )
     }
 
