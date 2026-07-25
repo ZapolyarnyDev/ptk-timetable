@@ -10,6 +10,7 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.NotificationsActive
@@ -43,4 +44,5 @@ object AppIcons {
     val forward = Icons.AutoMirrored.Outlined.ArrowForward
     val courseList = Icons.Outlined.ViewModule
     val close = Icons.Outlined.Close
+    val warning = Icons.Outlined.ErrorOutline
 }

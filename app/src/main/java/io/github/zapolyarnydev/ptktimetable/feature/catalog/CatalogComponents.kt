@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,7 +14,7 @@ import androidx.compose.ui.unit.dp
 import io.github.zapolyarnydev.ptktimetable.core.ui.InfoPanel
 import io.github.zapolyarnydev.ptktimetable.core.ui.OutlinedActionButton
 import io.github.zapolyarnydev.ptktimetable.core.ui.PrimaryActionButton
-import io.github.zapolyarnydev.ptktimetable.core.ui.formatInstant
+import io.github.zapolyarnydev.ptktimetable.core.ui.SyncFeedback
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppIcons
 import java.time.Instant
 
@@ -38,30 +37,12 @@ internal fun CatalogStatusCard(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (lastUpdatedAt != null) {
-                Text(
-                    "Обновлено ${formatInstant(lastUpdatedAt)}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (isRefreshing) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CircularProgressIndicator(Modifier.height(16.dp), strokeWidth = 2.dp)
-                    Text("Обновляем данные…", style = MaterialTheme.typography.bodySmall)
-                }
-            }
-            if (syncError != null) {
-                Text(
-                    if (isOffline) {
-                        "Офлайн. Показаны сохранённые данные. $syncError"
-                    } else {
-                        syncError
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
+            SyncFeedback(
+                updatedAt = lastUpdatedAt,
+                isRefreshing = isRefreshing,
+                syncError = syncError,
+                isOffline = isOffline,
+            )
         }
         Spacer(Modifier.height(14.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -76,6 +57,7 @@ internal fun CatalogStatusCard(
                 text = "Обновить",
                 onClick = onRefresh,
                 icon = AppIcons.refresh,
+                enabled = !isRefreshing,
                 modifier = Modifier.weight(1f),
             )
         }

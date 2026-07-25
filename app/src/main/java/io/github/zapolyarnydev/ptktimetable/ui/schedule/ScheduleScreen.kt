@@ -32,7 +32,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.zapolyarnydev.ptktimetable.core.ui.EmptyStateBlock
+import io.github.zapolyarnydev.ptktimetable.core.ui.FullScreenErrorState
 import io.github.zapolyarnydev.ptktimetable.core.ui.LessonTableSkeleton
+import io.github.zapolyarnydev.ptktimetable.core.ui.SectionCard
+import io.github.zapolyarnydev.ptktimetable.core.ui.SyncFeedback
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.ScheduleMode
 import io.github.zapolyarnydev.ptktimetable.feature.notes.LessonNoteDialog
 import io.github.zapolyarnydev.ptktimetable.feature.notes.NoteEditByIdDialog
@@ -88,15 +91,23 @@ fun ScheduleScreen(
     val colors = MaterialThemeAppColors
     Scaffold(containerColor = colors.canvas) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
-            ScheduleState(
-                state = state,
-                notesState = notesState,
-                onAction = onAction,
-                onNotesAction = onNotesAction,
-            )
+            when {
+                state.isInitialLoading && state.lessons.isEmpty() -> InitialLoadingState()
 
-            if (state.isRefreshing) RefreshingIndicator()
-            if (state.isInitialLoading) InitialLoadingState()
+                state.syncError != null && state.lessons.isEmpty() -> FullScreenErrorState(
+                    title = "Расписание недоступно",
+                    message = state.syncError,
+                    onRetry = { onAction(ScheduleUiAction.Refresh) },
+                    secondaryAction = "К группам" to { onAction(ScheduleUiAction.Back) },
+                )
+
+                else -> ScheduleState(
+                    state = state,
+                    notesState = notesState,
+                    onAction = onAction,
+                    onNotesAction = onNotesAction,
+                )
+            }
         }
     }
 }
@@ -124,25 +135,6 @@ private fun InitialLoadingState() {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             CircularProgressIndicator(modifier = Modifier.size(26.dp), strokeWidth = 2.5.dp)
-        }
-    }
-}
-
-@Composable
-private fun RefreshingIndicator() {
-    Box(
-        Modifier.fillMaxSize().padding(top = AppDimensions.screenVerticalPadding),
-        contentAlignment = Alignment.TopCenter,
-    ) {
-        Surface(shape = AppShapes.large, color = MaterialTheme.colorScheme.surface, shadowElevation = 4.dp) {
-            Row(
-                modifier = Modifier.padding(horizontal = 22.dp, vertical = 17.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.5.dp)
-                Text("Обновляем расписание…", style = MaterialTheme.typography.bodyLarge)
-            }
         }
     }
 }
@@ -198,8 +190,22 @@ private fun ScheduleState(
                         courseTitle = data.selectedGroup?.courseName,
                         onBack = { onAction(ScheduleUiAction.Back) },
                         onRefresh = { onAction(ScheduleUiAction.Refresh) },
-                        errorMessage = notesState.errorMessage ?: syncMessage(state),
+                        errorMessage = notesState.errorMessage ?: state.errorMessage,
                     )
+                }
+            }
+            if (data.updatedAt != null || data.isRefreshing || data.syncError != null) {
+                item {
+                    Box(Modifier.padding(horizontal = AppDimensions.screenHorizontalPadding)) {
+                        SectionCard {
+                            SyncFeedback(
+                                updatedAt = data.updatedAt,
+                                isRefreshing = data.isRefreshing,
+                                syncError = data.syncError,
+                                isOffline = data.isOffline,
+                            )
+                        }
+                    }
                 }
             }
             if (presentation.currentLesson != null || presentation.nextLesson != null) {
@@ -378,15 +384,5 @@ private fun StatusCard(
                 )
             }
         }
-    }
-}
-
-private fun syncMessage(state: ScheduleUiState): String? {
-    state.errorMessage?.let { return it }
-    val syncError = state.syncError ?: return null
-    return if (state.isOffline) {
-        "Офлайн. Показаны сохранённые данные. $syncError"
-    } else {
-        syncError
     }
 }

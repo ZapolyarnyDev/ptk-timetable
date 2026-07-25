@@ -118,3 +118,69 @@ internal fun SkeletonBar(widthFraction: Float, height: Dp) {
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = alpha)),
     )
 }
+
+@Composable
+internal fun FullScreenLoadingState(title: String, message: String) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            CircularProgressIndicator()
+            Text(title, style = MaterialTheme.typography.titleLarge)
+            Text(
+                message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+internal fun FullScreenErrorState(
+    title: String,
+    message: String,
+    onRetry: () -> Unit,
+    secondaryAction: Pair<String, () -> Unit>? = null,
+) {
+    Box(
+        modifier = Modifier.fillMaxSize().padding(24.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        SectionCard {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Icon(
+                    AppIcons.warning,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(30.dp),
+                )
+                Text(title, style = MaterialTheme.typography.titleLarge)
+                Text(
+                    message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    secondaryAction?.let {
+                        OutlinedActionButton(
+                            text = it.first,
+                            onClick = it.second,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    PrimaryActionButton(
+                        text = "Повторить",
+                        onClick = onRetry,
+                        icon = AppIcons.refresh,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+        }
+    }
+}
