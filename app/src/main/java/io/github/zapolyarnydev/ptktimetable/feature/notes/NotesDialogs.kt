@@ -35,8 +35,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import io.github.zapolyarnydev.ptktimetable.core.ui.AppModalScaffold
+import io.github.zapolyarnydev.ptktimetable.core.ui.formatDateTitle
 import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleLessonItem
-import io.github.zapolyarnydev.ptktimetable.ui.schedule.formatDateTitle
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppIcons
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppShapes
 
@@ -50,7 +51,7 @@ internal fun LessonNoteDialog(
     onDelete: () -> Unit,
 ) {
     var noteText by remember(note?.noteId) { mutableStateOf(note?.noteText.orEmpty()) }
-    AppModalDialog("Заметка к занятию", "${lesson.day.title} · ${lesson.timeRange}", onDismiss) {
+    AppModalScaffold("Заметка к занятию", "${lesson.day.title} · ${lesson.timeRange}", onDismiss) {
         OutlinedTextField(
             value = noteText,
             onValueChange = { noteText = it },
@@ -79,7 +80,7 @@ internal fun LessonNoteDialog(
 
 @Composable
 internal fun NotesOverviewDialog(notes: List<ScheduleNoteItem>, onDismiss: () -> Unit, onEdit: (String) -> Unit) {
-    AppModalDialog("Все заметки", "Нажмите на заметку, чтобы открыть её", onDismiss) {
+    AppModalScaffold("Все заметки", "Нажмите на заметку, чтобы открыть её", onDismiss) {
         if (notes.isEmpty()) {
             Text(
                 "Пока нет заметок",
@@ -137,7 +138,7 @@ internal fun NoteEditByIdDialog(
     onDelete: () -> Unit,
 ) {
     var text by remember(note.noteId) { mutableStateOf(note.noteText) }
-    AppModalDialog("Редактирование заметки", "${formatDateTitle(note.date)} · ${note.timeRange}", onDismiss) {
+    AppModalScaffold("Редактирование заметки", "${formatDateTitle(note.date)} · ${note.timeRange}", onDismiss) {
         OutlinedTextField(value = text, onValueChange = {
             text = it
         }, modifier = Modifier.fillMaxWidth(), label = { Text("Текст заметки") }, minLines = 4)
@@ -174,49 +175,6 @@ internal fun ModalActions(
             }
             Spacer(Modifier.weight(1f))
             Button(onClick = onSave, enabled = saveEnabled, shape = AppShapes.pill) { Text("Сохранить") }
-        }
-    }
-}
-
-@Composable
-internal fun AppModalDialog(
-    title: String,
-    subtitle: String,
-    onDismiss: () -> Unit,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Box(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 28.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Surface(
-                modifier = Modifier.fillMaxWidth().heightIn(min = 280.dp, max = 620.dp),
-                color = MaterialTheme.colorScheme.surface,
-                shape = AppShapes.large,
-                tonalElevation = 6.dp,
-            ) {
-                Column(
-                    modifier = Modifier.verticalScroll(rememberScrollState()).padding(22.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(title, style = MaterialTheme.typography.headlineSmall)
-                            if (subtitle.isNotBlank()) {
-                                Text(
-                                    subtitle,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                        IconButton(onClick = onDismiss) { Icon(AppIcons.close, contentDescription = "Закрыть") }
-                    }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    content()
-                }
-            }
         }
     }
 }

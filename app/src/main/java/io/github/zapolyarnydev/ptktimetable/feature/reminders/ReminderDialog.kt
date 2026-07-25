@@ -18,11 +18,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import io.github.zapolyarnydev.ptktimetable.feature.notes.AppModalDialog
+import io.github.zapolyarnydev.ptktimetable.core.ui.AppChoiceChip
+import io.github.zapolyarnydev.ptktimetable.core.ui.AppModalScaffold
 import io.github.zapolyarnydev.ptktimetable.feature.notes.ModalActions
 import io.github.zapolyarnydev.ptktimetable.feature.notes.ScheduleNoteItem
 import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleLessonItem
-import io.github.zapolyarnydev.ptktimetable.ui.schedule.WeekChip
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppIcons
 
 @Composable
@@ -38,7 +38,7 @@ internal fun ReminderDialog(
     var minutesText by remember(note?.noteId) { mutableStateOf((note?.reminderMinutes ?: 10).toString()) }
     val parsedMinutes = minutesText.toIntOrNull()?.coerceIn(1, 360)
 
-    AppModalDialog("Напоминание о паре", "${lesson.day.title} · ${lesson.timeRange}", onDismiss) {
+    AppModalScaffold("Напоминание о паре", "${lesson.day.title} · ${lesson.timeRange}", onDismiss) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -63,7 +63,7 @@ internal fun ReminderDialog(
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                 listOf(5, 10, 15, 30, 60).forEach { minutes ->
-                    WeekChip(
+                    AppChoiceChip(
                         selected = parsedMinutes == minutes,
                         label = "$minutes мин",
                         icon = AppIcons.time,

@@ -12,10 +12,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import io.github.zapolyarnydev.ptktimetable.ui.schedule.InfoPanel
-import io.github.zapolyarnydev.ptktimetable.ui.schedule.OutlinedActionButton
-import io.github.zapolyarnydev.ptktimetable.ui.schedule.PrimaryActionButton
-import io.github.zapolyarnydev.ptktimetable.ui.schedule.formatInstant
+import io.github.zapolyarnydev.ptktimetable.core.ui.InfoPanel
+import io.github.zapolyarnydev.ptktimetable.core.ui.OutlinedActionButton
+import io.github.zapolyarnydev.ptktimetable.core.ui.PrimaryActionButton
+import io.github.zapolyarnydev.ptktimetable.core.ui.formatInstant
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppIcons
 import java.time.Instant
 

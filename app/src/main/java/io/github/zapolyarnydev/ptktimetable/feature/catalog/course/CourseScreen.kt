@@ -12,11 +12,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.zapolyarnydev.ptktimetable.core.ui.EmptyStateBlock
+import io.github.zapolyarnydev.ptktimetable.core.ui.HeaderPanel
+import io.github.zapolyarnydev.ptktimetable.core.ui.SelectionListSection
+import io.github.zapolyarnydev.ptktimetable.core.ui.SelectionListSkeleton
 import io.github.zapolyarnydev.ptktimetable.feature.catalog.CatalogStatusCard
-import io.github.zapolyarnydev.ptktimetable.ui.schedule.EmptyStateBlock
-import io.github.zapolyarnydev.ptktimetable.ui.schedule.HeaderPanel
-import io.github.zapolyarnydev.ptktimetable.ui.schedule.SelectionListSection
-import io.github.zapolyarnydev.ptktimetable.ui.schedule.SelectionListSkeleton
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppDimensions
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppIcons
 import io.github.zapolyarnydev.ptktimetable.ui.theme.MaterialThemeAppColors

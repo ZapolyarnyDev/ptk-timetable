@@ -1,4 +1,4 @@
-package io.github.zapolyarnydev.ptktimetable.ui.schedule
+package io.github.zapolyarnydev.ptktimetable.feature.schedule.ui
 
 import android.app.DatePickerDialog
 import androidx.compose.foundation.layout.Arrangement
@@ -25,9 +25,16 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import io.github.zapolyarnydev.ptktimetable.core.ui.AppChoiceChip
+import io.github.zapolyarnydev.ptktimetable.core.ui.NavArrowButton
+import io.github.zapolyarnydev.ptktimetable.core.ui.OutlinedActionButton
+import io.github.zapolyarnydev.ptktimetable.core.ui.SectionCard
+import io.github.zapolyarnydev.ptktimetable.core.ui.formatDateTitle
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.ScheduleMode
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekFilter
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekType
+import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleDay
+import io.github.zapolyarnydev.ptktimetable.ui.schedule.title
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppIcons
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppShapes
 import io.github.zapolyarnydev.ptktimetable.ui.theme.MaterialThemeAppColors
@@ -124,7 +131,7 @@ internal fun DayNavigatorPanel(
         Spacer(Modifier.height(8.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(ScheduleMode.entries, key = { it.name }) { item ->
-                WeekChip(
+                AppChoiceChip(
                     selected = item == mode,
                     label = item.title,
                     icon = if (item == ScheduleMode.BY_DAY) AppIcons.schedule else AppIcons.calendar,
@@ -178,7 +185,7 @@ internal fun DayNavigatorPanel(
                 Spacer(Modifier.height(7.dp))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(availableDays, key = { it.name }) { day ->
-                        WeekChip(
+                        AppChoiceChip(
                             selected = day == selectedDay,
                             label = day.shortTitle,
                             icon = AppIcons.schedule,
@@ -197,16 +204,7 @@ internal fun DayNavigatorPanel(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(7.dp))
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(WeekFilter.entries, key = { it.name }) { filter ->
-                    WeekChip(
-                        selected = filter == weekFilter,
-                        label = filter.title,
-                        icon = AppIcons.filter,
-                        onClick = { onSelectWeekFilter(filter) },
-                    )
-                }
-            }
+            WeekSelector(selected = weekFilter, onSelect = onSelectWeekFilter)
             if (weekMismatch) {
                 Spacer(Modifier.height(12.dp))
                 Text(

@@ -1,4 +1,4 @@
-package io.github.zapolyarnydev.ptktimetable.ui.schedule
+package io.github.zapolyarnydev.ptktimetable.feature.schedule.ui
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
@@ -34,12 +34,18 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import io.github.zapolyarnydev.ptktimetable.core.ui.AnimatedReveal
+import io.github.zapolyarnydev.ptktimetable.core.ui.OutlinedIconActionButton
+import io.github.zapolyarnydev.ptktimetable.core.ui.SectionCard
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.ScheduleMode
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekFilter
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekType
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.service.WeekRules
 import io.github.zapolyarnydev.ptktimetable.feature.notes.ScheduleNoteItem
 import io.github.zapolyarnydev.ptktimetable.feature.notes.noteLessonKey
+import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleDay
+import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleLessonItem
+import io.github.zapolyarnydev.ptktimetable.ui.schedule.TimeSlotUi
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppDimensions
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppIcons
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppShapes
@@ -47,62 +53,6 @@ import io.github.zapolyarnydev.ptktimetable.ui.theme.MaterialThemeAppColors
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-import java.util.Locale
-
-@Composable
-internal fun LessonTableCard(
-    timeSlots: List<TimeSlotUi>,
-    currentWeekType: WeekType?,
-    weekFilter: WeekFilter,
-    date: LocalDate,
-    isDateMode: Boolean,
-    currentLesson: ScheduleLessonItem?,
-    nextLesson: ScheduleLessonItem?,
-    noteMap: Map<String, ScheduleNoteItem>,
-    reminderMap: Map<String, ScheduleNoteItem>,
-    onAddOrEditNote: (ScheduleLessonItem) -> Unit,
-    onAddOrEditReminder: (ScheduleLessonItem) -> Unit,
-) {
-    SectionCard(padding = 0.dp) {
-        Row(
-            modifier = Modifier.padding(horizontal = 18.dp, vertical = 15.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(9.dp),
-        ) {
-            Box(Modifier.size(8.dp).clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.primary))
-            Text("Занятия", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(
-                text = "${timeSlots.size}",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .clip(AppShapes.pill)
-                    .background(MaterialTheme.colorScheme.primaryContainer)
-                    .padding(horizontal = 8.dp, vertical = 3.dp),
-            )
-        }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-            timeSlots.forEachIndexed { index, slot ->
-                AnimatedReveal(key = "${slot.timeRange}-$index") {
-                    LessonTableRow(
-                        slot = slot,
-                        currentWeekType = currentWeekType,
-                        weekFilter = weekFilter,
-                        date = date,
-                        isDateMode = isDateMode,
-                        isCurrentSlot = slot.startTime == currentLesson?.startTime,
-                        isNextSlot = slot.startTime == nextLesson?.startTime,
-                        noteMap = noteMap,
-                        reminderMap = reminderMap,
-                        onAddOrEditNote = onAddOrEditNote,
-                        onAddOrEditReminder = onAddOrEditReminder,
-                    )
-                }
-            }
-        }
-    }
-}
 
 @Composable
 internal fun LessonTableRow(
@@ -437,26 +387,8 @@ internal fun DashedHorizontalDivider(color: Color = MaterialTheme.colorScheme.ou
 
 private fun formatTime(value: LocalTime): String = DateTimeFormatter.ofPattern("H.mm").format(value)
 
-internal fun dayOfWeekToScheduleDay(dayOfWeek: java.time.DayOfWeek): ScheduleDay = when (dayOfWeek) {
-    java.time.DayOfWeek.MONDAY -> ScheduleDay.MONDAY
-    java.time.DayOfWeek.TUESDAY -> ScheduleDay.TUESDAY
-    java.time.DayOfWeek.WEDNESDAY -> ScheduleDay.WEDNESDAY
-    java.time.DayOfWeek.THURSDAY -> ScheduleDay.THURSDAY
-    java.time.DayOfWeek.FRIDAY -> ScheduleDay.FRIDAY
-    java.time.DayOfWeek.SATURDAY -> ScheduleDay.SATURDAY
-    java.time.DayOfWeek.SUNDAY -> ScheduleDay.SUNDAY
-}
-
-internal fun formatDateTitle(date: LocalDate): String =
-    DateTimeFormatter.ofPattern("d MMMM", Locale.forLanguageTag("ru")).format(date)
-
 internal fun weekTypeLabel(type: WeekType?): String = when (type) {
     WeekType.UPPER -> "верхняя"
     WeekType.LOWER -> "нижняя"
     WeekType.ALL, null -> "не определена"
 }
-
-internal fun formatInstant(value: java.time.Instant): String =
-    DateTimeFormatter.ofPattern("dd.MM HH:mm", Locale.forLanguageTag("ru"))
-        .withZone(java.time.ZoneId.systemDefault())
-        .format(value)

@@ -31,6 +31,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.zapolyarnydev.ptktimetable.core.ui.EmptyStateBlock
+import io.github.zapolyarnydev.ptktimetable.core.ui.LessonTableSkeleton
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.ScheduleMode
 import io.github.zapolyarnydev.ptktimetable.feature.notes.LessonNoteDialog
 import io.github.zapolyarnydev.ptktimetable.feature.notes.NoteEditByIdDialog
@@ -41,6 +43,8 @@ import io.github.zapolyarnydev.ptktimetable.feature.notes.NotesViewModel
 import io.github.zapolyarnydev.ptktimetable.feature.notes.noteLessonKey
 import io.github.zapolyarnydev.ptktimetable.feature.reminders.ReminderDialog
 import io.github.zapolyarnydev.ptktimetable.feature.reminders.rememberPermissionAwareNotesAction
+import io.github.zapolyarnydev.ptktimetable.feature.schedule.ui.DayNavigatorPanel
+import io.github.zapolyarnydev.ptktimetable.feature.schedule.ui.LessonTableCard
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppAnimations
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppDimensions
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppIcons

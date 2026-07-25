@@ -1,0 +1,250 @@
+package io.github.zapolyarnydev.ptktimetable.core.ui
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import io.github.zapolyarnydev.ptktimetable.ui.theme.AppDimensions
+import io.github.zapolyarnydev.ptktimetable.ui.theme.AppIcons
+import io.github.zapolyarnydev.ptktimetable.ui.theme.AppShapes
+import io.github.zapolyarnydev.ptktimetable.ui.theme.MaterialThemeAppColors
+
+@Composable
+internal fun PrimaryActionButton(
+    text: String,
+    onClick: () -> Unit,
+    icon: ImageVector,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val scale = rememberPressScale(interactionSource, enabled)
+    Button(
+        modifier = modifier.graphicsLayerScale(scale),
+        onClick = onClick,
+        enabled = enabled,
+        interactionSource = interactionSource,
+        shape = AppShapes.pill,
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp),
+        colors = ButtonDefaults.buttonColors(),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp),
+    ) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(text, style = MaterialTheme.typography.labelLarge)
+    }
+}
+
+@Composable
+internal fun OutlinedActionButton(
+    text: String,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val scale = rememberPressScale(interactionSource, enabled)
+    OutlinedButton(
+        modifier = modifier.graphicsLayerScale(scale),
+        onClick = onClick,
+        enabled = enabled,
+        interactionSource = interactionSource,
+        shape = AppShapes.pill,
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp),
+    ) { Text(text, style = MaterialTheme.typography.labelLarge) }
+}
+
+@Composable
+internal fun NavArrowButton(icon: ImageVector, enabled: Boolean, onClick: () -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val scale = rememberPressScale(interactionSource, enabled)
+    Surface(
+        modifier = Modifier.graphicsLayerScale(scale),
+        shape = CircleShape,
+        color = if (enabled) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        IconButton(
+            onClick = onClick,
+            enabled = enabled,
+            interactionSource = interactionSource,
+            modifier = Modifier.size(46.dp),
+        ) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        }
+    }
+}
+
+@Composable
+internal fun AppChoiceChip(
+    selected: Boolean,
+    label: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    containerColor: Color = MaterialTheme.colorScheme.surface,
+    selectedContainerColor: Color = MaterialTheme.colorScheme.primaryContainer,
+    labelColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    selectedLabelColor: Color = MaterialTheme.colorScheme.onPrimaryContainer,
+    iconColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    selectedLeadingIconColor: Color = MaterialTheme.colorScheme.primary,
+    borderColor: Color = MaterialTheme.colorScheme.outlineVariant,
+    selectedBorderColor: Color = MaterialTheme.colorScheme.primary,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val scale = rememberPressScale(interactionSource)
+    FilterChip(
+        modifier = Modifier.graphicsLayerScale(scale),
+        selected = selected,
+        onClick = onClick,
+        interactionSource = interactionSource,
+        label = { Text(label, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium) },
+        leadingIcon = { Icon(icon, contentDescription = null, modifier = Modifier.size(17.dp)) },
+        border = FilterChipDefaults.filterChipBorder(
+            enabled = true,
+            selected = selected,
+            borderColor = borderColor,
+            selectedBorderColor = selectedBorderColor,
+        ),
+        colors = FilterChipDefaults.filterChipColors(
+            containerColor = containerColor,
+            selectedContainerColor = selectedContainerColor,
+            labelColor = labelColor,
+            selectedLabelColor = selectedLabelColor,
+            iconColor = iconColor,
+            selectedLeadingIconColor = selectedLeadingIconColor,
+        ),
+    )
+}
+
+@Composable
+internal fun rememberPressScale(interactionSource: MutableInteractionSource, enabled: Boolean = true): Float {
+    val pressed by interactionSource.collectIsPressedAsState()
+    return animateFloatAsState(
+        targetValue = if (enabled && pressed) 0.975f else 1f,
+        animationSpec = tween(90),
+        label = "pressScale",
+    ).value
+}
+
+private fun Modifier.graphicsLayerScale(scale: Float): Modifier = this.graphicsLayer {
+    scaleX = scale
+    scaleY = scale
+}
+
+@Composable
+internal fun AnimatedReveal(key: Any? = Unit, content: @Composable () -> Unit) {
+    var visible by remember(key) { mutableStateOf(false) }
+    LaunchedEffect(key) { visible = true }
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(220)) + slideInVertically(tween(220)) { it / 14 },
+        exit = fadeOut(tween(120)),
+        label = "animatedReveal",
+    ) { content() }
+}
+
+@Composable
+internal fun OutlinedIconActionButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    active: Boolean = false,
+    tint: Color = MaterialTheme.colorScheme.primary,
+    inactiveTint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    size: Dp = 32.dp,
+    iconSize: Dp = 17.dp,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed && enabled) 0.92f else 1f, tween(90), label = "iconActionScale")
+    Surface(
+        modifier = modifier
+            .size(size)
+            .graphicsLayerScale(scale)
+            .clickable(enabled = enabled, interactionSource = interactionSource, indication = null, onClick = onClick),
+        shape = CircleShape,
+        color = when {
+            !enabled -> MaterialTheme.colorScheme.surface
+            active -> MaterialTheme.colorScheme.primaryContainer
+            else -> MaterialTheme.colorScheme.surfaceVariant
+        },
+        border = BorderStroke(
+            1.dp,
+            if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+        ),
+    ) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Icon(
+                icon,
+                contentDescription = contentDescription,
+                tint = if (enabled) tint else inactiveTint,
+                modifier = Modifier.size(iconSize),
+            )
+        }
+    }
+}
