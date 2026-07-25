@@ -1,6 +1,5 @@
 package io.github.zapolyarnydev.ptktimetable.ui.schedule
 
-import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.Group
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.ScheduleMode
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekFilter
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekType
@@ -102,17 +101,6 @@ class SchedulePresentationLogicTest {
         assertEquals(ScheduleDay.SUNDAY, dayOfWeekToScheduleDay(DayOfWeek.SUNDAY))
         assertTrue(ScheduleRules.isWeekMismatch(WeekFilter.LOWER, WeekType.UPPER))
         assertFalse(ScheduleRules.isWeekMismatch(WeekFilter.ALL, WeekType.UPPER))
-    }
-
-    @Test
-    fun `restored group lookup ignores case and surrounding spaces`() {
-        val groups = listOf(
-            Group("College", 1, "Course", "ISP-1", "first.xls"),
-            Group("College", 2, "Course", "ISP-2", "second.xls"),
-        )
-
-        assertEquals("ISP-2", findRestoredGroup(groups, "  isp-2  ")?.groupName)
-        assertEquals(null, findRestoredGroup(groups, "missing"))
     }
 
     private fun lesson(day: ScheduleDay, timeRange: String, weekType: WeekType, subject: String) = ScheduleLessonItem(

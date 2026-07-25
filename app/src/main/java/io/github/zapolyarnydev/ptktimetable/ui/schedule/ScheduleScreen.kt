@@ -1,11 +1,5 @@
 package io.github.zapolyarnydev.ptktimetable.ui.schedule
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -39,7 +33,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.Group
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.ScheduleMode
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekFilter
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppAnimations
@@ -53,11 +46,7 @@ import java.time.LocalDate
 @Composable
 fun ScheduleScreen(
     state: StateFlow<ScheduleUiState>,
-    onRetry: () -> Unit,
     onRefresh: () -> Unit,
-    onCourseSelect: (CourseItem) -> Unit,
-    onGroupSelect: (Group) -> Unit,
-    onBackToCourses: () -> Unit,
     onBackToGroups: () -> Unit,
     onSelectMode: (ScheduleMode) -> Unit,
     onSelectDay: (ScheduleDay) -> Unit,
@@ -77,11 +66,7 @@ fun ScheduleScreen(
     val uiState by state.collectAsStateWithLifecycle()
     ScheduleScreenContent(
         state = uiState,
-        onRetry = onRetry,
         onRefresh = onRefresh,
-        onCourseSelect = onCourseSelect,
-        onGroupSelect = onGroupSelect,
-        onBackToCourses = onBackToCourses,
         onBackToGroups = onBackToGroups,
         onSelectMode = onSelectMode,
         onSelectDay = onSelectDay,
@@ -103,11 +88,7 @@ fun ScheduleScreen(
 @Composable
 private fun ScheduleScreenContent(
     state: ScheduleUiState,
-    onRetry: () -> Unit,
     onRefresh: () -> Unit,
-    onCourseSelect: (CourseItem) -> Unit,
-    onGroupSelect: (Group) -> Unit,
-    onBackToCourses: () -> Unit,
     onBackToGroups: () -> Unit,
     onSelectMode: (ScheduleMode) -> Unit,
     onSelectDay: (ScheduleDay) -> Unit,
@@ -127,44 +108,25 @@ private fun ScheduleScreenContent(
     val colors = MaterialThemeAppColors
     Scaffold(containerColor = colors.canvas) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
-            AnimatedContent(
-                targetState = state.step,
-                transitionSpec = {
-                    (fadeIn(tween(220)) + slideInVertically(tween(220)) { it / 14 }) togetherWith fadeOut(tween(120))
-                },
-                label = "scheduleStepTransition",
-            ) { step ->
-                when (step) {
-                    ScheduleStep.COURSE_SELECTION -> CourseSelectionState(state, onRefresh, onRetry, onCourseSelect)
-
-                    ScheduleStep.GROUP_SELECTION -> GroupSelectionState(
-                        state,
-                        onRefresh,
-                        onBackToCourses,
-                        onGroupSelect,
-                    )
-
-                    ScheduleStep.SCHEDULE -> ScheduleState(
-                        state = state,
-                        onRefresh = onRefresh,
-                        onBackToGroups = onBackToGroups,
-                        onSelectMode = onSelectMode,
-                        onSelectDay = onSelectDay,
-                        onPreviousDay = onPreviousDay,
-                        onNextDay = onNextDay,
-                        onSelectDate = onSelectDate,
-                        onPreviousDate = onPreviousDate,
-                        onNextDate = onNextDate,
-                        onGoToToday = onGoToToday,
-                        onSelectWeekFilter = onSelectWeekFilter,
-                        onSaveLessonNote = onSaveLessonNote,
-                        onSetLessonReminder = onSetLessonReminder,
-                        onDeleteLessonNote = onDeleteLessonNote,
-                        onUpdateNoteById = onUpdateNoteById,
-                        onDeleteNoteById = onDeleteNoteById,
-                    )
-                }
-            }
+            ScheduleState(
+                state = state,
+                onRefresh = onRefresh,
+                onBackToGroups = onBackToGroups,
+                onSelectMode = onSelectMode,
+                onSelectDay = onSelectDay,
+                onPreviousDay = onPreviousDay,
+                onNextDay = onNextDay,
+                onSelectDate = onSelectDate,
+                onPreviousDate = onPreviousDate,
+                onNextDate = onNextDate,
+                onGoToToday = onGoToToday,
+                onSelectWeekFilter = onSelectWeekFilter,
+                onSaveLessonNote = onSaveLessonNote,
+                onSetLessonReminder = onSetLessonReminder,
+                onDeleteLessonNote = onDeleteLessonNote,
+                onUpdateNoteById = onUpdateNoteById,
+                onDeleteNoteById = onDeleteNoteById,
+            )
 
             if (state.isRefreshing) RefreshingIndicator()
             if (state.isInitialLoading) InitialLoadingState()
@@ -216,177 +178,6 @@ private fun RefreshingIndicator() {
             }
         }
     }
-}
-
-@Composable
-private fun CourseSelectionState(
-    state: ScheduleUiState,
-    onRefresh: () -> Unit,
-    onRetry: () -> Unit,
-    onCourseSelect: (CourseItem) -> Unit,
-) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(AppDimensions.screenHorizontalPadding, AppDimensions.screenVerticalPadding),
-        verticalArrangement = Arrangement.spacedBy(AppDimensions.sectionSpacing),
-    ) {
-        item {
-            HeaderPanel(
-                title = "Твоё расписание",
-                subtitle = "Выбери курс — дальше покажем доступные группы",
-                icon = AppIcons.schedule,
-            )
-        }
-        item {
-            SelectionContextCard(
-                eyebrow = "Шаг 1 из 2",
-                title = "Выберите курс",
-                subtitle = "Это займёт всего несколько секунд",
-                icon = AppIcons.course,
-                actionText = "Обновить список",
-                actionIcon = AppIcons.refresh,
-                onAction = onRefresh,
-                updatedAt = state.groupsUpdatedAt?.let(::formatInstant),
-                errorMessage = syncMessage(state),
-                onErrorAction = onRetry,
-            )
-        }
-        item {
-            when {
-                state.isInitialLoading && state.courses.isEmpty() -> SelectionListSkeleton(rows = 4)
-
-                state.courses.isEmpty() -> EmptyStateBlock("Курсы не найдены. Обновите список и попробуйте ещё раз.")
-
-                else -> SelectionListSection(
-                    title = "Доступные курсы",
-                    items = state.courses,
-                    icon = { AppIcons.courseList },
-                    titleText = { it.title },
-                    subtitleText = { "Курс №${it.course}" },
-                    onClick = onCourseSelect,
-                )
-            }
-        }
-        item { ScreenFooter(text = "Данные берутся с портала колледжа") }
-    }
-}
-
-@Composable
-private fun GroupSelectionState(
-    state: ScheduleUiState,
-    onRefresh: () -> Unit,
-    onBackToCourses: () -> Unit,
-    onGroupSelect: (Group) -> Unit,
-) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(AppDimensions.screenHorizontalPadding, AppDimensions.screenVerticalPadding),
-        verticalArrangement = Arrangement.spacedBy(AppDimensions.sectionSpacing),
-    ) {
-        item {
-            HeaderPanel(
-                title = "Выберите группу",
-                subtitle = state.selectedCourse?.title ?: "Курс не выбран",
-                icon = AppIcons.group,
-            )
-        }
-        item {
-            SelectionContextCard(
-                eyebrow = "Шаг 2 из 2",
-                title = "Группа для расписания",
-                subtitle = "Можно вернуться к выбору курса в любой момент",
-                icon = AppIcons.group,
-                actionText = "Обновить",
-                actionIcon = AppIcons.refresh,
-                onAction = onRefresh,
-                secondaryText = "К курсам",
-                onSecondary = onBackToCourses,
-                updatedAt = state.groupsUpdatedAt?.let(::formatInstant),
-                errorMessage = syncMessage(state),
-            )
-        }
-        item {
-            when {
-                state.isInitialLoading && state.courseGroups.isEmpty() -> SelectionListSkeleton(rows = 6)
-
-                state.courseGroups.isEmpty() -> EmptyStateBlock("Для выбранного курса группы не найдены.")
-
-                else -> SelectionListSection(
-                    title = "Доступные группы",
-                    items = state.courseGroups,
-                    icon = { AppIcons.group },
-                    titleText = { "Группа ${it.groupName}" },
-                    subtitleText = { it.collegeName },
-                    onClick = onGroupSelect,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SelectionContextCard(
-    eyebrow: String,
-    title: String,
-    subtitle: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    actionText: String,
-    actionIcon: androidx.compose.ui.graphics.vector.ImageVector,
-    onAction: () -> Unit,
-    updatedAt: String?,
-    errorMessage: String? = null,
-    onErrorAction: (() -> Unit)? = null,
-    secondaryText: String? = null,
-    onSecondary: (() -> Unit)? = null,
-) {
-    InfoPanel {
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
-            Icon(
-                icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp),
-            )
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(eyebrow, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text(
-                    subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        if (updatedAt != null) {
-            Spacer(Modifier.height(13.dp))
-            MetaRow(AppIcons.update, "Обновлено $updatedAt", highlight = false)
-        }
-        if (errorMessage != null) {
-            Spacer(Modifier.height(12.dp))
-            Text(errorMessage, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-            if (onErrorAction != null) {
-                Spacer(Modifier.height(8.dp))
-                OutlinedActionButton("Повторить", onErrorAction)
-            }
-        }
-        Spacer(Modifier.height(16.dp))
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (secondaryText != null && onSecondary != null) {
-                OutlinedActionButton(secondaryText, onSecondary, modifier = Modifier.weight(1f))
-            }
-            PrimaryActionButton(actionText, onAction, actionIcon, modifier = Modifier.weight(1f))
-        }
-    }
-}
-
-@Composable
-private fun ScreenFooter(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(horizontal = 4.dp),
-    )
 }
 
 @Composable
@@ -476,7 +267,7 @@ private fun ScheduleState(
                         onSelectDay = onSelectDay,
                         onSelectWeekFilter = onSelectWeekFilter,
                         groupTitle = state.selectedGroup?.let { "Группа ${it.groupName}" },
-                        courseTitle = state.selectedCourse?.title,
+                        courseTitle = state.selectedGroup?.courseName,
                         onBack = onBackToGroups,
                         onRefresh = onRefresh,
                         errorMessage = syncMessage(state),

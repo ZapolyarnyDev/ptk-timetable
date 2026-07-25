@@ -33,12 +33,6 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-enum class ScheduleStep {
-    COURSE_SELECTION,
-    GROUP_SELECTION,
-    SCHEDULE,
-}
-
 enum class ScheduleDay(val title: String, val shortTitle: String, val order: Int) {
     MONDAY("Понедельник", "Пн", 1),
     TUESDAY("Вторник", "Вт", 2),
@@ -49,8 +43,6 @@ enum class ScheduleDay(val title: String, val shortTitle: String, val order: Int
     SUNDAY("Воскресенье", "Вс", 7),
     UNKNOWN("Другое", "?", 99),
 }
-
-data class CourseItem(val course: Int, val title: String)
 
 data class ScheduleLessonItem(
     val day: ScheduleDay,
@@ -93,11 +85,6 @@ data class ScheduleUiState(
     val syncError: String? = null,
     val hasCachedData: Boolean = false,
     val isOffline: Boolean = false,
-    val step: ScheduleStep = ScheduleStep.COURSE_SELECTION,
-    val groups: List<Group> = emptyList(),
-    val courses: List<CourseItem> = emptyList(),
-    val selectedCourse: CourseItem? = null,
-    val courseGroups: List<Group> = emptyList(),
     val selectedGroup: Group? = null,
     val mode: ScheduleMode = ScheduleMode.BY_DAY,
     val selectedDate: LocalDate = LocalDate.now(),
@@ -108,7 +95,6 @@ data class ScheduleUiState(
     val currentWeekType: WeekType? = null,
     val selectedDateWeekType: WeekType? = null,
     val notes: List<ScheduleNoteItem> = emptyList(),
-    val groupsUpdatedAt: Instant? = null,
     val scheduleUpdatedAt: Instant? = null,
     val errorMessage: String? = null,
 )
@@ -132,90 +118,32 @@ class ScheduleViewModel(
     val state: StateFlow<ScheduleUiState> = _state.asStateFlow()
 
     private var loadedTemplates: List<Lesson> = emptyList()
-    private var catalogJob: Job? = null
     private var lessonsJob: Job? = null
 
     init {
         refreshNotes()
-        loadCatalog(
-            preserveCourseSelection = false,
-            restoreLastSelectedGroupOnLaunch = true,
-        )
-    }
-
-    fun loadGroups() {
-        loadCatalog(
-            preserveCourseSelection = true,
-            restoreLastSelectedGroupOnLaunch = false,
-        )
     }
 
     fun refreshCurrent() {
-        val current = state.value
-        val selectedGroup = current.selectedGroup
-        if (selectedGroup != null) {
-            loadCatalog(
-                preserveCourseSelection = true,
-                restoreLastSelectedGroupOnLaunch = false,
-                preserveSelectedGroup = true,
-            )
-        } else {
-            loadCatalog(
-                preserveCourseSelection = true,
-                restoreLastSelectedGroupOnLaunch = false,
-            )
+        state.value.selectedGroup?.let {
+            openGroupInternal(it, saveAsLastSelected = false, preserveUiSelection = true)
         }
     }
 
-    fun selectCourse(course: CourseItem) {
-        val groups = state.value.groups
-            .filter { it.course == course.course }
-            .sortedBy { it.groupName }
-        _state.update {
-            it.copy(
-                step = ScheduleStep.GROUP_SELECTION,
-                selectedCourse = course,
-                courseGroups = groups,
-                selectedGroup = null,
-                lessons = emptyList(),
-                availableDays = emptyList(),
-                selectedDay = null,
-                errorMessage = null,
-            )
-        }
-    }
-
-    fun openGroup(group: Group) {
-        openGroupInternal(group, saveAsLastSelected = true, preserveUiSelection = false)
-    }
-
-    fun backToCourses() {
-        loadedTemplates = emptyList()
-        _state.update {
-            it.copy(
-                step = ScheduleStep.COURSE_SELECTION,
-                selectedCourse = null,
-                courseGroups = emptyList(),
-                selectedGroup = null,
-                lessons = emptyList(),
-                availableDays = emptyList(),
-                selectedDay = null,
-                errorMessage = null,
-            )
-        }
-    }
-
-    fun backToGroups() {
-        loadedTemplates = emptyList()
-        _state.update {
-            it.copy(
-                step = ScheduleStep.GROUP_SELECTION,
-                selectedGroup = null,
-                lessons = emptyList(),
-                availableDays = emptyList(),
-                selectedDay = null,
-                errorMessage = null,
-            )
+    fun openGroup(groupId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val group = timetableRepository.observeGroups().first().data
+                .firstOrNull { it.groupName.equals(groupId, ignoreCase = true) }
+            if (group == null) {
+                _state.update {
+                    it.copy(
+                        isInitialLoading = false,
+                        syncError = "Группа $groupId не найдена в кеше",
+                    )
+                }
+                return@launch
+            }
+            openGroupInternal(group, saveAsLastSelected = true, preserveUiSelection = false)
         }
     }
 
@@ -443,106 +371,6 @@ class ScheduleViewModel(
         _state.update { it.copy(selectedDay = days[nextIndex]) }
     }
 
-    private fun loadCatalog(
-        preserveCourseSelection: Boolean,
-        restoreLastSelectedGroupOnLaunch: Boolean,
-        preserveSelectedGroup: Boolean = false,
-    ) {
-        val previous = state.value
-        catalogJob?.cancel()
-        catalogJob = viewModelScope.launch(Dispatchers.IO) {
-            _state.update {
-                val hasCache = it.groups.isNotEmpty()
-                it.copy(
-                    isInitialLoading = !hasCache,
-                    isRefreshing = hasCache,
-                    syncError = null,
-                    hasCachedData = hasCache,
-                    isOffline = false,
-                    errorMessage = null,
-                )
-            }
-
-            val savedGroupName = if (restoreLastSelectedGroupOnLaunch) {
-                runCatching { preferencesStore.getLastSelectedGroupName() }
-                    .getOrNull()
-                    ?.trim()
-                    .orEmpty()
-            } else {
-                ""
-            }
-
-            try {
-                val currentWeekType = resolveCurrentWeekType()
-                val cached = timetableRepository.observeGroups().first()
-                var activeGroup = applyCatalogSnapshot(
-                    snapshot = cached,
-                    previous = previous,
-                    preserveCourseSelection = preserveCourseSelection,
-                    preserveSelectedGroup = preserveSelectedGroup,
-                    savedGroupName = savedGroupName,
-                    currentWeekType = currentWeekType,
-                )
-
-                if (activeGroup != null) {
-                    openGroupInternal(
-                        group = activeGroup,
-                        saveAsLastSelected = false,
-                        preserveUiSelection = preserveSelectedGroup,
-                    )
-                }
-
-                timetableRepository.refreshGroups()
-                val refreshed = timetableRepository.observeGroups().first()
-                val selectedAfterRefresh = applyCatalogSnapshot(
-                    snapshot = refreshed,
-                    previous = state.value,
-                    preserveCourseSelection = preserveCourseSelection,
-                    preserveSelectedGroup = activeGroup != null || preserveSelectedGroup,
-                    savedGroupName = savedGroupName,
-                    currentWeekType = currentWeekType,
-                )
-
-                if (activeGroup == null && selectedAfterRefresh != null) {
-                    activeGroup = selectedAfterRefresh
-                    openGroupInternal(
-                        group = selectedAfterRefresh,
-                        saveAsLastSelected = false,
-                        preserveUiSelection = false,
-                    )
-                }
-
-                if (restoreLastSelectedGroupOnLaunch &&
-                    activeGroup == null &&
-                    refreshed.data.isNotEmpty()
-                ) {
-                    runCatching { preferencesStore.setLastSelectedGroupName(null) }
-                }
-
-                if (activeGroup == null) {
-                    _state.update {
-                        it.copy(
-                            isInitialLoading = false,
-                            isRefreshing = false,
-                        )
-                    }
-                }
-            } catch (error: Throwable) {
-                if (error is CancellationException) throw error
-                _state.update {
-                    val hasCache = it.groups.isNotEmpty()
-                    it.copy(
-                        isInitialLoading = false,
-                        isRefreshing = false,
-                        syncError = error.message ?: "Не удалось обновить список групп",
-                        hasCachedData = hasCache,
-                        isOffline = hasCache,
-                    )
-                }
-            }
-        }
-    }
-
     private fun openGroupInternal(group: Group, saveAsLastSelected: Boolean, preserveUiSelection: Boolean) {
         val beforeLoading = state.value
         val sameGroup = beforeLoading.selectedGroup?.groupName.equals(group.groupName, ignoreCase = true)
@@ -556,7 +384,6 @@ class ScheduleViewModel(
                     syncError = null,
                     hasCachedData = hasCache,
                     isOffline = false,
-                    step = ScheduleStep.SCHEDULE,
                     selectedGroup = group,
                     lessons = if (sameGroup) it.lessons else emptyList(),
                     availableDays = if (sameGroup) it.availableDays else emptyList(),
@@ -578,13 +405,32 @@ class ScheduleViewModel(
                     preserveUiSelection = preserveUiSelection,
                     isRefreshInProgress = true,
                 )
+                val currentWeekType = resolveCurrentWeekType()
+                _state.update {
+                    it.copy(
+                        currentWeekType = currentWeekType,
+                        selectedDateWeekType = if (it.mode == ScheduleMode.BY_DATE) {
+                            it.selectedDateWeekType
+                        } else {
+                            currentWeekType
+                        },
+                        weekFilter = if (preserveUiSelection) {
+                            it.weekFilter
+                        } else {
+                            defaultWeekFilter(currentWeekType)
+                        },
+                    )
+                }
 
                 timetableRepository.refreshLessons(group)
                 val refreshed = timetableRepository.observeLessons(group.groupName).first()
                 applyLessonSnapshot(
                     snapshot = refreshed,
                     group = group,
-                    beforeLoading = beforeLoading,
+                    beforeLoading = beforeLoading.copy(
+                        currentWeekType = currentWeekType,
+                        selectedDateWeekType = currentWeekType,
+                    ),
                     preserveUiSelection = preserveUiSelection,
                     isRefreshInProgress = false,
                 )
@@ -606,69 +452,6 @@ class ScheduleViewModel(
                 }
             }
         }
-    }
-
-    private fun applyCatalogSnapshot(
-        snapshot: CachedData<List<Group>>,
-        previous: ScheduleUiState,
-        preserveCourseSelection: Boolean,
-        preserveSelectedGroup: Boolean,
-        savedGroupName: String,
-        currentWeekType: WeekType?,
-    ): Group? {
-        val groups = snapshot.data
-            .sortedWith(compareBy<Group> { it.course }.thenBy { it.groupName })
-        val courses = buildCourseItems(groups)
-        val selectedGroup = if (preserveSelectedGroup) {
-            previous.selectedGroup?.let { previousGroup ->
-                groups.firstOrNull { it.groupName.equals(previousGroup.groupName, ignoreCase = true) }
-            }
-        } else {
-            findRestoredGroup(groups, savedGroupName)
-        }
-        val selectedCourse = selectedGroup?.let { group ->
-            courses.firstOrNull { it.course == group.course }
-        } ?: if (preserveCourseSelection) {
-            courses.firstOrNull { it.course == previous.selectedCourse?.course }
-        } else {
-            null
-        }
-        val courseGroups = selectedCourse?.let { selected ->
-            groups.filter { it.course == selected.course }.sortedBy { it.groupName }
-        }.orEmpty()
-        val sameGroup = selectedGroup?.groupName.equals(previous.selectedGroup?.groupName, ignoreCase = true)
-        val hasCache = groups.isNotEmpty()
-
-        _state.update {
-            it.copy(
-                isInitialLoading = !hasCache,
-                isRefreshing = hasCache,
-                syncError = null,
-                hasCachedData = hasCache,
-                isOffline = false,
-                step = if (selectedGroup != null) {
-                    ScheduleStep.SCHEDULE
-                } else if (selectedCourse != null) {
-                    ScheduleStep.GROUP_SELECTION
-                } else {
-                    ScheduleStep.COURSE_SELECTION
-                },
-                groups = groups,
-                courses = courses,
-                selectedCourse = selectedCourse,
-                courseGroups = courseGroups,
-                selectedGroup = selectedGroup,
-                lessons = if (sameGroup) it.lessons else emptyList(),
-                availableDays = if (sameGroup) it.availableDays else emptyList(),
-                selectedDay = if (sameGroup) it.selectedDay else null,
-                weekFilter = if (sameGroup) it.weekFilter else defaultWeekFilter(currentWeekType),
-                currentWeekType = currentWeekType,
-                selectedDateWeekType = if (sameGroup) it.selectedDateWeekType else currentWeekType,
-                groupsUpdatedAt = snapshot.updatedAt,
-                errorMessage = null,
-            )
-        }
-        return selectedGroup
     }
 
     private suspend fun applyLessonSnapshot(
@@ -730,7 +513,6 @@ class ScheduleViewModel(
                     syncError = null,
                     hasCachedData = hasCache,
                     isOffline = false,
-                    step = ScheduleStep.SCHEDULE,
                     selectedGroup = group,
                     selectedDate = selectedDate,
                     lessons = lessons,
@@ -927,14 +709,6 @@ class ScheduleViewModel(
     private fun parseLessonStartDateTime(date: LocalDate, startTime: LocalTime): LocalDateTime =
         LocalDateTime.of(date, startTime)
 
-    private fun buildCourseItems(groups: List<Group>): List<CourseItem> = groups
-        .groupBy { it.course }
-        .map { (course, items) ->
-            val title = items.firstOrNull()?.courseName?.takeIf { it.isNotBlank() } ?: "$course курс"
-            CourseItem(course = course, title = title)
-        }
-        .sortedBy { it.course }
-
     private fun resolveSelectedDay(
         preserveUiSelection: Boolean,
         previousSelectedDay: ScheduleDay?,
@@ -978,12 +752,6 @@ class ScheduleViewModel(
         classroom = room,
         rawText = rawText,
     )
-}
-
-internal fun findRestoredGroup(groups: List<Group>, savedGroupName: String?): Group? {
-    val normalized = savedGroupName?.trim().orEmpty()
-    if (normalized.isBlank()) return null
-    return groups.firstOrNull { it.groupName.trim().equals(normalized, ignoreCase = true) }
 }
 
 class ScheduleViewModelFactory(

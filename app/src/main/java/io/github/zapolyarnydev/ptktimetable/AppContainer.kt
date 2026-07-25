@@ -20,6 +20,8 @@ import io.github.zapolyarnydev.ptktimetable.data.remote.xls.PtkXlsScheduleParser
 import io.github.zapolyarnydev.ptktimetable.data.repository.DefaultTimetableRepository
 import io.github.zapolyarnydev.ptktimetable.data.repository.PortalBackedWeekResolver
 import io.github.zapolyarnydev.ptktimetable.domain.reminder.ReminderTimeCalculator
+import io.github.zapolyarnydev.ptktimetable.feature.catalog.course.CourseViewModelFactory
+import io.github.zapolyarnydev.ptktimetable.feature.catalog.group.GroupViewModelFactory
 import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleViewModelFactory
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
@@ -63,6 +65,14 @@ class AppContainer(context: Context) {
             scheduler = reminderScheduler,
             timeCalculator = ReminderTimeCalculator(java.time.ZoneId.systemDefault()),
         )
+    }
+
+    val courseViewModelFactory by lazy {
+        CourseViewModelFactory(timetableRepository)
+    }
+
+    val groupViewModelFactory by lazy {
+        GroupViewModelFactory(timetableRepository)
     }
 
     val scheduleViewModelFactory by lazy {

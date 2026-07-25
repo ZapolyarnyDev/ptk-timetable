@@ -5,9 +5,20 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.zapolyarnydev.ptktimetable.feature.catalog.course.CourseRoute
+import io.github.zapolyarnydev.ptktimetable.feature.catalog.course.CourseViewModel
+import io.github.zapolyarnydev.ptktimetable.feature.catalog.group.GroupRoute
+import io.github.zapolyarnydev.ptktimetable.feature.catalog.group.GroupViewModel
 import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleScreen
 import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleViewModel
 import io.github.zapolyarnydev.ptktimetable.ui.theme.PtkTheme
@@ -19,32 +30,62 @@ class MainActivity : ComponentActivity() {
         requestNotificationsPermissionIfNeeded()
         setContent {
             PtkTheme {
-                val vm: ScheduleViewModel = viewModel(
-                    factory = (application as PtkApplication).container.scheduleViewModelFactory,
-                )
-                ScheduleScreen(
-                    state = vm.state,
-                    onRetry = vm::refreshCurrent,
-                    onRefresh = vm::refreshCurrent,
-                    onCourseSelect = vm::selectCourse,
-                    onGroupSelect = vm::openGroup,
-                    onBackToCourses = vm::backToCourses,
-                    onBackToGroups = vm::backToGroups,
-                    onSelectMode = vm::selectMode,
-                    onSelectDay = vm::selectDay,
-                    onPreviousDay = vm::previousDay,
-                    onNextDay = vm::nextDay,
-                    onSelectDate = vm::selectDate,
-                    onPreviousDate = vm::previousDate,
-                    onNextDate = vm::nextDate,
-                    onGoToToday = vm::goToToday,
-                    onSelectWeekFilter = vm::selectWeekFilter,
-                    onSaveLessonNote = vm::saveNoteForLesson,
-                    onSetLessonReminder = vm::setReminderForLesson,
-                    onDeleteLessonNote = vm::deleteNoteForLesson,
-                    onUpdateNoteById = vm::updateNoteById,
-                    onDeleteNoteById = vm::deleteNoteById,
-                )
+                val container = (application as PtkApplication).container
+                val courseViewModel: CourseViewModel = viewModel(factory = container.courseViewModelFactory)
+                val groupViewModel: GroupViewModel = viewModel(factory = container.groupViewModelFactory)
+                val scheduleViewModel: ScheduleViewModel = viewModel(factory = container.scheduleViewModelFactory)
+                var route by rememberSaveable { mutableStateOf(CatalogRoute.COURSES) }
+                var courseId by rememberSaveable { mutableIntStateOf(0) }
+                var groupId by rememberSaveable { mutableStateOf("") }
+
+                when (route) {
+                    CatalogRoute.COURSES -> CourseRoute(
+                        viewModel = courseViewModel,
+                        onCourseSelected = {
+                            courseId = it
+                            route = CatalogRoute.GROUPS
+                        },
+                    )
+
+                    CatalogRoute.GROUPS -> {
+                        BackHandler { route = CatalogRoute.COURSES }
+                        GroupRoute(
+                            courseId = courseId,
+                            viewModel = groupViewModel,
+                            onGroupSelected = {
+                                groupId = it
+                                route = CatalogRoute.SCHEDULE
+                            },
+                            onBack = { route = CatalogRoute.COURSES },
+                        )
+                    }
+
+                    CatalogRoute.SCHEDULE -> {
+                        BackHandler { route = CatalogRoute.GROUPS }
+                        LaunchedEffect(groupId) {
+                            scheduleViewModel.openGroup(groupId)
+                        }
+                        ScheduleScreen(
+                            state = scheduleViewModel.state,
+                            onRefresh = scheduleViewModel::refreshCurrent,
+                            onBackToGroups = { route = CatalogRoute.GROUPS },
+                            onSelectMode = scheduleViewModel::selectMode,
+                            onSelectDay = scheduleViewModel::selectDay,
+                            onPreviousDay = scheduleViewModel::previousDay,
+                            onNextDay = scheduleViewModel::nextDay,
+                            onSelectDate = scheduleViewModel::selectDate,
+                            onPreviousDate = scheduleViewModel::previousDate,
+                            onNextDate = scheduleViewModel::nextDate,
+                            onGoToToday = scheduleViewModel::goToToday,
+                            onSelectWeekFilter = scheduleViewModel::selectWeekFilter,
+                            onSaveLessonNote = scheduleViewModel::saveNoteForLesson,
+                            onSetLessonReminder = scheduleViewModel::setReminderForLesson,
+                            onDeleteLessonNote = scheduleViewModel::deleteNoteForLesson,
+                            onUpdateNoteById = scheduleViewModel::updateNoteById,
+                            onDeleteNoteById = scheduleViewModel::deleteNoteById,
+                        )
+                    }
+                }
             }
         }
     }
@@ -62,4 +103,10 @@ class MainActivity : ComponentActivity() {
             1001,
         )
     }
+}
+
+private enum class CatalogRoute {
+    COURSES,
+    GROUPS,
+    SCHEDULE,
 }
