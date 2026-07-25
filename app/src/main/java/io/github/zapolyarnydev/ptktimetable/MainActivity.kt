@@ -19,7 +19,7 @@ import io.github.zapolyarnydev.ptktimetable.feature.catalog.course.CourseRoute
 import io.github.zapolyarnydev.ptktimetable.feature.catalog.course.CourseViewModel
 import io.github.zapolyarnydev.ptktimetable.feature.catalog.group.GroupRoute
 import io.github.zapolyarnydev.ptktimetable.feature.catalog.group.GroupViewModel
-import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleScreen
+import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleRoute
 import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleViewModel
 import io.github.zapolyarnydev.ptktimetable.ui.theme.PtkTheme
 
@@ -65,24 +65,9 @@ class MainActivity : ComponentActivity() {
                         LaunchedEffect(groupId) {
                             scheduleViewModel.openGroup(groupId)
                         }
-                        ScheduleScreen(
-                            state = scheduleViewModel.state,
-                            onRefresh = scheduleViewModel::refreshCurrent,
-                            onBackToGroups = { route = CatalogRoute.GROUPS },
-                            onSelectMode = scheduleViewModel::selectMode,
-                            onSelectDay = scheduleViewModel::selectDay,
-                            onPreviousDay = scheduleViewModel::previousDay,
-                            onNextDay = scheduleViewModel::nextDay,
-                            onSelectDate = scheduleViewModel::selectDate,
-                            onPreviousDate = scheduleViewModel::previousDate,
-                            onNextDate = scheduleViewModel::nextDate,
-                            onGoToToday = scheduleViewModel::goToToday,
-                            onSelectWeekFilter = scheduleViewModel::selectWeekFilter,
-                            onSaveLessonNote = scheduleViewModel::saveNoteForLesson,
-                            onSetLessonReminder = scheduleViewModel::setReminderForLesson,
-                            onDeleteLessonNote = scheduleViewModel::deleteNoteForLesson,
-                            onUpdateNoteById = scheduleViewModel::updateNoteById,
-                            onDeleteNoteById = scheduleViewModel::deleteNoteById,
+                        ScheduleRoute(
+                            viewModel = scheduleViewModel,
+                            onBack = { route = CatalogRoute.GROUPS },
                         )
                     }
                 }

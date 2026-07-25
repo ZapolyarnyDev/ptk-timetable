@@ -53,20 +53,14 @@ internal fun LessonTableCard(
     currentWeekType: WeekType?,
     weekFilter: WeekFilter,
     date: LocalDate,
-    selectedDay: ScheduleDay?,
     isDateMode: Boolean,
+    currentLesson: ScheduleLessonItem?,
+    nextLesson: ScheduleLessonItem?,
     noteMap: Map<String, ScheduleNoteItem>,
     reminderMap: Map<String, ScheduleNoteItem>,
     onAddOrEditNote: (ScheduleLessonItem) -> Unit,
     onAddOrEditReminder: (ScheduleLessonItem) -> Unit,
 ) {
-    val nextStartTime = ScheduleRules.nextLesson(
-        lessons = timeSlots.flatMap { it.lessons },
-        date = date,
-        selectedDay = selectedDay,
-        isDateMode = isDateMode,
-    )?.startTime
-
     SectionCard(padding = 0.dp) {
         Row(
             modifier = Modifier.padding(horizontal = 18.dp, vertical = 15.dp),
@@ -94,9 +88,9 @@ internal fun LessonTableCard(
                         currentWeekType = currentWeekType,
                         weekFilter = weekFilter,
                         date = date,
-                        selectedDay = selectedDay,
                         isDateMode = isDateMode,
-                        isNextSlot = slot.startTime == nextStartTime,
+                        isCurrentSlot = slot.startTime == currentLesson?.startTime,
+                        isNextSlot = slot.startTime == nextLesson?.startTime,
                         noteMap = noteMap,
                         reminderMap = reminderMap,
                         onAddOrEditNote = onAddOrEditNote,
@@ -114,8 +108,8 @@ internal fun LessonTableRow(
     currentWeekType: WeekType?,
     weekFilter: WeekFilter,
     date: LocalDate,
-    selectedDay: ScheduleDay?,
     isDateMode: Boolean,
+    isCurrentSlot: Boolean,
     isNextSlot: Boolean,
     noteMap: Map<String, ScheduleNoteItem>,
     reminderMap: Map<String, ScheduleNoteItem>,
@@ -125,12 +119,6 @@ internal fun LessonTableRow(
     val colors = MaterialThemeAppColors
     val startTime = formatTime(slot.startTime)
     val endTime = formatTime(slot.endTime)
-    val isCurrentSlot = ScheduleRules.currentLesson(
-        lessons = slot.lessons,
-        date = date,
-        selectedDay = selectedDay,
-        isDateMode = isDateMode,
-    ) != null
     val accent = when {
         isCurrentSlot -> colors.currentLesson
         isNextSlot -> colors.nextLesson
@@ -444,45 +432,6 @@ internal fun DashedHorizontalDivider(color: Color = MaterialTheme.colorScheme.ou
         },
     )
 }
-
-data class TimeSlotUi(
-    val startTime: LocalTime,
-    val endTime: LocalTime,
-    val allLessons: List<ScheduleLessonItem>,
-    val upperLessons: List<ScheduleLessonItem>,
-    val lowerLessons: List<ScheduleLessonItem>,
-) {
-    val isSplitByWeek: Boolean get() = upperLessons.isNotEmpty() || lowerLessons.isNotEmpty()
-    val lessons: List<ScheduleLessonItem> get() = allLessons + upperLessons + lowerLessons
-    val timeRange: String get() = "${formatTime(startTime)}-${formatTime(endTime)}"
-}
-
-internal fun buildTimeSlots(lessons: List<ScheduleLessonItem>): List<TimeSlotUi> = lessons
-    .groupBy { it.startTime to it.endTime }
-    .map { (range, rows) ->
-        TimeSlotUi(
-            startTime = range.first,
-            endTime = range.second,
-            allLessons = rows.filter { it.weekType == WeekType.ALL },
-            upperLessons = rows.filter { it.weekType == WeekType.UPPER },
-            lowerLessons = rows.filter { it.weekType == WeekType.LOWER },
-        )
-    }
-    .sortedBy { it.startTime }
-
-internal fun noteLessonKey(
-    date: LocalDate,
-    timeRange: String,
-    weekType: WeekType,
-    subject: String,
-    rawText: String,
-): String = listOf(
-    date.toString(),
-    timeRange.trim(),
-    weekType.name,
-    subject.trim(),
-    rawText.trim().hashCode().toString(),
-).joinToString("|")
 
 private fun formatTime(value: LocalTime): String = DateTimeFormatter.ofPattern("H.mm").format(value)
 

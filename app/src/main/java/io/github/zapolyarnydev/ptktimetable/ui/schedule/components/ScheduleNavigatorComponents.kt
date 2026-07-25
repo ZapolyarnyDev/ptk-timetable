@@ -40,6 +40,7 @@ internal fun DayNavigatorPanel(
     selectedDayTitle: String,
     selectedDate: LocalDate,
     currentWeekType: WeekType?,
+    weekMismatch: Boolean,
     dayIndex: Int,
     totalDays: Int,
     canGoPrev: Boolean,
@@ -206,7 +207,7 @@ internal fun DayNavigatorPanel(
                     )
                 }
             }
-            if (ScheduleRules.isWeekMismatch(weekFilter, currentWeekType)) {
+            if (weekMismatch) {
                 Spacer(Modifier.height(12.dp))
                 Text(
                     text = "Сейчас ${weekTypeLabel(
@@ -237,7 +238,7 @@ internal fun DayNavigatorPanel(
             Spacer(Modifier.height(9.dp))
             Text(
                 text = "Неделя на дату: ${weekTypeLabel(
-                    if (selectedDate == LocalDate.now()) currentWeekType else null,
+                    currentWeekType,
                 )}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

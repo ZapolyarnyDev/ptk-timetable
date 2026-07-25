@@ -23,10 +23,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,98 +32,31 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.ScheduleMode
-import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekFilter
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppAnimations
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppDimensions
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppIcons
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppShapes
 import io.github.zapolyarnydev.ptktimetable.ui.theme.MaterialThemeAppColors
-import kotlinx.coroutines.flow.StateFlow
-import java.time.LocalDate
 
 @Composable
-fun ScheduleScreen(
-    state: StateFlow<ScheduleUiState>,
-    onRefresh: () -> Unit,
-    onBackToGroups: () -> Unit,
-    onSelectMode: (ScheduleMode) -> Unit,
-    onSelectDay: (ScheduleDay) -> Unit,
-    onPreviousDay: () -> Unit,
-    onNextDay: () -> Unit,
-    onSelectDate: (LocalDate) -> Unit,
-    onPreviousDate: () -> Unit,
-    onNextDate: () -> Unit,
-    onGoToToday: () -> Unit,
-    onSelectWeekFilter: (WeekFilter) -> Unit,
-    onSaveLessonNote: (ScheduleLessonItem, String) -> Unit,
-    onSetLessonReminder: (ScheduleLessonItem, Boolean, Int) -> Unit,
-    onDeleteLessonNote: (ScheduleLessonItem) -> Unit,
-    onUpdateNoteById: (String, String) -> Unit,
-    onDeleteNoteById: (String) -> Unit,
-) {
-    val uiState by state.collectAsStateWithLifecycle()
-    ScheduleScreenContent(
-        state = uiState,
-        onRefresh = onRefresh,
-        onBackToGroups = onBackToGroups,
-        onSelectMode = onSelectMode,
-        onSelectDay = onSelectDay,
-        onPreviousDay = onPreviousDay,
-        onNextDay = onNextDay,
-        onSelectDate = onSelectDate,
-        onPreviousDate = onPreviousDate,
-        onNextDate = onNextDate,
-        onGoToToday = onGoToToday,
-        onSelectWeekFilter = onSelectWeekFilter,
-        onSaveLessonNote = onSaveLessonNote,
-        onSetLessonReminder = onSetLessonReminder,
-        onDeleteLessonNote = onDeleteLessonNote,
-        onUpdateNoteById = onUpdateNoteById,
-        onDeleteNoteById = onDeleteNoteById,
-    )
+fun ScheduleRoute(viewModel: ScheduleViewModel, onBack: () -> Unit) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    LaunchedEffect(viewModel, onBack) {
+        viewModel.events.collect { event ->
+            if (event == ScheduleUiEvent.NavigateBack) onBack()
+        }
+    }
+    ScheduleScreen(state = state, onAction = viewModel::onAction)
 }
 
 @Composable
-private fun ScheduleScreenContent(
-    state: ScheduleUiState,
-    onRefresh: () -> Unit,
-    onBackToGroups: () -> Unit,
-    onSelectMode: (ScheduleMode) -> Unit,
-    onSelectDay: (ScheduleDay) -> Unit,
-    onPreviousDay: () -> Unit,
-    onNextDay: () -> Unit,
-    onSelectDate: (LocalDate) -> Unit,
-    onPreviousDate: () -> Unit,
-    onNextDate: () -> Unit,
-    onGoToToday: () -> Unit,
-    onSelectWeekFilter: (WeekFilter) -> Unit,
-    onSaveLessonNote: (ScheduleLessonItem, String) -> Unit,
-    onSetLessonReminder: (ScheduleLessonItem, Boolean, Int) -> Unit,
-    onDeleteLessonNote: (ScheduleLessonItem) -> Unit,
-    onUpdateNoteById: (String, String) -> Unit,
-    onDeleteNoteById: (String) -> Unit,
-) {
+fun ScheduleScreen(state: ScheduleUiState, onAction: (ScheduleUiAction) -> Unit) {
     val colors = MaterialThemeAppColors
     Scaffold(containerColor = colors.canvas) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             ScheduleState(
                 state = state,
-                onRefresh = onRefresh,
-                onBackToGroups = onBackToGroups,
-                onSelectMode = onSelectMode,
-                onSelectDay = onSelectDay,
-                onPreviousDay = onPreviousDay,
-                onNextDay = onNextDay,
-                onSelectDate = onSelectDate,
-                onPreviousDate = onPreviousDate,
-                onNextDate = onNextDate,
-                onGoToToday = onGoToToday,
-                onSelectWeekFilter = onSelectWeekFilter,
-                onSaveLessonNote = onSaveLessonNote,
-                onSetLessonReminder = onSetLessonReminder,
-                onDeleteLessonNote = onDeleteLessonNote,
-                onUpdateNoteById = onUpdateNoteById,
-                onDeleteNoteById = onDeleteNoteById,
+                onAction = onAction,
             )
 
             if (state.isRefreshing) RefreshingIndicator()
@@ -181,55 +112,10 @@ private fun RefreshingIndicator() {
 }
 
 @Composable
-private fun ScheduleState(
-    state: ScheduleUiState,
-    onRefresh: () -> Unit,
-    onBackToGroups: () -> Unit,
-    onSelectMode: (ScheduleMode) -> Unit,
-    onSelectDay: (ScheduleDay) -> Unit,
-    onPreviousDay: () -> Unit,
-    onNextDay: () -> Unit,
-    onSelectDate: (LocalDate) -> Unit,
-    onPreviousDate: () -> Unit,
-    onNextDate: () -> Unit,
-    onGoToToday: () -> Unit,
-    onSelectWeekFilter: (WeekFilter) -> Unit,
-    onSaveLessonNote: (ScheduleLessonItem, String) -> Unit,
-    onSetLessonReminder: (ScheduleLessonItem, Boolean, Int) -> Unit,
-    onDeleteLessonNote: (ScheduleLessonItem) -> Unit,
-    onUpdateNoteById: (String, String) -> Unit,
-    onDeleteNoteById: (String) -> Unit,
-) {
-    var editingLesson by remember { mutableStateOf<ScheduleLessonItem?>(null) }
-    var reminderLesson by remember { mutableStateOf<ScheduleLessonItem?>(null) }
-    var editingNoteId by remember { mutableStateOf<String?>(null) }
-    var showNotesDialog by remember { mutableStateOf(false) }
-
-    val filteredLessons = ScheduleRules.visibleLessons(state)
-    val timeSlots = buildTimeSlots(filteredLessons)
-    val activeGroup = state.selectedGroup?.groupName
-    val notesForGroup = state.notes.filter { activeGroup.isNullOrBlank() || it.groupName == activeGroup }
-    val lessonEntryMap = notesForGroup.associateBy {
-        noteLessonKey(it.date, it.timeRange, it.weekType, it.subject, it.rawText)
-    }
-    val noteTextMap = notesForGroup.filter { it.noteText.isNotBlank() }.associateBy {
-        noteLessonKey(it.date, it.timeRange, it.weekType, it.subject, it.rawText)
-    }
-    val dayIndex = state.availableDays.indexOf(state.selectedDay).takeIf { it >= 0 } ?: 0
-    val canGoPrev = if (state.mode == ScheduleMode.BY_DAY) dayIndex > 0 else true
-    val canGoNext = if (state.mode == ScheduleMode.BY_DAY) dayIndex < state.availableDays.lastIndex else true
-    val currentLesson = ScheduleRules.currentLesson(
-        lessons = filteredLessons,
-        date = state.selectedDate,
-        selectedDay = state.selectedDay,
-        isDateMode = state.mode == ScheduleMode.BY_DATE,
-    )
-    val nextLesson = ScheduleRules.nextLesson(
-        lessons = filteredLessons,
-        date = state.selectedDate,
-        selectedDay = state.selectedDay,
-        isDateMode = state.mode == ScheduleMode.BY_DATE,
-    )
+private fun ScheduleState(state: ScheduleUiState, onAction: (ScheduleUiAction) -> Unit) {
+    val data = state.data
+    val navigation = state.dateNavigation
+    val presentation = data.presentation
 
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
@@ -240,73 +126,75 @@ private fun ScheduleState(
             item {
                 Box(Modifier.padding(horizontal = AppDimensions.screenHorizontalPadding)) {
                     DayNavigatorPanel(
-                        mode = state.mode,
-                        selectedDayTitle = state.selectedDay?.title ?: "День не выбран",
-                        selectedDate = state.selectedDate,
-                        currentWeekType = if (state.mode ==
+                        mode = navigation.mode,
+                        selectedDayTitle = navigation.selectedDay?.title ?: "День не выбран",
+                        selectedDate = navigation.selectedDate,
+                        currentWeekType = if (navigation.mode ==
                             ScheduleMode.BY_DATE
                         ) {
-                            state.selectedDateWeekType
+                            navigation.selectedDateWeekType
                         } else {
-                            state.currentWeekType
+                            navigation.currentWeekType
                         },
-                        dayIndex = dayIndex,
-                        totalDays = state.availableDays.size,
-                        canGoPrev = canGoPrev,
-                        canGoNext = canGoNext,
-                        onSelectMode = onSelectMode,
-                        onPreviousDay = onPreviousDay,
-                        onNextDay = onNextDay,
-                        onSelectDate = onSelectDate,
-                        onPreviousDate = onPreviousDate,
-                        onNextDate = onNextDate,
-                        onGoToToday = onGoToToday,
-                        availableDays = state.availableDays,
-                        selectedDay = state.selectedDay,
-                        weekFilter = state.weekFilter,
-                        onSelectDay = onSelectDay,
-                        onSelectWeekFilter = onSelectWeekFilter,
-                        groupTitle = state.selectedGroup?.let { "Группа ${it.groupName}" },
-                        courseTitle = state.selectedGroup?.courseName,
-                        onBack = onBackToGroups,
-                        onRefresh = onRefresh,
+                        weekMismatch = navigation.weekMismatch,
+                        dayIndex = navigation.dayIndex,
+                        totalDays = navigation.totalDays,
+                        canGoPrev = navigation.canGoPrevious,
+                        canGoNext = navigation.canGoNext,
+                        onSelectMode = { onAction(ScheduleUiAction.SelectMode(it)) },
+                        onPreviousDay = { onAction(ScheduleUiAction.PreviousDay) },
+                        onNextDay = { onAction(ScheduleUiAction.NextDay) },
+                        onSelectDate = { onAction(ScheduleUiAction.SelectDate(it)) },
+                        onPreviousDate = { onAction(ScheduleUiAction.PreviousDate) },
+                        onNextDate = { onAction(ScheduleUiAction.NextDate) },
+                        onGoToToday = { onAction(ScheduleUiAction.Today) },
+                        availableDays = data.availableDays,
+                        selectedDay = navigation.selectedDay,
+                        weekFilter = navigation.weekFilter,
+                        onSelectDay = { onAction(ScheduleUiAction.SelectDay(it)) },
+                        onSelectWeekFilter = { onAction(ScheduleUiAction.SelectWeekFilter(it)) },
+                        groupTitle = data.selectedGroup?.let { "Группа ${it.groupName}" },
+                        courseTitle = data.selectedGroup?.courseName,
+                        onBack = { onAction(ScheduleUiAction.Back) },
+                        onRefresh = { onAction(ScheduleUiAction.Refresh) },
                         errorMessage = syncMessage(state),
                     )
                 }
             }
-            if (currentLesson != null || nextLesson != null) {
+            if (presentation.currentLesson != null || presentation.nextLesson != null) {
                 item {
                     Box(Modifier.padding(horizontal = AppDimensions.screenHorizontalPadding)) {
-                        LessonStatusSummary(currentLesson, nextLesson)
+                        LessonStatusSummary(presentation.currentLesson, presentation.nextLesson)
                     }
                 }
             }
             item {
                 Box(Modifier.padding(horizontal = AppDimensions.screenHorizontalPadding)) {
                     when {
-                        state.isInitialLoading && state.lessons.isEmpty() -> LessonTableSkeleton()
+                        data.isInitialLoading && data.lessons.isEmpty() -> LessonTableSkeleton()
 
-                        timeSlots.isEmpty() -> EmptyStateBlock(
-                            if (state.lessons.isEmpty()) "Занятий не найдено" else "На выбранный день и неделю пар нет",
+                        presentation.timeSlots.isEmpty() -> EmptyStateBlock(
+                            if (data.lessons.isEmpty()) "Занятий не найдено" else "На выбранный день и неделю пар нет",
                         )
 
                         else -> LessonTableCard(
-                            timeSlots = timeSlots,
-                            currentWeekType = if (state.mode ==
+                            timeSlots = presentation.timeSlots,
+                            currentWeekType = if (navigation.mode ==
                                 ScheduleMode.BY_DATE
                             ) {
-                                state.selectedDateWeekType
+                                navigation.selectedDateWeekType
                             } else {
-                                state.currentWeekType
+                                navigation.currentWeekType
                             },
-                            weekFilter = state.weekFilter,
-                            date = state.selectedDate,
-                            selectedDay = state.selectedDay,
-                            isDateMode = state.mode == ScheduleMode.BY_DATE,
-                            noteMap = noteTextMap,
-                            reminderMap = lessonEntryMap,
-                            onAddOrEditNote = { editingLesson = it },
-                            onAddOrEditReminder = { reminderLesson = it },
+                            weekFilter = navigation.weekFilter,
+                            date = navigation.selectedDate,
+                            isDateMode = navigation.mode == ScheduleMode.BY_DATE,
+                            currentLesson = presentation.currentLesson,
+                            nextLesson = presentation.nextLesson,
+                            noteMap = presentation.noteTextMap,
+                            reminderMap = presentation.reminderMap,
+                            onAddOrEditNote = { onAction(ScheduleUiAction.OpenNote(it)) },
+                            onAddOrEditReminder = { onAction(ScheduleUiAction.OpenReminder(it)) },
                         )
                     }
                 }
@@ -314,7 +202,7 @@ private fun ScheduleState(
         }
 
         FloatingActionButton(
-            onClick = { showNotesDialog = true },
+            onClick = { onAction(ScheduleUiAction.OpenNotesOverview) },
             modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp),
             shape = AppShapes.medium,
             containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -322,20 +210,17 @@ private fun ScheduleState(
         ) { Icon(AppIcons.notes, contentDescription = "Все заметки") }
     }
 
-    if (showNotesDialog) {
+    if (state.dialogs.showNotesOverview) {
         NotesOverviewDialog(
-            notes = state.notes.filter { it.noteText.isNotBlank() },
-            onDismiss = { showNotesDialog = false },
-            onEdit = { noteId ->
-                editingNoteId = noteId
-                showNotesDialog = false
-            },
+            notes = data.notes.filter { it.noteText.isNotBlank() },
+            onDismiss = { onAction(ScheduleUiAction.DismissDialog) },
+            onEdit = { onAction(ScheduleUiAction.EditNote(it)) },
         )
     }
-    editingLesson?.let { lesson ->
-        val note = noteTextMap[
+    state.dialogs.noteLesson?.let { lesson ->
+        val note = presentation.noteTextMap[
             noteLessonKey(
-                state.selectedDate,
+                navigation.selectedDate,
                 lesson.timeRange,
                 lesson.weekType,
                 lesson.subject,
@@ -345,23 +230,16 @@ private fun ScheduleState(
         LessonNoteDialog(
             lesson = lesson,
             note = note,
-            canEdit =
-            state.mode == ScheduleMode.BY_DATE && ScheduleRules.isEditable(state.selectedDate, lesson),
-            onDismiss = { editingLesson = null },
-            onSave = { text ->
-                onSaveLessonNote(lesson, text)
-                editingLesson = null
-            },
-            onDelete = {
-                onDeleteLessonNote(lesson)
-                editingLesson = null
-            },
+            canEdit = presentation.canEditDialog,
+            onDismiss = { onAction(ScheduleUiAction.DismissDialog) },
+            onSave = { onAction(ScheduleUiAction.SaveLessonNote(it)) },
+            onDelete = { onAction(ScheduleUiAction.DeleteLessonNote) },
         )
     }
-    reminderLesson?.let { lesson ->
-        val note = lessonEntryMap[
+    state.dialogs.reminderLesson?.let { lesson ->
+        val note = presentation.reminderMap[
             noteLessonKey(
-                state.selectedDate,
+                navigation.selectedDate,
                 lesson.timeRange,
                 lesson.weekType,
                 lesson.subject,
@@ -371,28 +249,18 @@ private fun ScheduleState(
         ReminderDialog(
             lesson = lesson,
             note = note,
-            canEdit =
-            state.mode == ScheduleMode.BY_DATE && ScheduleRules.isEditable(state.selectedDate, lesson),
-            onDismiss = { reminderLesson = null },
-            onSave = { enabled, minutes ->
-                onSetLessonReminder(lesson, enabled, minutes)
-                reminderLesson = null
-            },
+            canEdit = presentation.canEditDialog,
+            onDismiss = { onAction(ScheduleUiAction.DismissDialog) },
+            onSave = { enabled, minutes -> onAction(ScheduleUiAction.SaveReminder(enabled, minutes)) },
         )
     }
-    editingNoteId?.let { noteId ->
-        state.notes.firstOrNull { it.noteId == noteId }?.let { note ->
+    state.dialogs.editingNoteId?.let { noteId ->
+        data.notes.firstOrNull { it.noteId == noteId }?.let { note ->
             NoteEditByIdDialog(
                 note = note,
-                onDismiss = { editingNoteId = null },
-                onSave = { text ->
-                    onUpdateNoteById(noteId, text)
-                    editingNoteId = null
-                },
-                onDelete = {
-                    onDeleteNoteById(noteId)
-                    editingNoteId = null
-                },
+                onDismiss = { onAction(ScheduleUiAction.DismissDialog) },
+                onSave = { onAction(ScheduleUiAction.UpdateNote(it)) },
+                onDelete = { onAction(ScheduleUiAction.DeleteNote) },
             )
         }
     }

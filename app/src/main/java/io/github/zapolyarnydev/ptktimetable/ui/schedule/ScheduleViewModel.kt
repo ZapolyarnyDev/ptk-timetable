@@ -19,10 +19,14 @@ import io.github.zapolyarnydev.ptktimetable.domain.schedule.service.WeekRules
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
@@ -31,73 +35,6 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-
-enum class ScheduleDay(val title: String, val shortTitle: String, val order: Int) {
-    MONDAY("Понедельник", "Пн", 1),
-    TUESDAY("Вторник", "Вт", 2),
-    WEDNESDAY("Среда", "Ср", 3),
-    THURSDAY("Четверг", "Чт", 4),
-    FRIDAY("Пятница", "Пт", 5),
-    SATURDAY("Суббота", "Сб", 6),
-    SUNDAY("Воскресенье", "Вс", 7),
-    UNKNOWN("Другое", "?", 99),
-}
-
-data class ScheduleLessonItem(
-    val day: ScheduleDay,
-    val dayLabel: String,
-    val startTime: LocalTime,
-    val endTime: LocalTime,
-    val weekType: WeekType,
-    val subject: String,
-    val teacher: String?,
-    val classroom: String?,
-    val rawText: String,
-) {
-    val timeRange: String get() = "${TIME_FORMATTER.format(startTime)}-${TIME_FORMATTER.format(endTime)}"
-
-    private companion object {
-        val TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("H.mm")
-    }
-}
-
-data class ScheduleNoteItem(
-    val noteId: String,
-    val groupName: String,
-    val date: LocalDate,
-    val timeRange: String,
-    val weekType: WeekType,
-    val subject: String,
-    val teacher: String?,
-    val classroom: String?,
-    val rawText: String,
-    val noteText: String,
-    val reminderEnabled: Boolean,
-    val reminderMinutes: Int?,
-    val remindAtEpochMillis: Long?,
-    val createdAtEpochMillis: Long,
-)
-
-data class ScheduleUiState(
-    val isInitialLoading: Boolean = false,
-    val isRefreshing: Boolean = false,
-    val syncError: String? = null,
-    val hasCachedData: Boolean = false,
-    val isOffline: Boolean = false,
-    val selectedGroup: Group? = null,
-    val mode: ScheduleMode = ScheduleMode.BY_DAY,
-    val selectedDate: LocalDate = LocalDate.now(),
-    val lessons: List<ScheduleLessonItem> = emptyList(),
-    val availableDays: List<ScheduleDay> = emptyList(),
-    val selectedDay: ScheduleDay? = null,
-    val weekFilter: WeekFilter = WeekFilter.ALL,
-    val currentWeekType: WeekType? = null,
-    val selectedDateWeekType: WeekType? = null,
-    val notes: List<ScheduleNoteItem> = emptyList(),
-    val scheduleUpdatedAt: Instant? = null,
-    val errorMessage: String? = null,
-)
 
 class ScheduleViewModel(
     private val timetableRepository: TimetableRepository,
@@ -115,13 +52,98 @@ class ScheduleViewModel(
             selectedDate = todayProvider(),
         ),
     )
-    val state: StateFlow<ScheduleUiState> = _state.asStateFlow()
+    val state: StateFlow<ScheduleUiState> = _state
+        .map(::buildPresentation)
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = buildPresentation(_state.value),
+        )
+
+    private val _events = Channel<ScheduleUiEvent>(Channel.BUFFERED)
+    val events = _events.receiveAsFlow()
 
     private var loadedTemplates: List<Lesson> = emptyList()
     private var lessonsJob: Job? = null
 
     init {
         refreshNotes()
+    }
+
+    fun onAction(action: ScheduleUiAction) {
+        when (action) {
+            ScheduleUiAction.Refresh -> refreshCurrent()
+
+            ScheduleUiAction.Back -> viewModelScope.launch {
+                _events.send(ScheduleUiEvent.NavigateBack)
+            }
+
+            is ScheduleUiAction.SelectMode -> selectMode(action.mode)
+
+            is ScheduleUiAction.SelectDay -> selectDay(action.day)
+
+            ScheduleUiAction.PreviousDay -> previousDay()
+
+            ScheduleUiAction.NextDay -> nextDay()
+
+            is ScheduleUiAction.SelectDate -> selectDate(action.date)
+
+            ScheduleUiAction.PreviousDate -> previousDate()
+
+            ScheduleUiAction.NextDate -> nextDate()
+
+            ScheduleUiAction.Today -> goToToday()
+
+            is ScheduleUiAction.SelectWeekFilter -> selectWeekFilter(action.filter)
+
+            is ScheduleUiAction.OpenNote -> updateDialogs {
+                it.copy(noteLesson = action.lesson)
+            }
+
+            is ScheduleUiAction.OpenReminder -> updateDialogs {
+                it.copy(reminderLesson = action.lesson)
+            }
+
+            ScheduleUiAction.OpenNotesOverview -> updateDialogs {
+                it.copy(showNotesOverview = true)
+            }
+
+            is ScheduleUiAction.EditNote -> updateDialogs {
+                it.copy(
+                    editingNoteId = action.noteId,
+                    showNotesOverview = false,
+                )
+            }
+
+            ScheduleUiAction.DismissDialog -> updateDialogs { ScheduleDialogState() }
+
+            is ScheduleUiAction.SaveLessonNote -> {
+                state.value.dialogs.noteLesson?.let { saveNoteForLesson(it, action.text) }
+                updateDialogs { ScheduleDialogState() }
+            }
+
+            ScheduleUiAction.DeleteLessonNote -> {
+                state.value.dialogs.noteLesson?.let(::deleteNoteForLesson)
+                updateDialogs { ScheduleDialogState() }
+            }
+
+            is ScheduleUiAction.SaveReminder -> {
+                state.value.dialogs.reminderLesson?.let {
+                    setReminderForLesson(it, action.enabled, action.minutes)
+                }
+                updateDialogs { ScheduleDialogState() }
+            }
+
+            is ScheduleUiAction.UpdateNote -> {
+                state.value.dialogs.editingNoteId?.let { updateNoteById(it, action.text) }
+                updateDialogs { ScheduleDialogState() }
+            }
+
+            ScheduleUiAction.DeleteNote -> {
+                state.value.dialogs.editingNoteId?.let(::deleteNoteById)
+                updateDialogs { ScheduleDialogState() }
+            }
+        }
     }
 
     fun refreshCurrent() {
@@ -359,6 +381,53 @@ class ScheduleViewModel(
                 _state.update { it.copy(errorMessage = error.message ?: "Не удалось удалить заметку") }
             }
         }
+    }
+
+    private fun updateDialogs(transform: (ScheduleDialogState) -> ScheduleDialogState) {
+        _state.update { it.copy(dialogs = transform(it.dialogs)) }
+    }
+
+    private fun buildPresentation(raw: ScheduleUiState): ScheduleUiState {
+        val visibleLessons = ScheduleRules.visibleLessons(raw)
+        val notes = raw.notes.filter {
+            raw.selectedGroup == null || it.groupName == raw.selectedGroup.groupName
+        }
+        val reminderMap = notes.associateBy {
+            noteLessonKey(it.date, it.timeRange, it.weekType, it.subject, it.rawText)
+        }
+        val noteTextMap = notes
+            .filter { it.noteText.isNotBlank() }
+            .associateBy {
+                noteLessonKey(it.date, it.timeRange, it.weekType, it.subject, it.rawText)
+            }
+        val now = LocalDateTime.ofInstant(nowProvider(), ZoneId.systemDefault())
+        val dialogLesson = raw.dialogs.noteLesson ?: raw.dialogs.reminderLesson
+
+        return raw.copy(
+            presentation = ScheduleDataPresentation(
+                visibleLessons = visibleLessons,
+                timeSlots = buildTimeSlots(visibleLessons),
+                currentLesson = ScheduleRules.currentLesson(
+                    lessons = visibleLessons,
+                    date = raw.selectedDate,
+                    selectedDay = raw.selectedDay,
+                    isDateMode = raw.mode == ScheduleMode.BY_DATE,
+                    now = now,
+                ),
+                nextLesson = ScheduleRules.nextLesson(
+                    lessons = visibleLessons,
+                    date = raw.selectedDate,
+                    selectedDay = raw.selectedDay,
+                    isDateMode = raw.mode == ScheduleMode.BY_DATE,
+                    now = now,
+                ),
+                noteTextMap = noteTextMap,
+                reminderMap = reminderMap,
+                canEditDialog = dialogLesson != null &&
+                    raw.mode == ScheduleMode.BY_DATE &&
+                    ScheduleRules.isEditable(raw.selectedDate, dialogLesson, now),
+            ),
+        )
     }
 
     private fun shiftDay(by: Int) {
