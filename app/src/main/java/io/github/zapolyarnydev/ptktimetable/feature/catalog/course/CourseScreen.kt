@@ -54,35 +54,40 @@ fun CourseScreen(state: CourseUiState, onAction: (CourseUiAction) -> Unit) {
 
                 else -> LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        AppDimensions.screenHorizontalPadding,
-                        AppDimensions.screenVerticalPadding,
-                    ),
+                    contentPadding = PaddingValues(vertical = AppDimensions.screenVerticalPadding),
                     verticalArrangement = Arrangement.spacedBy(AppDimensions.sectionSpacing),
                 ) {
                     item {
-                        HeaderPanel(
-                            title = "Твоё расписание",
-                            subtitle = "Выбери курс — дальше покажем доступные группы",
-                            icon = AppIcons.schedule,
-                        )
+                        Box(Modifier.padding(horizontal = AppDimensions.screenHorizontalPadding)) {
+                            HeaderPanel(
+                                title = "Твоё расписание",
+                                subtitle = "Выбери курс — дальше покажем доступные группы",
+                                icon = AppIcons.schedule,
+                            )
+                        }
                     }
                     item {
-                        CatalogStatusCard(
-                            title = "Выберите курс",
-                            subtitle = "Шаг 1 из 2",
-                            lastUpdatedAt = state.lastUpdatedAt,
-                            isRefreshing = state.isRefreshing,
-                            syncError = state.syncError,
-                            isOffline = state.isOffline,
-                            onRefresh = { onAction(CourseUiAction.Refresh) },
-                        )
+                        Box(Modifier.padding(horizontal = AppDimensions.screenHorizontalPadding)) {
+                            CatalogStatusCard(
+                                title = "Выберите курс",
+                                subtitle = "Шаг 1 из 2",
+                                lastUpdatedAt = state.lastUpdatedAt,
+                                isRefreshing = state.isRefreshing,
+                                syncError = state.syncError,
+                                isOffline = state.isOffline,
+                                onRefresh = { onAction(CourseUiAction.Refresh) },
+                            )
+                        }
                     }
                     item {
                         when {
                             state.isInitialLoading -> SelectionListSkeleton(rows = 4)
 
-                            state.courses.isEmpty() -> EmptyStateBlock("Курсы не найдены")
+                            state.courses.isEmpty() -> Box(
+                                Modifier.padding(horizontal = AppDimensions.screenHorizontalPadding),
+                            ) {
+                                EmptyStateBlock("Курсы не найдены")
+                            }
 
                             else -> SelectionListSection(
                                 title = "Доступные курсы",

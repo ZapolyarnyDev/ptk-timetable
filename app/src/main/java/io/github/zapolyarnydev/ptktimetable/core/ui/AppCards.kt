@@ -11,6 +11,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.hoverable
@@ -69,29 +70,18 @@ import io.github.zapolyarnydev.ptktimetable.ui.theme.MaterialThemeAppColors
 @Composable
 internal fun HeaderPanel(title: String, subtitle: String, icon: ImageVector) {
     val colors = MaterialThemeAppColors
-    TonalSection(
-        color = colors.accentMuted,
-        shape = AppShapes.large,
-    ) {
+    TransparentSection(padding = 0.dp) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.Top,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .clip(AppShapes.medium)
-                    .background(colors.accent),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    tint = colors.onAccent,
-                    modifier = Modifier.size(26.dp),
-                )
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = colors.accent,
+                modifier = Modifier.padding(top = 5.dp).size(22.dp),
+            )
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     title,
                     style = MaterialTheme.typography.headlineSmall,
@@ -183,9 +173,11 @@ internal fun <T> SelectionListSection(
             text = title,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = AppDimensions.sectionPadding, vertical = 16.dp),
+            modifier = Modifier.padding(
+                horizontal = AppDimensions.screenHorizontalPadding,
+                vertical = AppDimensions.compactSpacing,
+            ),
         )
-        HorizontalDivider(color = colors.divider)
         items.forEachIndexed { index, item ->
             SelectionRow(
                 icon = icon(item),
@@ -193,7 +185,12 @@ internal fun <T> SelectionListSection(
                 subtitle = subtitleText(item),
                 onClick = { onClick(item) },
             )
-            if (index < items.lastIndex) HorizontalDivider(color = colors.divider)
+            if (index < items.lastIndex) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(start = AppDimensions.screenHorizontalPadding),
+                    color = colors.divider.copy(alpha = 0.55f),
+                )
+            }
         }
     }
 }
@@ -208,7 +205,7 @@ internal fun SelectionRow(icon: ImageVector, title: String, subtitle: String, on
         targetValue = when {
             pressed -> colors.accentMuted
             hovered -> colors.surfaceMuted
-            else -> colors.surface
+            else -> Color.Transparent
         },
         animationSpec = tween(120),
         label = "selectionRowColor",
@@ -218,35 +215,41 @@ internal fun SelectionRow(icon: ImageVector, title: String, subtitle: String, on
             .fillMaxWidth()
             .background(rowColor)
             .hoverable(interactionSource)
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
-            .heightIn(min = AppDimensions.touchTarget)
-            .padding(horizontal = AppDimensions.sectionPadding, vertical = 13.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(AppDimensions.iconTile)
-                .clip(AppShapes.small)
-                .background(colors.accentMuted),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                icon,
-                contentDescription = null,
-                tint = colors.accent,
-                modifier = Modifier.size(21.dp),
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                onClick = onClick,
             )
-        }
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            .heightIn(min = AppDimensions.listRowMinHeight)
+            .padding(horizontal = AppDimensions.screenHorizontalPadding, vertical = 12.dp),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = colors.textSecondary,
+            modifier = Modifier.padding(top = 2.dp).size(20.dp),
+        )
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                title,
+                style = MaterialTheme.typography.titleSmall,
+                color = colors.textPrimary,
+                fontWeight = FontWeight.Bold,
+            )
             Text(
                 subtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.textSecondary,
             )
         }
-        Icon(AppIcons.chevron, contentDescription = "Открыть", tint = colors.textSecondary)
+        Icon(
+            AppIcons.chevron,
+            contentDescription = "Открыть",
+            tint = colors.textSecondary,
+            modifier = Modifier.padding(top = 2.dp).size(20.dp),
+        )
     }
 }
 
@@ -268,16 +271,28 @@ internal fun EmptyStateBlock(text: String) {
 
 @Composable
 internal fun SelectionListSkeleton(rows: Int) {
-    TonalSection {
+    TransparentSection(padding = 0.dp) {
         repeat(rows) { index ->
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                SkeletonBar(widthFraction = 0.14f, height = 44.dp)
+            Row(
+                modifier = Modifier.padding(
+                    horizontal = AppDimensions.screenHorizontalPadding,
+                    vertical = 14.dp,
+                ),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                SkeletonBar(widthFraction = 0.06f, height = 20.dp)
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     SkeletonBar(widthFraction = if (index % 2 == 0) 0.48f else 0.62f, height = 15.dp)
                     SkeletonBar(widthFraction = 0.75f, height = 11.dp)
                 }
             }
-            if (index < rows - 1) Spacer(Modifier.height(18.dp))
+            if (index < rows - 1) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(start = AppDimensions.screenHorizontalPadding),
+                    color = MaterialThemeAppColors.divider.copy(alpha = 0.55f),
+                )
+            }
         }
     }
 }

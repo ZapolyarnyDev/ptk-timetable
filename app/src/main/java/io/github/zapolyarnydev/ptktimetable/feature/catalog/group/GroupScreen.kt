@@ -59,36 +59,41 @@ fun GroupScreen(state: GroupUiState, onAction: (GroupUiAction) -> Unit) {
 
                 else -> LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        AppDimensions.screenHorizontalPadding,
-                        AppDimensions.screenVerticalPadding,
-                    ),
+                    contentPadding = PaddingValues(vertical = AppDimensions.screenVerticalPadding),
                     verticalArrangement = Arrangement.spacedBy(AppDimensions.sectionSpacing),
                 ) {
                     item {
-                        HeaderPanel(
-                            title = "Выберите группу",
-                            subtitle = state.courseTitle.ifBlank { "Курс не выбран" },
-                            icon = AppIcons.group,
-                        )
+                        Box(Modifier.padding(horizontal = AppDimensions.screenHorizontalPadding)) {
+                            HeaderPanel(
+                                title = "Выберите группу",
+                                subtitle = state.courseTitle.ifBlank { "Курс не выбран" },
+                                icon = AppIcons.group,
+                            )
+                        }
                     }
                     item {
-                        CatalogStatusCard(
-                            title = "Группа для расписания",
-                            subtitle = "Шаг 2 из 2",
-                            lastUpdatedAt = state.lastUpdatedAt,
-                            isRefreshing = state.isRefreshing,
-                            syncError = state.syncError,
-                            isOffline = state.isOffline,
-                            onRefresh = { onAction(GroupUiAction.Refresh) },
-                            secondaryAction = "К курсам" to { onAction(GroupUiAction.Back) },
-                        )
+                        Box(Modifier.padding(horizontal = AppDimensions.screenHorizontalPadding)) {
+                            CatalogStatusCard(
+                                title = "Группа для расписания",
+                                subtitle = "Шаг 2 из 2",
+                                lastUpdatedAt = state.lastUpdatedAt,
+                                isRefreshing = state.isRefreshing,
+                                syncError = state.syncError,
+                                isOffline = state.isOffline,
+                                onRefresh = { onAction(GroupUiAction.Refresh) },
+                                secondaryAction = "К курсам" to { onAction(GroupUiAction.Back) },
+                            )
+                        }
                     }
                     item {
                         when {
                             state.isInitialLoading -> SelectionListSkeleton(rows = 6)
 
-                            state.groups.isEmpty() -> EmptyStateBlock("Для выбранного курса группы не найдены")
+                            state.groups.isEmpty() -> Box(
+                                Modifier.padding(horizontal = AppDimensions.screenHorizontalPadding),
+                            ) {
+                                EmptyStateBlock("Для выбранного курса группы не найдены")
+                            }
 
                             else -> SelectionListSection(
                                 title = "Доступные группы",
