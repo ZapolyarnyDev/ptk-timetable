@@ -167,25 +167,36 @@ class ScheduleViewModel(
     private fun buildPresentation(raw: ScheduleUiState): ScheduleUiState {
         val visibleLessons = ScheduleRules.visibleLessons(raw)
         val now = LocalDateTime.ofInstant(nowProvider(), ZoneId.systemDefault())
+        val currentLesson = ScheduleRules.currentLesson(
+            lessons = visibleLessons,
+            date = raw.selectedDate,
+            selectedDay = raw.selectedDay,
+            isDateMode = raw.mode == ScheduleMode.BY_DATE,
+            now = now,
+        )
+        val nextLesson = ScheduleRules.nextLesson(
+            lessons = visibleLessons,
+            date = raw.selectedDate,
+            selectedDay = raw.selectedDay,
+            isDateMode = raw.mode == ScheduleMode.BY_DATE,
+            now = now,
+        )
 
         return raw.copy(
             presentation = ScheduleDataPresentation(
                 visibleLessons = visibleLessons,
-                timeSlots = buildTimeSlots(visibleLessons),
-                currentLesson = ScheduleRules.currentLesson(
+                timeSlots = buildTimeSlots(
                     lessons = visibleLessons,
-                    date = raw.selectedDate,
-                    selectedDay = raw.selectedDay,
-                    isDateMode = raw.mode == ScheduleMode.BY_DATE,
-                    now = now,
+                    currentWeekType = if (raw.mode == ScheduleMode.BY_DATE) {
+                        raw.selectedDateWeekType
+                    } else {
+                        raw.currentWeekType
+                    },
+                    currentLesson = currentLesson,
+                    nextLesson = nextLesson,
                 ),
-                nextLesson = ScheduleRules.nextLesson(
-                    lessons = visibleLessons,
-                    date = raw.selectedDate,
-                    selectedDay = raw.selectedDay,
-                    isDateMode = raw.mode == ScheduleMode.BY_DATE,
-                    now = now,
-                ),
+                currentLesson = currentLesson,
+                nextLesson = nextLesson,
             ),
         )
     }

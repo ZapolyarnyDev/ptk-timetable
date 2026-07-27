@@ -11,7 +11,7 @@ import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekFilter
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekType
 import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleDay
 import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleLessonItem
-import io.github.zapolyarnydev.ptktimetable.ui.schedule.TimeSlotUi
+import io.github.zapolyarnydev.ptktimetable.ui.schedule.buildTimeSlots
 import io.github.zapolyarnydev.ptktimetable.ui.theme.PtkTheme
 import java.time.LocalDate
 import java.time.LocalTime
@@ -69,29 +69,33 @@ private fun LessonTablePreview() {
         startTime = LocalTime.of(9, 0),
         endTime = LocalTime.of(10, 30),
         weekType = WeekType.ALL,
-        subject = "Разработка мобильных приложений",
-        teacher = "Иванов И. И.",
-        classroom = "312",
-        rawText = "Разработка мобильных приложений",
+        subject = "Разработка мобильных приложений и распределённых пользовательских интерфейсов",
+        teacher = "Иванов Иван Иванович, Петрова Анна Сергеевна",
+        classroom = null,
+        rawText = "Разработка мобильных приложений и распределённых пользовательских интерфейсов",
+    )
+    val upperLesson = lesson.copy(
+        startTime = LocalTime.of(10, 40),
+        endTime = LocalTime.of(12, 10),
+        weekType = WeekType.UPPER,
+        subject = "Архитектура программных систем",
+        rawText = "Архитектура программных систем",
+    )
+    val lowerLesson = upperLesson.copy(
+        weekType = WeekType.LOWER,
+        subject = "Проектирование информационных систем",
+        rawText = "Проектирование информационных систем",
     )
     PtkTheme {
-        Column(Modifier.padding(16.dp)) {
-            LessonTableCard(
-                timeSlots = listOf(
-                    TimeSlotUi(
-                        startTime = lesson.startTime,
-                        endTime = lesson.endTime,
-                        allLessons = listOf(lesson),
-                        upperLessons = emptyList(),
-                        lowerLessons = emptyList(),
-                    ),
+        Column(Modifier.padding(horizontal = 8.dp, vertical = 16.dp)) {
+            LessonList(
+                timeSlots = buildTimeSlots(
+                    lessons = listOf(lesson, upperLesson, lowerLesson),
+                    currentWeekType = WeekType.UPPER,
+                    currentLesson = lesson,
                 ),
-                currentWeekType = WeekType.UPPER,
-                weekFilter = WeekFilter.ALL,
                 date = LocalDate.of(2026, 9, 7),
                 isDateMode = true,
-                currentLesson = lesson,
-                nextLesson = null,
                 noteMap = emptyMap(),
                 reminderMap = emptyMap(),
                 onAddOrEditNote = {},

@@ -4,10 +4,13 @@ import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.Group
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.ScheduleMode
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekFilter
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekType
+import io.github.zapolyarnydev.ptktimetable.domain.schedule.service.WeekRules
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+
+private val TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("H.mm")
 
 enum class ScheduleDay(val title: String, val shortTitle: String, val order: Int) {
     MONDAY("Понедельник", "Пн", 1),
@@ -32,10 +35,6 @@ data class ScheduleLessonItem(
     val rawText: String,
 ) {
     val timeRange: String get() = "${TIME_FORMATTER.format(startTime)}-${TIME_FORMATTER.format(endTime)}"
-
-    private companion object {
-        val TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("H.mm")
-    }
 }
 
 data class TimeSlotUi(
@@ -44,10 +43,25 @@ data class TimeSlotUi(
     val allLessons: List<ScheduleLessonItem>,
     val upperLessons: List<ScheduleLessonItem>,
     val lowerLessons: List<ScheduleLessonItem>,
+    val commonRows: List<LessonRowUi> = allLessons.map(::LessonRowUi),
+    val weekSections: List<WeekSectionUi> = emptyList(),
+    val status: LessonSlotStatus = LessonSlotStatus.DEFAULT,
 ) {
-    val isSplitByWeek: Boolean get() = upperLessons.isNotEmpty() || lowerLessons.isNotEmpty()
+    val startTimeLabel: String = TIME_FORMATTER.format(startTime)
+    val endTimeLabel: String = TIME_FORMATTER.format(endTime)
+    val isSplitByWeek: Boolean get() = weekSections.isNotEmpty()
     val lessons: List<ScheduleLessonItem> get() = allLessons + upperLessons + lowerLessons
-    val timeRange: String get() = "${formatTime(startTime)}-${formatTime(endTime)}"
+    val timeRange: String get() = "$startTimeLabel-$endTimeLabel"
+}
+
+data class LessonRowUi(val lesson: ScheduleLessonItem)
+
+data class WeekSectionUi(val title: String, val isCurrentWeek: Boolean, val rows: List<LessonRowUi>)
+
+enum class LessonSlotStatus {
+    DEFAULT,
+    CURRENT,
+    NEXT,
 }
 
 data class ScheduleDataPresentation(
@@ -162,17 +176,49 @@ sealed interface ScheduleUiEvent {
     data object NavigateBack : ScheduleUiEvent
 }
 
-internal fun buildTimeSlots(lessons: List<ScheduleLessonItem>): List<TimeSlotUi> = lessons
+internal fun buildTimeSlots(
+    lessons: List<ScheduleLessonItem>,
+    currentWeekType: WeekType? = null,
+    currentLesson: ScheduleLessonItem? = null,
+    nextLesson: ScheduleLessonItem? = null,
+): List<TimeSlotUi> = lessons
     .groupBy { it.startTime to it.endTime }
     .map { (range, rows) ->
+        val allLessons = rows.filter { it.weekType == WeekType.ALL }
+        val upperLessons = rows.filter { it.weekType == WeekType.UPPER }
+        val lowerLessons = rows.filter { it.weekType == WeekType.LOWER }
         TimeSlotUi(
             startTime = range.first,
             endTime = range.second,
-            allLessons = rows.filter { it.weekType == WeekType.ALL },
-            upperLessons = rows.filter { it.weekType == WeekType.UPPER },
-            lowerLessons = rows.filter { it.weekType == WeekType.LOWER },
+            allLessons = allLessons,
+            upperLessons = upperLessons,
+            lowerLessons = lowerLessons,
+            commonRows = allLessons.map(::LessonRowUi),
+            weekSections = buildList {
+                if (upperLessons.isNotEmpty()) {
+                    add(
+                        WeekSectionUi(
+                            title = "Верхняя неделя",
+                            isCurrentWeek = WeekRules.matches(WeekType.UPPER, currentWeekType),
+                            rows = upperLessons.map(::LessonRowUi),
+                        ),
+                    )
+                }
+                if (lowerLessons.isNotEmpty()) {
+                    add(
+                        WeekSectionUi(
+                            title = "Нижняя неделя",
+                            isCurrentWeek = WeekRules.matches(WeekType.LOWER, currentWeekType),
+                            rows = lowerLessons.map(::LessonRowUi),
+                        ),
+                    )
+                }
+            },
+            status = when (range.first) {
+                currentLesson?.startTime -> LessonSlotStatus.CURRENT
+                nextLesson?.startTime -> LessonSlotStatus.NEXT
+                else -> LessonSlotStatus.DEFAULT
+            },
         )
     }
     .sortedBy { it.startTime }
-
-private fun formatTime(value: LocalTime): String = DateTimeFormatter.ofPattern("H.mm").format(value)

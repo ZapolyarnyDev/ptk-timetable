@@ -70,6 +70,25 @@ class SchedulePresentationLogicTest {
     }
 
     @Test
+    fun `time slots prepare display labels week sections and status`() {
+        val current = lesson(ScheduleDay.MONDAY, "8.30-10.10", WeekType.UPPER, "Current")
+        val lower = lesson(ScheduleDay.MONDAY, "8.30-10.10", WeekType.LOWER, "Lower")
+
+        val slot = buildTimeSlots(
+            lessons = listOf(current, lower),
+            currentWeekType = WeekType.UPPER,
+            currentLesson = current,
+        ).single()
+
+        assertEquals("8.30", slot.startTimeLabel)
+        assertEquals("10.10", slot.endTimeLabel)
+        assertEquals(LessonSlotStatus.CURRENT, slot.status)
+        assertEquals(listOf("Верхняя неделя", "Нижняя неделя"), slot.weekSections.map { it.title })
+        assertTrue(slot.weekSections.first().isCurrentWeek)
+        assertFalse(slot.weekSections.last().isCurrentWeek)
+    }
+
+    @Test
     fun `date and day guards reject unrelated lesson slots`() {
         val today = LocalDate.now()
 

@@ -1,15 +1,12 @@
 package io.github.zapolyarnydev.ptktimetable.ui.schedule
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -20,7 +17,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,7 +25,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.zapolyarnydev.ptktimetable.core.ui.EmptyStateBlock
@@ -47,7 +42,7 @@ import io.github.zapolyarnydev.ptktimetable.feature.notes.noteLessonKey
 import io.github.zapolyarnydev.ptktimetable.feature.reminders.ReminderDialog
 import io.github.zapolyarnydev.ptktimetable.feature.reminders.rememberPermissionAwareNotesAction
 import io.github.zapolyarnydev.ptktimetable.feature.schedule.ui.DayNavigatorPanel
-import io.github.zapolyarnydev.ptktimetable.feature.schedule.ui.LessonTableCard
+import io.github.zapolyarnydev.ptktimetable.feature.schedule.ui.LessonList
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppAnimations
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppDimensions
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppIcons
@@ -207,15 +202,8 @@ private fun ScheduleState(
                     }
                 }
             }
-            if (presentation.currentLesson != null || presentation.nextLesson != null) {
-                item {
-                    Box(Modifier.padding(horizontal = AppDimensions.screenHorizontalPadding)) {
-                        LessonStatusSummary(presentation.currentLesson, presentation.nextLesson)
-                    }
-                }
-            }
             item {
-                Box(Modifier.padding(horizontal = AppDimensions.screenHorizontalPadding)) {
+                Box(Modifier.padding(horizontal = AppDimensions.scheduleHorizontalPadding)) {
                     when {
                         data.isInitialLoading && data.lessons.isEmpty() -> LessonTableSkeleton()
 
@@ -223,20 +211,10 @@ private fun ScheduleState(
                             if (data.lessons.isEmpty()) "Занятий не найдено" else "На выбранный день и неделю пар нет",
                         )
 
-                        else -> LessonTableCard(
+                        else -> LessonList(
                             timeSlots = presentation.timeSlots,
-                            currentWeekType = if (navigation.mode ==
-                                ScheduleMode.BY_DATE
-                            ) {
-                                navigation.selectedDateWeekType
-                            } else {
-                                navigation.currentWeekType
-                            },
-                            weekFilter = navigation.weekFilter,
                             date = navigation.selectedDate,
                             isDateMode = navigation.mode == ScheduleMode.BY_DATE,
-                            currentLesson = presentation.currentLesson,
-                            nextLesson = presentation.nextLesson,
                             noteMap = notesState.noteTextMap,
                             reminderMap = notesState.reminderMap,
                             onAddOrEditNote = { onNotesAction(NotesUiAction.OpenNote(it)) },
@@ -309,81 +287,6 @@ private fun ScheduleState(
                 onSave = { onNotesAction(NotesUiAction.UpdateNote(it)) },
                 onDelete = { onNotesAction(NotesUiAction.DeleteNote) },
             )
-        }
-    }
-}
-
-@Composable
-private fun LessonStatusSummary(current: ScheduleLessonItem?, next: ScheduleLessonItem?) {
-    val colors = MaterialThemeAppColors
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        StatusCard(
-            modifier = Modifier.weight(1f),
-            label = "Сейчас",
-            lesson = current,
-            accent = colors.accent,
-            container = colors.surfaceMuted,
-        )
-        StatusCard(
-            modifier = Modifier.weight(1f),
-            label = "Дальше",
-            lesson = next,
-            accent = colors.accent,
-            container = colors.surfaceMuted,
-        )
-    }
-}
-
-@Composable
-private fun StatusCard(
-    modifier: Modifier,
-    label: String,
-    lesson: ScheduleLessonItem?,
-    accent: androidx.compose.ui.graphics.Color,
-    container: androidx.compose.ui.graphics.Color,
-) {
-    val colors = MaterialThemeAppColors
-    Surface(
-        modifier = modifier,
-        shape = AppShapes.medium,
-        color = container,
-        border = BorderStroke(
-            width = 1.dp,
-            color = if (lesson != null) {
-                colors.accent.copy(alpha = 0.42f)
-            } else {
-                colors.divider
-            },
-        ),
-    ) {
-        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            Text(
-                label.uppercase(),
-                style = MaterialTheme.typography.labelSmall,
-                color = accent,
-                fontWeight = FontWeight.Bold,
-            )
-            if (lesson == null) {
-                Text(
-                    "Нет занятия",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.textSecondary,
-                )
-            } else {
-                Text(
-                    lesson.timeRange,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = colors.textSecondary,
-                )
-                Text(
-                    lesson.subject.ifBlank {
-                        lesson.rawText
-                    },
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2,
-                )
-            }
         }
     }
 }

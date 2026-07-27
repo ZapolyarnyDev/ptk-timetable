@@ -15,4 +15,6 @@ object AppDimensions {
     val touchTarget: Dp = 48.dp
     val iconTile: Dp = 44.dp
     val scheduleTimeColumn: Dp = 74.dp
+    val scheduleHorizontalPadding: Dp = 8.dp
+    val scheduleContentPadding: Dp = 12.dp
 }
