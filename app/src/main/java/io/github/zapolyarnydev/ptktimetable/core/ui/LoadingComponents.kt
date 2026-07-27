@@ -72,12 +72,13 @@ import io.github.zapolyarnydev.ptktimetable.ui.theme.MaterialThemeAppColors
 
 @Composable
 internal fun InlineLoading() {
+    val colors = MaterialThemeAppColors
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
         Text(
             "Обновляем…",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = colors.textSecondary,
         )
     }
 }
@@ -103,6 +104,7 @@ internal fun LessonTableSkeleton() {
 
 @Composable
 internal fun SkeletonBar(widthFraction: Float, height: Dp) {
+    val colors = MaterialThemeAppColors
     val transition = rememberInfiniteTransition(label = "skeleton")
     val alpha by transition.animateFloat(
         initialValue = 0.35f,
@@ -115,12 +117,13 @@ internal fun SkeletonBar(widthFraction: Float, height: Dp) {
             .fillMaxWidth(widthFraction)
             .height(height)
             .clip(AppShapes.small)
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = alpha)),
+            .background(colors.surfaceMuted.copy(alpha = alpha)),
     )
 }
 
 @Composable
 internal fun FullScreenLoadingState(title: String, message: String) {
+    val colors = MaterialThemeAppColors
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -131,7 +134,7 @@ internal fun FullScreenLoadingState(title: String, message: String) {
             Text(
                 message,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = colors.textSecondary,
             )
         }
     }
@@ -144,6 +147,7 @@ internal fun FullScreenErrorState(
     onRetry: () -> Unit,
     secondaryAction: Pair<String, () -> Unit>? = null,
 ) {
+    val colors = MaterialThemeAppColors
     Box(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         contentAlignment = Alignment.Center,
@@ -153,14 +157,14 @@ internal fun FullScreenErrorState(
                 Icon(
                     AppIcons.warning,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
+                    tint = colors.error,
                     modifier = Modifier.size(30.dp),
                 )
                 Text(title, style = MaterialTheme.typography.titleLarge)
                 Text(
                     message,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = colors.textSecondary,
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),

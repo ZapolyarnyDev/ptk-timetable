@@ -35,7 +35,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.zapolyarnydev.ptktimetable.core.ui.EmptyStateBlock
 import io.github.zapolyarnydev.ptktimetable.core.ui.FullScreenErrorState
 import io.github.zapolyarnydev.ptktimetable.core.ui.LessonTableSkeleton
-import io.github.zapolyarnydev.ptktimetable.core.ui.SectionCard
 import io.github.zapolyarnydev.ptktimetable.core.ui.SyncFeedback
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.ScheduleMode
 import io.github.zapolyarnydev.ptktimetable.feature.notes.LessonNoteDialog
@@ -199,14 +198,12 @@ private fun ScheduleState(
             if (data.updatedAt != null || data.isRefreshing || data.syncError != null) {
                 item {
                     Box(Modifier.padding(horizontal = AppDimensions.screenHorizontalPadding)) {
-                        SectionCard {
-                            SyncFeedback(
-                                updatedAt = data.updatedAt,
-                                isRefreshing = data.isRefreshing,
-                                syncError = data.syncError,
-                                isOffline = data.isOffline,
-                            )
-                        }
+                        SyncFeedback(
+                            updatedAt = data.updatedAt,
+                            isRefreshing = data.isRefreshing,
+                            syncError = data.syncError,
+                            isOffline = data.isOffline,
+                        )
                     }
                 }
             }
