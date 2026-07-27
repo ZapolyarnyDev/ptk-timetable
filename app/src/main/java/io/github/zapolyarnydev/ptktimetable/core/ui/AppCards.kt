@@ -11,9 +11,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -38,8 +36,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -73,14 +69,11 @@ import io.github.zapolyarnydev.ptktimetable.ui.theme.MaterialThemeAppColors
 @Composable
 internal fun HeaderPanel(title: String, subtitle: String, icon: ImageVector) {
     val colors = MaterialThemeAppColors
-    Card(
-        modifier = Modifier.fillMaxWidth(),
+    TonalSection(
+        color = colors.brandContainer,
         shape = AppShapes.large,
-        colors = CardDefaults.cardColors(containerColor = colors.brandContainer),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Row(
-            modifier = Modifier.padding(AppDimensions.cardPadding),
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -115,22 +108,47 @@ internal fun HeaderPanel(title: String, subtitle: String, icon: ImageVector) {
 }
 
 @Composable
-internal fun InfoPanel(content: @Composable () -> Unit) = SectionCard(content = content)
+internal fun InfoPanel(content: @Composable () -> Unit) = TransparentSection(content = content)
 
 @Composable
-internal fun SectionCard(padding: Dp = AppDimensions.cardPadding, content: @Composable () -> Unit) {
+internal fun TransparentSection(
+    modifier: Modifier = Modifier,
+    padding: Dp = AppDimensions.sectionPadding,
+    content: @Composable () -> Unit,
+) {
     AnimatedReveal {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = AppShapes.medium,
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        ) {
-            Column(modifier = Modifier.padding(padding)) { content() }
-        }
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(padding),
+            content = { content() },
+        )
     }
 }
+
+@Composable
+internal fun TonalSection(
+    modifier: Modifier = Modifier,
+    padding: Dp = AppDimensions.sectionPadding,
+    color: Color = MaterialTheme.colorScheme.surfaceVariant,
+    shape: androidx.compose.ui.graphics.Shape = AppShapes.medium,
+    content: @Composable () -> Unit,
+) {
+    AnimatedReveal {
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .clip(shape)
+                .background(color)
+                .padding(padding),
+            content = { content() },
+        )
+    }
+}
+
+@Composable
+internal fun SectionCard(padding: Dp = AppDimensions.sectionPadding, content: @Composable () -> Unit) =
+    TonalSection(padding = padding, content = content)
 
 @Composable
 internal fun MetaRow(icon: ImageVector, text: String, highlight: Boolean = true) {
@@ -158,12 +176,12 @@ internal fun <T> SelectionListSection(
     subtitleText: (T) -> String,
     onClick: (T) -> Unit,
 ) {
-    SectionCard(padding = 0.dp) {
+    TransparentSection(padding = 0.dp) {
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = AppDimensions.cardPadding, vertical = 16.dp),
+            modifier = Modifier.padding(horizontal = AppDimensions.sectionPadding, vertical = 16.dp),
         )
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         items.forEachIndexed { index, item ->
@@ -199,7 +217,8 @@ internal fun SelectionRow(icon: ImageVector, title: String, subtitle: String, on
             .background(rowColor)
             .hoverable(interactionSource)
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
-            .padding(horizontal = AppDimensions.cardPadding, vertical = 13.dp),
+            .heightIn(min = AppDimensions.touchTarget)
+            .padding(horizontal = AppDimensions.sectionPadding, vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -231,7 +250,7 @@ internal fun SelectionRow(icon: ImageVector, title: String, subtitle: String, on
 
 @Composable
 internal fun EmptyStateBlock(text: String) {
-    SectionCard {
+    TonalSection {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(
                 AppIcons.schedule,
@@ -246,7 +265,7 @@ internal fun EmptyStateBlock(text: String) {
 
 @Composable
 internal fun SelectionListSkeleton(rows: Int) {
-    SectionCard {
+    TonalSection {
         repeat(rows) { index ->
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 SkeletonBar(widthFraction = 0.14f, height = 44.dp)

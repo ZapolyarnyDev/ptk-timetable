@@ -11,7 +11,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -47,7 +46,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -81,7 +79,9 @@ internal fun PrimaryActionButton(
     val interactionSource = remember { MutableInteractionSource() }
     val scale = rememberPressScale(interactionSource, enabled)
     Button(
-        modifier = modifier.graphicsLayerScale(scale),
+        modifier = modifier
+            .heightIn(min = AppDimensions.touchTarget)
+            .graphicsLayerScale(scale),
         onClick = onClick,
         enabled = enabled,
         interactionSource = interactionSource,
@@ -105,14 +105,16 @@ internal fun OutlinedActionButton(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val scale = rememberPressScale(interactionSource, enabled)
-    OutlinedButton(
-        modifier = modifier.graphicsLayerScale(scale),
+    Button(
+        modifier = modifier
+            .heightIn(min = AppDimensions.touchTarget)
+            .graphicsLayerScale(scale),
         onClick = onClick,
         enabled = enabled,
         interactionSource = interactionSource,
         shape = AppShapes.pill,
         contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        colors = ButtonDefaults.filledTonalButtonColors(),
         elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp),
     ) { Text(text, style = MaterialTheme.typography.labelLarge) }
 }
@@ -125,13 +127,12 @@ internal fun NavArrowButton(icon: ImageVector, enabled: Boolean, onClick: () -> 
         modifier = Modifier.graphicsLayerScale(scale),
         shape = CircleShape,
         color = if (enabled) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         IconButton(
             onClick = onClick,
             enabled = enabled,
             interactionSource = interactionSource,
-            modifier = Modifier.size(46.dp),
+            modifier = Modifier.size(AppDimensions.touchTarget),
         ) {
             Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         }
@@ -162,12 +163,7 @@ internal fun AppChoiceChip(
         interactionSource = interactionSource,
         label = { Text(label, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium) },
         leadingIcon = { Icon(icon, contentDescription = null, modifier = Modifier.size(17.dp)) },
-        border = FilterChipDefaults.filterChipBorder(
-            enabled = true,
-            selected = selected,
-            borderColor = borderColor,
-            selectedBorderColor = selectedBorderColor,
-        ),
+        border = null,
         colors = FilterChipDefaults.filterChipColors(
             containerColor = containerColor,
             selectedContainerColor = selectedContainerColor,
@@ -224,7 +220,7 @@ internal fun OutlinedIconActionButton(
     val scale by animateFloatAsState(if (pressed && enabled) 0.92f else 1f, tween(90), label = "iconActionScale")
     Surface(
         modifier = modifier
-            .size(size)
+            .size(size.coerceAtLeast(AppDimensions.touchTarget))
             .graphicsLayerScale(scale)
             .clickable(enabled = enabled, interactionSource = interactionSource, indication = null, onClick = onClick),
         shape = CircleShape,
@@ -233,10 +229,6 @@ internal fun OutlinedIconActionButton(
             active -> MaterialTheme.colorScheme.primaryContainer
             else -> MaterialTheme.colorScheme.surfaceVariant
         },
-        border = BorderStroke(
-            1.dp,
-            if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-        ),
     ) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Icon(

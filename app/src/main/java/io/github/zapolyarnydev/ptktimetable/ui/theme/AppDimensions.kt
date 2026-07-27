@@ -8,6 +8,7 @@ object AppDimensions {
     val screenVerticalPadding: Dp = 16.dp
     val sectionSpacing: Dp = 16.dp
     val compactSpacing: Dp = 8.dp
+    val sectionPadding: Dp = 18.dp
     val cardPadding: Dp = 18.dp
     val compactCardPadding: Dp = 14.dp
     val listRowMinHeight: Dp = 72.dp
