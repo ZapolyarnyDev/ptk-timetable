@@ -93,20 +93,20 @@ internal fun DayNavigatorPanel(
                             withStyle(
                                 SpanStyle(
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary,
+                                    color = colors.accent,
                                 ),
                             ) {
                                 append(groupTitle ?: "Группа не выбрана")
                             }
                             courseTitle?.takeIf { it.isNotBlank() }?.let {
                                 append("  •  ")
-                                withStyle(SpanStyle(color = MaterialTheme.colorScheme.onSurfaceVariant)) {
+                                withStyle(SpanStyle(color = colors.textSecondary)) {
                                     append(it)
                                 }
                             }
                         },
                         style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = colors.textPrimary,
                     )
                 }
                 if (onRefresh != null) {
@@ -117,16 +117,16 @@ internal fun DayNavigatorPanel(
             }
             errorMessage?.let {
                 Spacer(Modifier.height(7.dp))
-                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                Text(it, style = MaterialTheme.typography.bodySmall, color = colors.error)
             }
             Spacer(Modifier.height(13.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            HorizontalDivider(color = colors.divider)
             Spacer(Modifier.height(16.dp))
         }
         Text(
             "Показать расписание",
             style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = colors.textSecondary,
         )
         Spacer(Modifier.height(8.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -164,7 +164,7 @@ internal fun DayNavigatorPanel(
                         selectedDayTitle
                     },
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = colors.textSecondary,
                 )
             }
             NavArrowButton(
@@ -180,7 +180,7 @@ internal fun DayNavigatorPanel(
                 Text(
                     "День недели",
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = colors.textSecondary,
                 )
                 Spacer(Modifier.height(7.dp))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -190,9 +190,9 @@ internal fun DayNavigatorPanel(
                             label = day.shortTitle,
                             icon = AppIcons.schedule,
                             onClick = { onSelectDay(day) },
-                            containerColor = colors.surfaceSoft,
-                            selectedContainerColor = colors.brandContainer,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            containerColor = colors.surfaceMuted,
+                            selectedContainerColor = colors.accentMuted,
+                            selectedLabelColor = colors.textPrimary,
                         )
                     }
                 }
@@ -201,7 +201,7 @@ internal fun DayNavigatorPanel(
             Text(
                 "Неделя",
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = colors.textSecondary,
             )
             Spacer(Modifier.height(7.dp))
             WeekSelector(selected = weekFilter, onSelect = onSelectWeekFilter)
@@ -239,7 +239,7 @@ internal fun DayNavigatorPanel(
                     currentWeekType,
                 )}",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = colors.textSecondary,
             )
         }
     }

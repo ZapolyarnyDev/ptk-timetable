@@ -24,6 +24,7 @@ import io.github.zapolyarnydev.ptktimetable.feature.notes.ModalActions
 import io.github.zapolyarnydev.ptktimetable.feature.notes.ScheduleNoteItem
 import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleLessonItem
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppIcons
+import io.github.zapolyarnydev.ptktimetable.ui.theme.MaterialThemeAppColors
 
 @Composable
 internal fun ReminderDialog(
@@ -45,7 +46,7 @@ internal fun ReminderDialog(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(AppIcons.reminder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Icon(AppIcons.reminder, contentDescription = null, tint = MaterialThemeAppColors.accent)
                 Text("Включить уведомление", style = MaterialTheme.typography.bodyLarge)
             }
             Switch(checked = enabled, onCheckedChange = { enabled = it }, enabled = canEdit)
@@ -77,7 +78,7 @@ internal fun ReminderDialog(
             Text(
                 "Уведомления доступны только для будущих пар в режиме «По дате».",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialThemeAppColors.textSecondary,
             )
         }
         errorMessage?.let {
@@ -85,7 +86,7 @@ internal fun ReminderDialog(
             Text(
                 text = it,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
+                color = MaterialThemeAppColors.error,
             )
         }
         Spacer(Modifier.height(16.dp))

@@ -42,7 +42,7 @@ fun GroupRoute(courseId: Int, viewModel: GroupViewModel, onGroupSelected: (Strin
 
 @Composable
 fun GroupScreen(state: GroupUiState, onAction: (GroupUiAction) -> Unit) {
-    Scaffold(containerColor = MaterialThemeAppColors.canvas) { padding ->
+    Scaffold(containerColor = MaterialThemeAppColors.background) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when {
                 state.isInitialLoading && state.groups.isEmpty() -> FullScreenLoadingState(

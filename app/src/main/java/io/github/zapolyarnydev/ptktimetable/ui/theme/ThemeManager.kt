@@ -26,9 +26,9 @@ object ThemeManager {
 
     fun palette(settings: AppThemeSettings, dark: Boolean): AppColors = when {
         settings.mode == AppThemeMode.AMOLED -> DarkAppColors.copy(
-            canvas = Color.Black,
-            surfaceElevated = Color(0xFF050608),
-            surfaceSoft = Color(0xFF111318),
+            background = Color.Black,
+            surface = Color(0xFF050608),
+            surfaceMuted = Color(0xFF111318),
         )
 
         dark -> DarkAppColors

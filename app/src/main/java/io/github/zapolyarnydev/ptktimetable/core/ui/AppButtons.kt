@@ -126,7 +126,7 @@ internal fun NavArrowButton(icon: ImageVector, enabled: Boolean, onClick: () -> 
     Surface(
         modifier = Modifier.graphicsLayerScale(scale),
         shape = CircleShape,
-        color = if (enabled) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface,
+        color = if (enabled) MaterialThemeAppColors.surfaceMuted else MaterialThemeAppColors.surface,
     ) {
         IconButton(
             onClick = onClick,
@@ -134,7 +134,7 @@ internal fun NavArrowButton(icon: ImageVector, enabled: Boolean, onClick: () -> 
             interactionSource = interactionSource,
             modifier = Modifier.size(AppDimensions.touchTarget),
         ) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Icon(icon, contentDescription = null, tint = MaterialThemeAppColors.accent)
         }
     }
 }
@@ -145,14 +145,14 @@ internal fun AppChoiceChip(
     label: String,
     icon: ImageVector,
     onClick: () -> Unit,
-    containerColor: Color = MaterialTheme.colorScheme.surface,
-    selectedContainerColor: Color = MaterialTheme.colorScheme.primaryContainer,
-    labelColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    selectedLabelColor: Color = MaterialTheme.colorScheme.onPrimaryContainer,
-    iconColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    selectedLeadingIconColor: Color = MaterialTheme.colorScheme.primary,
-    borderColor: Color = MaterialTheme.colorScheme.outlineVariant,
-    selectedBorderColor: Color = MaterialTheme.colorScheme.primary,
+    containerColor: Color = MaterialThemeAppColors.surface,
+    selectedContainerColor: Color = MaterialThemeAppColors.accentMuted,
+    labelColor: Color = MaterialThemeAppColors.textSecondary,
+    selectedLabelColor: Color = MaterialThemeAppColors.textPrimary,
+    iconColor: Color = MaterialThemeAppColors.textSecondary,
+    selectedLeadingIconColor: Color = MaterialThemeAppColors.accent,
+    borderColor: Color = MaterialThemeAppColors.divider,
+    selectedBorderColor: Color = MaterialThemeAppColors.accent,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val scale = rememberPressScale(interactionSource)
@@ -210,8 +210,8 @@ internal fun OutlinedIconActionButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     active: Boolean = false,
-    tint: Color = MaterialTheme.colorScheme.primary,
-    inactiveTint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    tint: Color = MaterialThemeAppColors.accent,
+    inactiveTint: Color = MaterialThemeAppColors.textSecondary,
     size: Dp = 32.dp,
     iconSize: Dp = 17.dp,
 ) {
@@ -225,9 +225,9 @@ internal fun OutlinedIconActionButton(
             .clickable(enabled = enabled, interactionSource = interactionSource, indication = null, onClick = onClick),
         shape = CircleShape,
         color = when {
-            !enabled -> MaterialTheme.colorScheme.surface
-            active -> MaterialTheme.colorScheme.primaryContainer
-            else -> MaterialTheme.colorScheme.surfaceVariant
+            !enabled -> MaterialThemeAppColors.surface
+            active -> MaterialThemeAppColors.accentMuted
+            else -> MaterialThemeAppColors.surfaceMuted
         },
     ) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

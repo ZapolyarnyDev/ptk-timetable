@@ -68,25 +68,26 @@ internal fun LessonTableCard(
     onAddOrEditNote: (ScheduleLessonItem) -> Unit,
     onAddOrEditReminder: (ScheduleLessonItem) -> Unit,
 ) {
+    val colors = MaterialThemeAppColors
     SectionCard(padding = 0.dp) {
         Row(
             modifier = Modifier.padding(horizontal = 18.dp, vertical = 15.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(9.dp),
         ) {
-            Box(Modifier.size(8.dp).clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.primary))
+            Box(Modifier.size(8.dp).clip(RoundedCornerShape(50)).background(colors.accent))
             Text("Занятия", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(
                 text = "${timeSlots.size}",
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
+                color = colors.accent,
                 modifier = Modifier
                     .clip(AppShapes.pill)
-                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .background(colors.accentMuted)
                     .padding(horizontal = 8.dp, vertical = 3.dp),
             )
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        HorizontalDivider(color = colors.divider)
         Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
             timeSlots.forEachIndexed { index, slot ->
                 AnimatedReveal(key = "${slot.timeRange}-$index") {

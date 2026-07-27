@@ -73,14 +73,14 @@ internal fun LessonTableRow(
     val endTime = formatTime(slot.endTime)
     val accent = when {
         isCurrentSlot -> colors.currentLesson
-        isNextSlot -> colors.nextLesson
-        else -> MaterialTheme.colorScheme.primary
+        isNextSlot -> colors.accent
+        else -> colors.accent
     }
     val containerColor by animateColorAsState(
         targetValue = when {
-            isCurrentSlot -> colors.currentLessonContainer
-            isNextSlot -> colors.nextLessonContainer
-            else -> MaterialTheme.colorScheme.surface
+            isCurrentSlot -> colors.currentLesson
+            isNextSlot -> colors.surfaceMuted
+            else -> colors.surface
         },
         animationSpec = tween(220),
         label = "lessonContainerColor",
@@ -100,7 +100,7 @@ internal fun LessonTableRow(
             if (isCurrentSlot || isNextSlot) {
                 accent.copy(alpha = 0.58f)
             } else {
-                MaterialTheme.colorScheme.outlineVariant
+                colors.divider
             },
         ),
         tonalElevation = if (isCurrentSlot) 2.dp else 0.dp,
@@ -122,7 +122,7 @@ internal fun LessonTableRow(
                 Text(
                     endTime,
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = colors.textSecondary,
                 )
                 if (isCurrentSlot || isNextSlot) {
                     Text(
@@ -233,18 +233,18 @@ internal fun WeekHalfBlock(
         Text(
             title,
             style = MaterialTheme.typography.labelLarge,
-            color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            color = if (isCurrent) MaterialThemeAppColors.accent else MaterialThemeAppColors.textSecondary,
             fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
         )
         if (isCurrent) {
-            Text("сейчас", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+            Text("сейчас", style = MaterialTheme.typography.labelSmall, color = MaterialThemeAppColors.accent)
         }
     }
     if (lessons.isEmpty()) {
         Text(
             "Нет занятия",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialThemeAppColors.textSecondary,
         )
     } else {
         LessonTextBlock(
@@ -293,16 +293,16 @@ internal fun LessonTextBlock(
                             text = lesson.subject.ifBlank { lesson.rawText },
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = MaterialThemeAppColors.textPrimary,
                         )
                         if (lesson.weekType != WeekType.ALL) {
                             Text(
                                 text = weekTypeTitle(lesson.weekType),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = if (isCurrent) {
-                                    MaterialTheme.colorScheme.primary
+                                    MaterialThemeAppColors.accent
                                 } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                    MaterialThemeAppColors.textSecondary
                                 },
                             )
                         }
@@ -339,13 +339,13 @@ internal fun LessonTextBlock(
                         Icon(
                             imageVector = icon,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = MaterialThemeAppColors.textSecondary,
                             modifier = Modifier.size(15.dp),
                         )
                         Text(
                             value,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = MaterialThemeAppColors.textSecondary,
                         )
                     }
                 }
@@ -353,12 +353,12 @@ internal fun LessonTextBlock(
                     Text(
                         text = "Заметка · ${note.noteText}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialThemeAppColors.accent,
                         maxLines = 2,
                     )
                 }
             }
-            if (index < lessons.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            if (index < lessons.lastIndex) HorizontalDivider(color = MaterialThemeAppColors.divider)
         }
     }
 }
@@ -370,7 +370,7 @@ private fun weekTypeTitle(type: WeekType): String = when (type) {
 }
 
 @Composable
-internal fun DashedHorizontalDivider(color: Color = MaterialTheme.colorScheme.outlineVariant, stroke: Dp = 1.dp) {
+internal fun DashedHorizontalDivider(color: Color = MaterialThemeAppColors.divider, stroke: Dp = 1.dp) {
     Box(
         modifier = Modifier.fillMaxWidth().height(2.dp).drawBehind {
             val y = size.height / 2f

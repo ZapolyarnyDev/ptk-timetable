@@ -40,6 +40,7 @@ import io.github.zapolyarnydev.ptktimetable.core.ui.formatDateTitle
 import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleLessonItem
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppIcons
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppShapes
+import io.github.zapolyarnydev.ptktimetable.ui.theme.MaterialThemeAppColors
 
 @Composable
 internal fun LessonNoteDialog(
@@ -65,7 +66,7 @@ internal fun LessonNoteDialog(
             Text(
                 "Редактирование доступно только для будущих пар в режиме «По дате».",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialThemeAppColors.textSecondary,
             )
         }
         Spacer(Modifier.height(16.dp))
@@ -85,7 +86,7 @@ internal fun NotesOverviewDialog(notes: List<ScheduleNoteItem>, onDismiss: () ->
             Text(
                 "Пока нет заметок",
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialThemeAppColors.textSecondary,
             )
         } else {
             LazyColumn(
@@ -96,14 +97,14 @@ internal fun NotesOverviewDialog(notes: List<ScheduleNoteItem>, onDismiss: () ->
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = AppShapes.small,
-                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        color = MaterialThemeAppColors.surfaceMuted,
                         onClick = { onEdit(note.noteId) },
                     ) {
                         Column(Modifier.padding(13.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
                                 "${formatDateTitle(note.date)} · ${note.timeRange}",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = MaterialThemeAppColors.textSecondary,
                             )
                             Text(
                                 note.subject.ifBlank {
@@ -117,7 +118,7 @@ internal fun NotesOverviewDialog(notes: List<ScheduleNoteItem>, onDismiss: () ->
                                     "Без текста заметки"
                                 },
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary,
+                                color = MaterialThemeAppColors.accent,
                                 maxLines = 3,
                             )
                         }
@@ -167,7 +168,7 @@ internal fun ModalActions(
                 TextButton(
                     onClick = onDelete,
                     colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialThemeAppColors.error,
                     ),
                 ) {
                     Text("Удалить")

@@ -25,6 +25,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppIcons
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppShapes
+import io.github.zapolyarnydev.ptktimetable.ui.theme.MaterialThemeAppColors
 
 @Composable
 internal fun AppModalScaffold(
@@ -33,6 +34,7 @@ internal fun AppModalScaffold(
     onDismiss: () -> Unit,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val colors = MaterialThemeAppColors
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Box(
             modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 28.dp),
@@ -40,8 +42,8 @@ internal fun AppModalScaffold(
         ) {
             Surface(
                 modifier = Modifier.fillMaxWidth().heightIn(min = 280.dp, max = 620.dp),
-                color = MaterialTheme.colorScheme.surface,
-                shape = AppShapes.large,
+                color = colors.surface,
+                shape = AppShapes.dialog,
                 tonalElevation = 6.dp,
             ) {
                 Column(
@@ -55,7 +57,7 @@ internal fun AppModalScaffold(
                                 Text(
                                     subtitle,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = colors.textSecondary,
                                 )
                             }
                         }
@@ -63,7 +65,7 @@ internal fun AppModalScaffold(
                             Icon(AppIcons.close, contentDescription = "Закрыть")
                         }
                     }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    HorizontalDivider(color = colors.divider)
                     content()
                 }
             }

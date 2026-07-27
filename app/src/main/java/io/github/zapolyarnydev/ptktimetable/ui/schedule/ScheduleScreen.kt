@@ -90,7 +90,7 @@ fun ScheduleScreen(
     onNotesAction: (NotesUiAction) -> Unit,
 ) {
     val colors = MaterialThemeAppColors
-    Scaffold(containerColor = colors.canvas) { padding ->
+    Scaffold(containerColor = colors.background) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when {
                 state.isInitialLoading && state.lessons.isEmpty() -> InitialLoadingState()
@@ -116,16 +116,16 @@ fun ScheduleScreen(
 @Composable
 private fun InitialLoadingState() {
     val colors = MaterialThemeAppColors
-    Box(Modifier.fillMaxSize().background(colors.canvas), contentAlignment = Alignment.Center) {
+    Box(Modifier.fillMaxSize().background(colors.background), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(18.dp)) {
             Box(
-                modifier = Modifier.size(76.dp).clip(AppShapes.large).background(MaterialTheme.colorScheme.primary),
+                modifier = Modifier.size(76.dp).clip(AppShapes.large).background(colors.accent),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     AppIcons.schedule,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimary,
+                    tint = colors.onAccent,
                     modifier = Modifier.size(38.dp),
                 )
             }
@@ -133,7 +133,7 @@ private fun InitialLoadingState() {
             Text(
                 "Подготавливаем данные…",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = colors.textSecondary,
             )
             CircularProgressIndicator(modifier = Modifier.size(26.dp), strokeWidth = 2.5.dp)
         }
@@ -147,6 +147,7 @@ private fun ScheduleState(
     onAction: (ScheduleUiAction) -> Unit,
     onNotesAction: (NotesUiAction) -> Unit,
 ) {
+    val colors = MaterialThemeAppColors
     val data = state.data
     val navigation = state.dateNavigation
     val presentation = data.presentation
@@ -253,8 +254,8 @@ private fun ScheduleState(
             onClick = { onNotesAction(NotesUiAction.OpenOverview) },
             modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp),
             shape = AppShapes.medium,
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            containerColor = colors.accentMuted,
+            contentColor = colors.textPrimary,
         ) { Icon(AppIcons.notes, contentDescription = "Все заметки") }
     }
 
@@ -317,20 +318,21 @@ private fun ScheduleState(
 
 @Composable
 private fun LessonStatusSummary(current: ScheduleLessonItem?, next: ScheduleLessonItem?) {
+    val colors = MaterialThemeAppColors
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         StatusCard(
             modifier = Modifier.weight(1f),
             label = "Сейчас",
             lesson = current,
-            accent = MaterialTheme.colorScheme.primary,
-            container = MaterialTheme.colorScheme.surfaceVariant,
+            accent = colors.accent,
+            container = colors.surfaceMuted,
         )
         StatusCard(
             modifier = Modifier.weight(1f),
             label = "Дальше",
             lesson = next,
-            accent = MaterialTheme.colorScheme.primary,
-            container = MaterialTheme.colorScheme.surfaceVariant,
+            accent = colors.accent,
+            container = colors.surfaceMuted,
         )
     }
 }
@@ -343,6 +345,7 @@ private fun StatusCard(
     accent: androidx.compose.ui.graphics.Color,
     container: androidx.compose.ui.graphics.Color,
 ) {
+    val colors = MaterialThemeAppColors
     Surface(
         modifier = modifier,
         shape = AppShapes.medium,
@@ -350,9 +353,9 @@ private fun StatusCard(
         border = BorderStroke(
             width = 1.dp,
             color = if (lesson != null) {
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.42f)
+                colors.accent.copy(alpha = 0.42f)
             } else {
-                MaterialTheme.colorScheme.outlineVariant
+                colors.divider
             },
         ),
     ) {
@@ -367,13 +370,13 @@ private fun StatusCard(
                 Text(
                     "Нет занятия",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = colors.textSecondary,
                 )
             } else {
                 Text(
                     lesson.timeRange,
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = colors.textSecondary,
                 )
                 Text(
                     lesson.subject.ifBlank {

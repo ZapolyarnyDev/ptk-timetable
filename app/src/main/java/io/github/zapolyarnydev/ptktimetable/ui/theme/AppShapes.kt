@@ -10,6 +10,8 @@ object AppShapes {
     val medium = RoundedCornerShape(22.dp)
     val large = RoundedCornerShape(28.dp)
     val schedule = RoundedCornerShape(24.dp)
+    val field = small
+    val dialog = large
 
     val material = Shapes(
         small = small,

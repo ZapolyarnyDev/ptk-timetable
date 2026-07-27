@@ -70,7 +70,7 @@ import io.github.zapolyarnydev.ptktimetable.ui.theme.MaterialThemeAppColors
 internal fun HeaderPanel(title: String, subtitle: String, icon: ImageVector) {
     val colors = MaterialThemeAppColors
     TonalSection(
-        color = colors.brandContainer,
+        color = colors.accentMuted,
         shape = AppShapes.large,
     ) {
         Row(
@@ -81,13 +81,13 @@ internal fun HeaderPanel(title: String, subtitle: String, icon: ImageVector) {
                 modifier = Modifier
                     .size(52.dp)
                     .clip(AppShapes.medium)
-                    .background(MaterialTheme.colorScheme.primary),
+                    .background(colors.accent),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     icon,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimary,
+                    tint = colors.onAccent,
                     modifier = Modifier.size(26.dp),
                 )
             }
@@ -95,12 +95,12 @@ internal fun HeaderPanel(title: String, subtitle: String, icon: ImageVector) {
                 Text(
                     title,
                     style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    color = colors.textPrimary,
                 )
                 Text(
                     subtitle,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = colors.textSecondary,
                 )
             }
         }
@@ -130,7 +130,7 @@ internal fun TransparentSection(
 internal fun TonalSection(
     modifier: Modifier = Modifier,
     padding: Dp = AppDimensions.sectionPadding,
-    color: Color = MaterialTheme.colorScheme.surfaceVariant,
+    color: Color = MaterialThemeAppColors.surfaceMuted,
     shape: androidx.compose.ui.graphics.Shape = AppShapes.medium,
     content: @Composable () -> Unit,
 ) {
@@ -152,17 +152,18 @@ internal fun SectionCard(padding: Dp = AppDimensions.sectionPadding, content: @C
 
 @Composable
 internal fun MetaRow(icon: ImageVector, text: String, highlight: Boolean = true) {
+    val colors = MaterialThemeAppColors
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = if (highlight) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = if (highlight) colors.accent else colors.textSecondary,
             modifier = Modifier.size(18.dp),
         )
         Text(
             text = text,
             style = MaterialTheme.typography.bodyMedium,
-            color = if (highlight) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+            color = if (highlight) colors.textPrimary else colors.textSecondary,
         )
     }
 }
@@ -176,6 +177,7 @@ internal fun <T> SelectionListSection(
     subtitleText: (T) -> String,
     onClick: (T) -> Unit,
 ) {
+    val colors = MaterialThemeAppColors
     TransparentSection(padding = 0.dp) {
         Text(
             text = title,
@@ -183,7 +185,7 @@ internal fun <T> SelectionListSection(
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(horizontal = AppDimensions.sectionPadding, vertical = 16.dp),
         )
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        HorizontalDivider(color = colors.divider)
         items.forEachIndexed { index, item ->
             SelectionRow(
                 icon = icon(item),
@@ -191,7 +193,7 @@ internal fun <T> SelectionListSection(
                 subtitle = subtitleText(item),
                 onClick = { onClick(item) },
             )
-            if (index < items.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            if (index < items.lastIndex) HorizontalDivider(color = colors.divider)
         }
     }
 }
@@ -204,9 +206,9 @@ internal fun SelectionRow(icon: ImageVector, title: String, subtitle: String, on
     val pressed by interactionSource.collectIsPressedAsState()
     val rowColor by animateColorAsState(
         targetValue = when {
-            pressed -> colors.brandContainer
-            hovered -> MaterialTheme.colorScheme.surfaceVariant
-            else -> MaterialTheme.colorScheme.surface
+            pressed -> colors.accentMuted
+            hovered -> colors.surfaceMuted
+            else -> colors.surface
         },
         animationSpec = tween(120),
         label = "selectionRowColor",
@@ -226,13 +228,13 @@ internal fun SelectionRow(icon: ImageVector, title: String, subtitle: String, on
             modifier = Modifier
                 .size(AppDimensions.iconTile)
                 .clip(AppShapes.small)
-                .background(colors.brandContainer),
+                .background(colors.accentMuted),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = colors.accent,
                 modifier = Modifier.size(21.dp),
             )
         }
@@ -241,24 +243,25 @@ internal fun SelectionRow(icon: ImageVector, title: String, subtitle: String, on
             Text(
                 subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = colors.textSecondary,
             )
         }
-        Icon(AppIcons.chevron, contentDescription = "Открыть", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Icon(AppIcons.chevron, contentDescription = "Открыть", tint = colors.textSecondary)
     }
 }
 
 @Composable
 internal fun EmptyStateBlock(text: String) {
+    val colors = MaterialThemeAppColors
     TonalSection {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(
                 AppIcons.schedule,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = colors.accent,
                 modifier = Modifier.size(26.dp),
             )
-            Text(text, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(text, style = MaterialTheme.typography.bodyLarge, color = colors.textSecondary)
         }
     }
 }

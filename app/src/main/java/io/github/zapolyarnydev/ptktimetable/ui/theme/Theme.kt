@@ -27,35 +27,39 @@ fun PtkTheme(settings: AppThemeSettings = ThemeManager.defaultSettings, content:
         }
 
         darkTheme -> darkColorScheme(
-            primary = palette.brand,
-            onPrimary = ColorTokens.darkOnBrand,
-            primaryContainer = palette.brandContainer,
-            onPrimaryContainer = ColorTokens.darkOnBrandContainer,
-            secondary = palette.brand,
-            onSecondary = ColorTokens.darkOnBrand,
-            background = palette.canvas,
-            onBackground = ColorTokens.darkOnBackground,
-            surface = palette.surfaceElevated,
-            onSurface = ColorTokens.darkOnBackground,
-            surfaceVariant = palette.surfaceSoft,
-            onSurfaceVariant = palette.onSurfaceMuted,
-            outline = ColorTokens.darkOutline,
+            primary = palette.accent,
+            onPrimary = palette.onAccent,
+            primaryContainer = palette.accentMuted,
+            onPrimaryContainer = palette.textPrimary,
+            secondary = palette.accent,
+            onSecondary = palette.onAccent,
+            background = palette.background,
+            onBackground = palette.textPrimary,
+            surface = palette.surface,
+            onSurface = palette.textPrimary,
+            surfaceVariant = palette.surfaceMuted,
+            onSurfaceVariant = palette.textSecondary,
+            outline = palette.divider,
+            outlineVariant = palette.divider,
+            error = palette.error,
         )
 
         else -> lightColorScheme(
-            primary = palette.brand,
-            onPrimary = ColorTokens.onBrand,
-            primaryContainer = palette.brandContainer,
-            onPrimaryContainer = ColorTokens.onBrandContainer,
-            secondary = palette.brandStrong,
-            onSecondary = ColorTokens.onBrand,
-            background = palette.canvas,
-            onBackground = ColorTokens.onBackground,
-            surface = palette.surfaceElevated,
-            onSurface = ColorTokens.onBackground,
-            surfaceVariant = palette.surfaceSoft,
-            onSurfaceVariant = palette.onSurfaceMuted,
-            outline = ColorTokens.outline,
+            primary = palette.accent,
+            onPrimary = palette.onAccent,
+            primaryContainer = palette.accentMuted,
+            onPrimaryContainer = palette.textPrimary,
+            secondary = palette.accent,
+            onSecondary = palette.onAccent,
+            background = palette.background,
+            onBackground = palette.textPrimary,
+            surface = palette.surface,
+            onSurface = palette.textPrimary,
+            surfaceVariant = palette.surfaceMuted,
+            onSurfaceVariant = palette.textSecondary,
+            outline = palette.divider,
+            outlineVariant = palette.divider,
+            error = palette.error,
         )
     }
 
@@ -67,17 +71,6 @@ fun PtkTheme(settings: AppThemeSettings = ThemeManager.defaultSettings, content:
             content = content,
         )
     }
-}
-
-private object ColorTokens {
-    val onBrand = androidx.compose.ui.graphics.Color.White
-    val onBrandContainer = androidx.compose.ui.graphics.Color(0xFF172B70)
-    val onBackground = androidx.compose.ui.graphics.Color(0xFF171A22)
-    val outline = androidx.compose.ui.graphics.Color(0xFFDDE2EC)
-    val darkOnBrand = androidx.compose.ui.graphics.Color(0xFF172B70)
-    val darkOnBrandContainer = androidx.compose.ui.graphics.Color(0xFFDCE2FF)
-    val darkOnBackground = androidx.compose.ui.graphics.Color(0xFFE5E6EE)
-    val darkOutline = androidx.compose.ui.graphics.Color(0xFF454852)
 }
 
 val ColorScheme.cardBorder: androidx.compose.ui.graphics.Color

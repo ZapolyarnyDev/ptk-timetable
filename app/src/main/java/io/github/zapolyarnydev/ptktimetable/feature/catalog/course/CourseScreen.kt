@@ -38,7 +38,7 @@ fun CourseRoute(viewModel: CourseViewModel, onCourseSelected: (Int) -> Unit) {
 
 @Composable
 fun CourseScreen(state: CourseUiState, onAction: (CourseUiAction) -> Unit) {
-    Scaffold(containerColor = MaterialThemeAppColors.canvas) { padding ->
+    Scaffold(containerColor = MaterialThemeAppColors.background) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when {
                 state.isInitialLoading && state.courses.isEmpty() -> FullScreenLoadingState(

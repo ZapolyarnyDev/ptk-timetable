@@ -16,6 +16,7 @@ import io.github.zapolyarnydev.ptktimetable.core.ui.OutlinedActionButton
 import io.github.zapolyarnydev.ptktimetable.core.ui.PrimaryActionButton
 import io.github.zapolyarnydev.ptktimetable.core.ui.SyncFeedback
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppIcons
+import io.github.zapolyarnydev.ptktimetable.ui.theme.MaterialThemeAppColors
 import java.time.Instant
 
 @Composable
@@ -29,13 +30,14 @@ internal fun CatalogStatusCard(
     onRefresh: () -> Unit,
     secondaryAction: Pair<String, () -> Unit>? = null,
 ) {
+    val colors = MaterialThemeAppColors
     InfoPanel {
         Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             Text(
                 subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = colors.textSecondary,
             )
             SyncFeedback(
                 updatedAt = lastUpdatedAt,
