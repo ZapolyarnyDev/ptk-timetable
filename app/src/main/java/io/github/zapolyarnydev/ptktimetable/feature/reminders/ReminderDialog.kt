@@ -25,10 +25,12 @@ import io.github.zapolyarnydev.ptktimetable.feature.notes.ScheduleNoteItem
 import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleLessonItem
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppIcons
 import io.github.zapolyarnydev.ptktimetable.ui.theme.MaterialThemeAppColors
+import java.time.LocalDate
 
 @Composable
 internal fun ReminderDialog(
     lesson: ScheduleLessonItem,
+    date: LocalDate,
     note: ScheduleNoteItem?,
     canEdit: Boolean,
     errorMessage: String?,
@@ -39,7 +41,15 @@ internal fun ReminderDialog(
     var minutesText by remember(note?.noteId) { mutableStateOf((note?.reminderMinutes ?: 10).toString()) }
     val parsedMinutes = minutesText.toIntOrNull()?.coerceIn(1, 360)
 
-    AppModalScaffold("Напоминание о паре", "${lesson.day.title} · ${lesson.timeRange}", onDismiss) {
+    AppModalScaffold(
+        title = if (note?.reminderEnabled == true) "Изменить напоминание" else "Новое напоминание",
+        subtitle = "${io.github.zapolyarnydev.ptktimetable.core.ui.formatDateTitle(
+            date,
+        )} · ${lesson.timeRange} · ${lesson.subject.ifBlank {
+            "Занятие"
+        }}",
+        onDismiss = onDismiss,
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,

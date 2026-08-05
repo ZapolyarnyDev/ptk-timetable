@@ -32,7 +32,7 @@ data class NotesDialogState(
 data class NotesUiState(
     val groupName: String? = null,
     val selectedDate: LocalDate = LocalDate.now(),
-    val scheduleMode: ScheduleMode = ScheduleMode.BY_DAY,
+    val scheduleMode: ScheduleMode = ScheduleMode.BY_DATE,
     val notes: List<ScheduleNoteItem> = emptyList(),
     val noteTextMap: Map<String, ScheduleNoteItem> = emptyMap(),
     val reminderMap: Map<String, ScheduleNoteItem> = emptyMap(),

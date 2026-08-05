@@ -27,7 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import io.github.zapolyarnydev.ptktimetable.core.ui.OutlinedIconActionButton
+import io.github.zapolyarnydev.ptktimetable.core.ui.BorderlessIconActionButton
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.WeekType
 import io.github.zapolyarnydev.ptktimetable.feature.notes.ScheduleNoteItem
 import io.github.zapolyarnydev.ptktimetable.feature.notes.noteLessonKey
@@ -238,16 +238,25 @@ private fun LessonTextBlock(
                     )
                 }
                 if (isDateMode) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        OutlinedIconActionButton(
+                    HorizontalDivider(color = colors.divider.copy(alpha = 0.28f))
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 1.dp),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        BorderlessIconActionButton(
                             icon = if (note != null) AppIcons.note else AppIcons.edit,
                             contentDescription = if (note != null) "Открыть заметку" else "Добавить заметку",
                             onClick = { onAddOrEditNote(lesson) },
                             active = note != null,
                         )
-                        OutlinedIconActionButton(
+                        BorderlessIconActionButton(
                             icon = AppIcons.reminder,
-                            contentDescription = "Напоминание",
+                            contentDescription = if (reminder?.reminderEnabled == true) {
+                                "Изменить напоминание"
+                            } else {
+                                "Добавить напоминание"
+                            },
                             onClick = { onAddOrEditReminder(lesson) },
                             active = reminder?.reminderEnabled == true,
                         )

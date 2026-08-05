@@ -41,10 +41,12 @@ import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleLessonItem
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppIcons
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppShapes
 import io.github.zapolyarnydev.ptktimetable.ui.theme.MaterialThemeAppColors
+import java.time.LocalDate
 
 @Composable
 internal fun LessonNoteDialog(
     lesson: ScheduleLessonItem,
+    date: LocalDate,
     note: ScheduleNoteItem?,
     canEdit: Boolean,
     onDismiss: () -> Unit,
@@ -52,7 +54,11 @@ internal fun LessonNoteDialog(
     onDelete: () -> Unit,
 ) {
     var noteText by remember(note?.noteId) { mutableStateOf(note?.noteText.orEmpty()) }
-    AppModalScaffold("Заметка к занятию", "${lesson.day.title} · ${lesson.timeRange}", onDismiss) {
+    AppModalScaffold(
+        title = if (note == null) "Новая заметка" else "Редактирование заметки",
+        subtitle = "${formatDateTitle(date)} · ${lesson.timeRange} · ${lesson.subject.ifBlank { "Занятие" }}",
+        onDismiss = onDismiss,
+    ) {
         OutlinedTextField(
             value = noteText,
             onValueChange = { noteText = it },
@@ -139,7 +145,11 @@ internal fun NoteEditByIdDialog(
     onDelete: () -> Unit,
 ) {
     var text by remember(note.noteId) { mutableStateOf(note.noteText) }
-    AppModalScaffold("Редактирование заметки", "${formatDateTitle(note.date)} · ${note.timeRange}", onDismiss) {
+    AppModalScaffold(
+        title = "Редактирование заметки",
+        subtitle = "${formatDateTitle(note.date)} · ${note.timeRange} · ${note.subject.ifBlank { "Занятие" }}",
+        onDismiss = onDismiss,
+    ) {
         OutlinedTextField(value = text, onValueChange = {
             text = it
         }, modifier = Modifier.fillMaxWidth(), label = { Text("Текст заметки") }, minLines = 4)
@@ -157,25 +167,26 @@ internal fun ModalActions(
     saveEnabled: Boolean,
     onDelete: (() -> Unit)? = null,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             TextButton(onClick = onDismiss) { Text("Отмена") }
-            if (onDelete != null) {
+            Spacer(Modifier.weight(1f))
+            Button(onClick = onSave, enabled = saveEnabled, shape = AppShapes.pill) { Text("Сохранить") }
+        }
+        if (onDelete != null) {
+            HorizontalDivider(color = MaterialThemeAppColors.divider)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 TextButton(
                     onClick = onDelete,
                     colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
                         contentColor = MaterialThemeAppColors.error,
                     ),
-                ) {
-                    Text("Удалить")
-                }
+                ) { Text("Удалить заметку") }
             }
-            Spacer(Modifier.weight(1f))
-            Button(onClick = onSave, enabled = saveEnabled, shape = AppShapes.pill) { Text("Сохранить") }
         }
     }
 }
