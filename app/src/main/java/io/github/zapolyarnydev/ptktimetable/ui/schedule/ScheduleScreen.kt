@@ -149,8 +149,8 @@ private fun ScheduleState(
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier.fillMaxSize().testTag("schedule-list"),
-            contentPadding = PaddingValues(vertical = AppDimensions.screenVerticalPadding),
-            verticalArrangement = Arrangement.spacedBy(AppDimensions.sectionSpacing),
+            contentPadding = PaddingValues(vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             item {
                 Box(Modifier.padding(horizontal = AppDimensions.screenHorizontalPadding)) {
@@ -253,6 +253,7 @@ private fun ScheduleState(
         ]
         LessonNoteDialog(
             lesson = lesson,
+            date = navigation.selectedDate,
             note = note,
             canEdit = notesState.canEditDialog,
             onDismiss = { onNotesAction(NotesUiAction.DismissDialog) },
@@ -272,6 +273,7 @@ private fun ScheduleState(
         ]
         ReminderDialog(
             lesson = lesson,
+            date = navigation.selectedDate,
             note = note,
             canEdit = notesState.canEditDialog,
             errorMessage = notesState.errorMessage,

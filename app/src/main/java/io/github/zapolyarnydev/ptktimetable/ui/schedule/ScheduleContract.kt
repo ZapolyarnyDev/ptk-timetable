@@ -104,7 +104,7 @@ data class ScheduleUiState(
     val hasCachedData: Boolean = false,
     val isOffline: Boolean = false,
     val selectedGroup: Group? = null,
-    val mode: ScheduleMode = ScheduleMode.BY_DAY,
+    val mode: ScheduleMode = ScheduleMode.BY_DATE,
     val selectedDate: LocalDate = LocalDate.now(),
     val lessons: List<ScheduleLessonItem> = emptyList(),
     val availableDays: List<ScheduleDay> = emptyList(),

@@ -123,19 +123,17 @@ internal fun OutlinedActionButton(
 internal fun NavArrowButton(icon: ImageVector, enabled: Boolean, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val scale = rememberPressScale(interactionSource, enabled)
-    Surface(
-        modifier = Modifier.graphicsLayerScale(scale),
-        shape = CircleShape,
-        color = if (enabled) MaterialThemeAppColors.surfaceMuted else MaterialThemeAppColors.surface,
+    IconButton(
+        onClick = onClick,
+        enabled = enabled,
+        interactionSource = interactionSource,
+        modifier = Modifier.size(AppDimensions.touchTarget).graphicsLayerScale(scale),
     ) {
-        IconButton(
-            onClick = onClick,
-            enabled = enabled,
-            interactionSource = interactionSource,
-            modifier = Modifier.size(AppDimensions.touchTarget),
-        ) {
-            Icon(icon, contentDescription = null, tint = MaterialThemeAppColors.accent)
-        }
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = if (enabled) MaterialThemeAppColors.accent else MaterialThemeAppColors.textSecondary,
+        )
     }
 }
 
@@ -238,5 +236,30 @@ internal fun OutlinedIconActionButton(
                 modifier = Modifier.size(iconSize),
             )
         }
+    }
+}
+
+@Composable
+internal fun BorderlessIconActionButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    active: Boolean = false,
+    activeTint: Color = MaterialThemeAppColors.accent,
+    inactiveTint: Color = MaterialThemeAppColors.textSecondary,
+) {
+    IconButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier.size(AppDimensions.touchTarget),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = if (active) activeTint else inactiveTint,
+            modifier = Modifier.size(20.dp),
+        )
     }
 }
