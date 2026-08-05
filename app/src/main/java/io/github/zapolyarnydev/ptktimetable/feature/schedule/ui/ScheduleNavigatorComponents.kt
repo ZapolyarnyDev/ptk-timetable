@@ -196,7 +196,7 @@ internal fun DayNavigatorPanel(
                     onClick = onGoToToday,
                     contentPadding = PaddingValues(horizontal = 12.dp),
                     modifier = Modifier.heightIn(min = AppDimensions.touchTarget),
-                ) { Text("Сегодня", color = colors.accent) }
+                ) { Text("К сегодняшнему дню", color = colors.accent) }
             }
         }
 
