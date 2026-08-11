@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isToggleable
@@ -29,6 +30,8 @@ import io.github.zapolyarnydev.ptktimetable.feature.catalog.group.GroupUiState
 import io.github.zapolyarnydev.ptktimetable.feature.notes.NotesDialogState
 import io.github.zapolyarnydev.ptktimetable.feature.notes.NotesUiAction
 import io.github.zapolyarnydev.ptktimetable.feature.notes.NotesUiState
+import io.github.zapolyarnydev.ptktimetable.feature.notes.ScheduleNoteItem
+import io.github.zapolyarnydev.ptktimetable.feature.notes.noteLessonKey
 import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleDataPresentation
 import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleDay
 import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleLessonItem
@@ -69,17 +72,34 @@ class PrimaryApplicationFlowTest {
         composeRule.onNodeWithTag("schedule-list").performScrollToNode(hasText("Мобильная разработка"))
         composeRule.onNodeWithText("Мобильная разработка").assertExists()
 
-        composeRule.onNodeWithContentDescription("Добавить заметку").performClick()
+        composeRule.onNodeWithTag("lesson-note-action")
+            .assertContentDescriptionEquals("Добавить заметку")
+            .performClick()
+        composeRule.onNodeWithText("Новая заметка").assertExists()
         composeRule.onNode(hasSetTextAction()).performTextInput("Подготовить вопросы")
         composeRule.onNodeWithText("Сохранить").performClick()
         composeRule.waitForIdle()
         assertTrue(noteSaved.get())
 
-        composeRule.onNodeWithContentDescription("Напоминание").performClick()
+        composeRule.onNodeWithTag("lesson-note-action")
+            .assertContentDescriptionEquals("Открыть заметку")
+            .performClick()
+        composeRule.onNodeWithText("Редактирование заметки").assertExists()
+        composeRule.onNodeWithContentDescription("Закрыть").performClick()
+
+        composeRule.onNodeWithTag("lesson-reminder-action")
+            .assertContentDescriptionEquals("Добавить напоминание")
+            .performClick()
+        composeRule.onNodeWithText("Новое напоминание").assertExists()
         composeRule.onNode(isToggleable()).performClick()
         composeRule.onNodeWithText("Сохранить").performClick()
         composeRule.waitForIdle()
         assertTrue(reminderSaved.get())
+
+        composeRule.onNodeWithTag("lesson-reminder-action")
+            .assertContentDescriptionEquals("Изменить напоминание")
+            .performClick()
+        composeRule.onNodeWithText("Изменить напоминание").assertExists()
     }
 }
 
@@ -156,7 +176,12 @@ private fun PrimaryFlowHarness(onNoteSaved: () -> Unit, onReminderSaved: () -> U
 
                     is NotesUiAction.SaveLessonNote -> {
                         onNoteSaved()
-                        notesState.copy(dialogs = NotesDialogState())
+                        val note = savedNote(group, lesson, noteText = action.text)
+                        notesState.copy(
+                            notes = listOf(note),
+                            noteTextMap = mapOf(noteKey(notesState.selectedDate, lesson) to note),
+                            dialogs = NotesDialogState(),
+                        )
                     }
 
                     is NotesUiAction.OpenReminder -> notesState.copy(
@@ -166,8 +191,20 @@ private fun PrimaryFlowHarness(onNoteSaved: () -> Unit, onReminderSaved: () -> U
 
                     is NotesUiAction.SaveReminder -> {
                         onReminderSaved()
-                        notesState.copy(dialogs = NotesDialogState())
+                        val reminder = savedNote(
+                            group = group,
+                            lesson = lesson,
+                            noteText = notesState.notes.firstOrNull()?.noteText.orEmpty(),
+                            reminderEnabled = action.enabled,
+                            reminderMinutes = action.minutes,
+                        )
+                        notesState.copy(
+                            reminderMap = mapOf(noteKey(notesState.selectedDate, lesson) to reminder),
+                            dialogs = NotesDialogState(),
+                        )
                     }
+
+                    NotesUiAction.DismissDialog -> notesState.copy(dialogs = NotesDialogState())
 
                     else -> notesState
                 }
@@ -175,6 +212,37 @@ private fun PrimaryFlowHarness(onNoteSaved: () -> Unit, onReminderSaved: () -> U
         )
     }
 }
+
+private fun noteKey(date: LocalDate, lesson: ScheduleLessonItem): String = noteLessonKey(
+    date = date,
+    timeRange = lesson.timeRange,
+    weekType = lesson.weekType,
+    subject = lesson.subject,
+    rawText = lesson.rawText,
+)
+
+private fun savedNote(
+    group: Group,
+    lesson: ScheduleLessonItem,
+    noteText: String,
+    reminderEnabled: Boolean = false,
+    reminderMinutes: Int? = null,
+): ScheduleNoteItem = ScheduleNoteItem(
+    noteId = "primary-flow-note",
+    groupName = group.groupName,
+    date = LocalDate.of(2030, 9, 2),
+    timeRange = lesson.timeRange,
+    weekType = lesson.weekType,
+    subject = lesson.subject,
+    teacher = lesson.teacher,
+    classroom = lesson.classroom,
+    rawText = lesson.rawText,
+    noteText = noteText,
+    reminderEnabled = reminderEnabled,
+    reminderMinutes = reminderMinutes,
+    remindAtEpochMillis = if (reminderEnabled) 1_915_000_000_000 else null,
+    createdAtEpochMillis = 1_914_000_000_000,
+)
 
 private fun scheduleState(group: Group, lesson: ScheduleLessonItem): ScheduleUiState {
     val slot = TimeSlotUi(

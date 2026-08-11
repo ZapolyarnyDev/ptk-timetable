@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.zapolyarnydev.ptktimetable.core.ui.BorderlessIconActionButton
@@ -248,6 +249,7 @@ private fun LessonTextBlock(
                             icon = if (note != null) AppIcons.note else AppIcons.edit,
                             contentDescription = if (note != null) "Открыть заметку" else "Добавить заметку",
                             onClick = { onAddOrEditNote(lesson) },
+                            modifier = Modifier.testTag("lesson-note-action"),
                             active = note != null,
                         )
                         BorderlessIconActionButton(
@@ -258,6 +260,7 @@ private fun LessonTextBlock(
                                 "Добавить напоминание"
                             },
                             onClick = { onAddOrEditReminder(lesson) },
+                            modifier = Modifier.testTag("lesson-reminder-action"),
                             active = reminder?.reminderEnabled == true,
                         )
                     }
