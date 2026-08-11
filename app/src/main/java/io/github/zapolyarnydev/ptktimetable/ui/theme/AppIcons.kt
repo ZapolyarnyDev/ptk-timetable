@@ -9,15 +9,19 @@ import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Computer
+import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.School
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Today
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.Update
@@ -45,4 +49,8 @@ object AppIcons {
     val courseList = Icons.Outlined.ViewModule
     val close = Icons.Outlined.Close
     val warning = Icons.Outlined.ErrorOutline
+    val settings = Icons.Outlined.Settings
+    val systemTheme = Icons.Outlined.Computer
+    val lightTheme = Icons.Outlined.LightMode
+    val darkTheme = Icons.Outlined.DarkMode
 }

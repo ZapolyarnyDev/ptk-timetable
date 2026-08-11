@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.first
 import java.io.IOException
 
 private const val USER_SETTINGS_DATASTORE = "user_settings"
-private val Context.userPreferencesDataStore by preferencesDataStore(name = USER_SETTINGS_DATASTORE)
+internal val Context.userPreferencesDataStore by preferencesDataStore(name = USER_SETTINGS_DATASTORE)
 
 class UserPreferencesStore(private val context: Context) {
 

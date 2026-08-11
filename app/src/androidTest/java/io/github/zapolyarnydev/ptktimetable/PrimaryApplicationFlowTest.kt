@@ -67,6 +67,7 @@ class PrimaryApplicationFlowTest {
             }
         }
 
+        composeRule.onNodeWithContentDescription("Настройки внешнего вида").assertExists()
         composeRule.onNodeWithText("4 курс").performClick()
         composeRule.onNodeWithText("Группа 3991").performClick()
         composeRule.onNodeWithTag("schedule-list").performScrollToNode(hasText("Мобильная разработка"))

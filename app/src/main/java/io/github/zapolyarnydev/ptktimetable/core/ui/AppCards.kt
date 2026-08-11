@@ -68,7 +68,12 @@ import io.github.zapolyarnydev.ptktimetable.ui.theme.AppShapes
 import io.github.zapolyarnydev.ptktimetable.ui.theme.MaterialThemeAppColors
 
 @Composable
-internal fun HeaderPanel(title: String, subtitle: String, icon: ImageVector) {
+internal fun HeaderPanel(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    action: (@Composable () -> Unit)? = null,
+) {
     val colors = MaterialThemeAppColors
     TransparentSection(padding = 0.dp) {
         Row(
@@ -93,6 +98,7 @@ internal fun HeaderPanel(title: String, subtitle: String, icon: ImageVector) {
                     color = colors.textSecondary,
                 )
             }
+            action?.invoke()
         }
     }
 }

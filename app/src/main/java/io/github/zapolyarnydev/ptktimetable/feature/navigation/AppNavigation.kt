@@ -25,6 +25,8 @@ import io.github.zapolyarnydev.ptktimetable.feature.catalog.course.CourseViewMod
 import io.github.zapolyarnydev.ptktimetable.feature.catalog.group.GroupRoute
 import io.github.zapolyarnydev.ptktimetable.feature.catalog.group.GroupViewModel
 import io.github.zapolyarnydev.ptktimetable.feature.notes.NotesViewModel
+import io.github.zapolyarnydev.ptktimetable.feature.settings.AppearanceRoute
+import io.github.zapolyarnydev.ptktimetable.feature.settings.AppearanceViewModel
 import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleRoute
 import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleViewModel
 
@@ -50,7 +52,12 @@ fun AppNavigation(container: AppContainer, navigationViewModel: AppNavigationVie
             CourseRoute(
                 viewModel = courseViewModel,
                 onCourseSelected = { navController.navigate(AppRoute.groups(it)) },
+                onOpenSettings = { navController.navigate(AppRoute.SETTINGS) },
             )
+        }
+        composable(AppRoute.SETTINGS) {
+            val appearanceViewModel: AppearanceViewModel = viewModel(factory = container.appearanceViewModelFactory)
+            AppearanceRoute(viewModel = appearanceViewModel, onBack = { navController.navigateUp() })
         }
         composable(
             route = AppRoute.GROUPS,
@@ -97,6 +104,7 @@ private object AppRoute {
     const val COURSE_ID = "courseId"
     const val GROUP_ID = "groupId"
     const val COURSES = "courses"
+    const val SETTINGS = "settings"
     const val GROUPS = "groups/{$COURSE_ID}"
     const val SCHEDULE = "schedule/{$GROUP_ID}"
 

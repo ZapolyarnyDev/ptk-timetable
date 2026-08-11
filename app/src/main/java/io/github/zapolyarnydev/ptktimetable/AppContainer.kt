@@ -3,10 +3,12 @@ package io.github.zapolyarnydev.ptktimetable
 import android.content.Context
 import androidx.room.Room
 import io.github.zapolyarnydev.ptktimetable.data.local.LessonNotesStore
+import io.github.zapolyarnydev.ptktimetable.data.local.PreferencesAppearancePreferencesRepository
 import io.github.zapolyarnydev.ptktimetable.data.local.UserPreferencesStore
 import io.github.zapolyarnydev.ptktimetable.data.local.database.AppDatabase
 import io.github.zapolyarnydev.ptktimetable.data.local.database.MIGRATION_1_2
 import io.github.zapolyarnydev.ptktimetable.data.local.schedule.RoomScheduleLocalDataSource
+import io.github.zapolyarnydev.ptktimetable.data.local.userPreferencesDataStore
 import io.github.zapolyarnydev.ptktimetable.data.mapper.NovsuLessonMapper
 import io.github.zapolyarnydev.ptktimetable.data.mapper.RoomScheduleMapper
 import io.github.zapolyarnydev.ptktimetable.data.normalize.LessonTextNormalizer
@@ -24,6 +26,7 @@ import io.github.zapolyarnydev.ptktimetable.feature.catalog.course.CourseViewMod
 import io.github.zapolyarnydev.ptktimetable.feature.catalog.group.GroupViewModelFactory
 import io.github.zapolyarnydev.ptktimetable.feature.navigation.AppNavigationViewModelFactory
 import io.github.zapolyarnydev.ptktimetable.feature.notes.NotesViewModelFactory
+import io.github.zapolyarnydev.ptktimetable.feature.settings.AppearanceViewModelFactory
 import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleViewModelFactory
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
@@ -60,6 +63,9 @@ class AppContainer(context: Context) {
         )
     }
     private val preferencesStore by lazy { UserPreferencesStore(applicationContext) }
+    val appearancePreferencesRepository by lazy {
+        PreferencesAppearancePreferencesRepository(applicationContext.userPreferencesDataStore)
+    }
     private val notesStore by lazy { LessonNotesStore(database.lessonNoteDao()) }
     private val reminderScheduler by lazy { LessonReminderScheduler(applicationContext) }
     private val reminderWorkflow by lazy {
@@ -97,6 +103,10 @@ class AppContainer(context: Context) {
             notesStore = notesStore,
             reminderWorkflow = reminderWorkflow,
         )
+    }
+
+    val appearanceViewModelFactory by lazy {
+        AppearanceViewModelFactory(appearancePreferencesRepository)
     }
 
     private companion object {

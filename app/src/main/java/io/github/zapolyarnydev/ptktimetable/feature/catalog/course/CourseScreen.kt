@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -24,7 +26,7 @@ import io.github.zapolyarnydev.ptktimetable.ui.theme.AppIcons
 import io.github.zapolyarnydev.ptktimetable.ui.theme.MaterialThemeAppColors
 
 @Composable
-fun CourseRoute(viewModel: CourseViewModel, onCourseSelected: (Int) -> Unit) {
+fun CourseRoute(viewModel: CourseViewModel, onCourseSelected: (Int) -> Unit, onOpenSettings: () -> Unit) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
@@ -33,11 +35,11 @@ fun CourseRoute(viewModel: CourseViewModel, onCourseSelected: (Int) -> Unit) {
             }
         }
     }
-    CourseScreen(state = state, onAction = viewModel::onAction)
+    CourseScreen(state = state, onAction = viewModel::onAction, onOpenSettings = onOpenSettings)
 }
 
 @Composable
-fun CourseScreen(state: CourseUiState, onAction: (CourseUiAction) -> Unit) {
+fun CourseScreen(state: CourseUiState, onAction: (CourseUiAction) -> Unit, onOpenSettings: () -> Unit = {}) {
     Scaffold(containerColor = MaterialThemeAppColors.background) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when {
@@ -63,6 +65,11 @@ fun CourseScreen(state: CourseUiState, onAction: (CourseUiAction) -> Unit) {
                                 title = "Твоё расписание",
                                 subtitle = "Выбери курс — дальше покажем доступные группы",
                                 icon = AppIcons.schedule,
+                                action = {
+                                    IconButton(onClick = onOpenSettings) {
+                                        Icon(AppIcons.settings, contentDescription = "Настройки внешнего вида")
+                                    }
+                                },
                             )
                         }
                     }
