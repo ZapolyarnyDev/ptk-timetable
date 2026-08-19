@@ -1,5 +1,6 @@
 package io.github.zapolyarnydev.ptktimetable.feature.settings
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -27,8 +28,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.github.zapolyarnydev.ptktimetable.R
 import io.github.zapolyarnydev.ptktimetable.core.ui.AppChoiceChip
 import io.github.zapolyarnydev.ptktimetable.core.ui.TonalSection
 import io.github.zapolyarnydev.ptktimetable.data.preferences.AppearancePreferences
@@ -49,6 +52,11 @@ internal fun AppearanceTopBar(onBack: () -> Unit) {
         IconButton(onClick = onBack, modifier = Modifier.testTag("appearance-back")) {
             Icon(AppIcons.back, contentDescription = "Назад")
         }
+        Image(
+            painter = painterResource(R.drawable.app_logo),
+            contentDescription = "Логотип ПТК НовГУ",
+            modifier = Modifier.size(46.dp).clip(AppShapes.medium),
+        )
         Column {
             Text("Внешний вид", style = MaterialTheme.typography.headlineSmall)
             Text("Цвета и тема приложения", style = MaterialTheme.typography.bodyMedium)
