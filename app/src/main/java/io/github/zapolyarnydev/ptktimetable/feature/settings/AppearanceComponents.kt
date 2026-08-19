@@ -116,6 +116,7 @@ internal fun AppearanceColorEditor(
     title: String,
     value: AppearanceColorInput,
     resolvedColor: Color,
+    presets: List<Long>,
     onHexChange: (String) -> Unit,
     onPreset: (Long) -> Unit,
     onReset: () -> Unit,
@@ -130,7 +131,7 @@ internal fun AppearanceColorEditor(
             modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(9.dp),
         ) {
-            COLOR_PRESETS.forEach { argb ->
+            presets.forEach { argb ->
                 Surface(
                     onClick = { onPreset(argb) },
                     modifier = Modifier.size(36.dp),
@@ -168,13 +169,36 @@ internal fun AppearanceSection(title: String, subtitle: String? = null, content:
     }
 }
 
-internal val COLOR_PRESETS = listOf(
-    0xFF171A22,
-    0xFFFFFFFF,
-    0xFF5E6576,
-    0xFF315FEA,
-    0xFF6750A4,
-    0xFF008577,
-    0xFFD32F2F,
-    0xFFFF9800,
-)
+internal fun colorPresetsFor(target: AppearanceColorTarget): List<Long> = when (target) {
+    AppearanceColorTarget.PRIMARY_TEXT -> listOf(
+        0xFF172033,
+        0xFF25324A,
+        0xFF334155,
+        0xFFE8EDF7,
+        0xFFF5F7FB,
+    )
+
+    AppearanceColorTarget.SECONDARY_TEXT -> listOf(
+        0xFF64748B,
+        0xFF718096,
+        0xFF8794AA,
+        0xFFB4C0D3,
+        0xFFC5D0E2,
+    )
+
+    AppearanceColorTarget.BACKGROUND -> listOf(
+        0xFFF7F8FC,
+        0xFFF3F6FA,
+        0xFFF5F7F2,
+        0xFF151A24,
+        0xFF1B2230,
+    )
+
+    AppearanceColorTarget.ACCENT -> listOf(
+        0xFF315FEA,
+        0xFF5367D9,
+        0xFF008A78,
+        0xFFB34675,
+        0xFFB7791F,
+    )
+}

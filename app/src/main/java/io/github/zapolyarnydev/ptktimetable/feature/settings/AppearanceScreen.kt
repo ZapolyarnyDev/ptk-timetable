@@ -88,6 +88,7 @@ fun AppearanceScreen(state: AppearanceUiState, onAction: (AppearanceUiAction) ->
                         title = "Основной текст",
                         value = state.colorInput(AppearanceColorTarget.PRIMARY_TEXT),
                         resolvedColor = palette.textPrimary,
+                        presets = colorPresetsFor(AppearanceColorTarget.PRIMARY_TEXT),
                         onHexChange = {
                             onAction(AppearanceUiAction.UpdateColorHex(AppearanceColorTarget.PRIMARY_TEXT, it))
                         },
@@ -101,6 +102,7 @@ fun AppearanceScreen(state: AppearanceUiState, onAction: (AppearanceUiAction) ->
                         title = "Вторичный текст",
                         value = state.colorInput(AppearanceColorTarget.SECONDARY_TEXT),
                         resolvedColor = palette.textSecondary,
+                        presets = colorPresetsFor(AppearanceColorTarget.SECONDARY_TEXT),
                         onHexChange = {
                             onAction(AppearanceUiAction.UpdateColorHex(AppearanceColorTarget.SECONDARY_TEXT, it))
                         },
@@ -114,6 +116,7 @@ fun AppearanceScreen(state: AppearanceUiState, onAction: (AppearanceUiAction) ->
                         title = "Фон",
                         value = state.colorInput(AppearanceColorTarget.BACKGROUND),
                         resolvedColor = palette.background,
+                        presets = colorPresetsFor(AppearanceColorTarget.BACKGROUND),
                         onHexChange = {
                             onAction(AppearanceUiAction.UpdateColorHex(AppearanceColorTarget.BACKGROUND, it))
                         },
@@ -127,6 +130,7 @@ fun AppearanceScreen(state: AppearanceUiState, onAction: (AppearanceUiAction) ->
                         title = "Акцент",
                         value = state.colorInput(AppearanceColorTarget.ACCENT),
                         resolvedColor = palette.accent,
+                        presets = colorPresetsFor(AppearanceColorTarget.ACCENT),
                         onHexChange = { onAction(AppearanceUiAction.UpdateColorHex(AppearanceColorTarget.ACCENT, it)) },
                         onPreset = { onAction(AppearanceUiAction.SelectPresetColor(AppearanceColorTarget.ACCENT, it)) },
                         onReset = { onAction(AppearanceUiAction.ResetColor(AppearanceColorTarget.ACCENT)) },
