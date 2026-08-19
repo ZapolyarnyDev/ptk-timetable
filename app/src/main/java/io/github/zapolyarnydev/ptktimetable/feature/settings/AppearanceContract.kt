@@ -34,8 +34,6 @@ sealed interface AppearanceUiAction {
 
     data class ResetColor(val target: AppearanceColorTarget) : AppearanceUiAction
 
-    data class SetSecondarySurfaceOpacity(val opacity: Float) : AppearanceUiAction
-
     data object ResetDefaults : AppearanceUiAction
 
     data object Save : AppearanceUiAction

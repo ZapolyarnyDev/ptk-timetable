@@ -118,11 +118,6 @@ fun AppearanceScreen(state: AppearanceUiState, onAction: (AppearanceUiAction) ->
                     )
                 }
             }
-            item {
-                SecondarySurfaceOpacityEditor(state.draft.secondarySurfaceOpacity) {
-                    onAction(AppearanceUiAction.SetSecondarySurfaceOpacity(it))
-                }
-            }
             state.errorMessage?.let { message ->
                 item {
                     Text(message, color = MaterialThemeAppColors.error, style = MaterialTheme.typography.bodyMedium)

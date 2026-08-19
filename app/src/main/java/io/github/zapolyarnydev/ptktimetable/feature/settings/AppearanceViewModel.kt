@@ -31,25 +31,10 @@ class AppearanceViewModel(private val repository: AppearancePreferencesRepositor
     fun onAction(action: AppearanceUiAction) {
         when (action) {
             is AppearanceUiAction.SelectThemeMode -> updateDraft { copy(themeMode = action.mode) }
-
             is AppearanceUiAction.UpdateColorHex -> updateColorHex(action.target, action.value)
-
             is AppearanceUiAction.SelectPresetColor -> setColor(action.target, action.argb)
-
             is AppearanceUiAction.ResetColor -> setColor(action.target, null)
-
-            is AppearanceUiAction.SetSecondarySurfaceOpacity -> updateDraft {
-                copy(secondarySurfaceOpacity = action.opacity.coerceIn(0f, 1f))
-            }
-
-            AppearanceUiAction.ResetDefaults -> _state.update {
-                it.copy(
-                    draft = AppearancePreferences.Defaults,
-                    colorInputs = AppearancePreferences.Defaults.toColorInputs(),
-                    errorMessage = null,
-                )
-            }
-
+            AppearanceUiAction.ResetDefaults -> reset()
             AppearanceUiAction.Save -> save()
         }
     }
@@ -130,6 +115,32 @@ class AppearanceViewModel(private val repository: AppearancePreferencesRepositor
                     it.copy(
                         isSaving = false,
                         errorMessage = error.message ?: "Не удалось сохранить настройки внешнего вида",
+                    )
+                }
+            }
+        }
+    }
+
+    private fun reset() {
+        saveJob?.cancel()
+        saveJob = viewModelScope.launch(Dispatchers.IO) {
+            _state.update { it.copy(isSaving = true, errorMessage = null) }
+            try {
+                repository.reset()
+                _state.update {
+                    it.copy(
+                        saved = AppearancePreferences.Defaults,
+                        draft = AppearancePreferences.Defaults,
+                        colorInputs = AppearancePreferences.Defaults.toColorInputs(),
+                        isSaving = false,
+                    )
+                }
+            } catch (error: Throwable) {
+                if (error is CancellationException) throw error
+                _state.update {
+                    it.copy(
+                        isSaving = false,
+                        errorMessage = error.message ?: "Unable to reset appearance settings",
                     )
                 }
             }

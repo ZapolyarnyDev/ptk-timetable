@@ -27,7 +27,6 @@ class PreferencesAppearancePreferencesRepositoryTest {
             secondaryTextColorArgb = 0xFFB0B0B0,
             backgroundColorArgb = 0xFF101114,
             accentColorArgb = 0xFF7C9BFF,
-            secondarySurfaceOpacity = 0.4f,
         )
 
         PreferencesAppearancePreferencesRepository(dataStore).save(expected)
@@ -44,14 +43,22 @@ class PreferencesAppearancePreferencesRepositoryTest {
             values[AppearancePreferenceKeys.PRIMARY_TEXT_COLOR] = -42
             values[AppearancePreferenceKeys.USE_ACCENT_COLOR] = true
             values[AppearancePreferenceKeys.ACCENT_COLOR] = AppearancePreferences.MAX_ARGB + 1
-            values[AppearancePreferenceKeys.SECONDARY_SURFACE_OPACITY] = 4.2f
         }
 
         val restored = PreferencesAppearancePreferencesRepository(dataStore).preferences.first()
         assertEquals(AppThemeMode.LIGHT, restored.themeMode)
         assertNull(restored.primaryTextColorArgb)
         assertNull(restored.accentColorArgb)
-        assertEquals(AppearancePreferences.DEFAULT_SECONDARY_SURFACE_OPACITY, restored.secondarySurfaceOpacity)
+    }
+
+    @Test
+    fun resetClearsSavedPreferences() = withDataStore { dataStore ->
+        val repository = PreferencesAppearancePreferencesRepository(dataStore)
+        repository.save(AppearancePreferences(themeMode = AppThemeMode.DARK, accentColorArgb = 0xFF315FEA))
+
+        repository.reset()
+
+        assertEquals(AppearancePreferences.Defaults, repository.preferences.first())
     }
 
     private fun withDataStore(block: suspend (DataStore<Preferences>) -> Unit) = runBlocking {

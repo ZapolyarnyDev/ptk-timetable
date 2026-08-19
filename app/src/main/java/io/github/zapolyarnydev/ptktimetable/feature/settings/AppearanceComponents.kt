@@ -18,7 +18,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,7 +38,6 @@ import io.github.zapolyarnydev.ptktimetable.ui.theme.AppThemeMode
 import io.github.zapolyarnydev.ptktimetable.ui.theme.PtkTheme
 import io.github.zapolyarnydev.ptktimetable.ui.theme.ThemeManager
 import io.github.zapolyarnydev.ptktimetable.ui.theme.toThemeSettings
-import kotlin.math.roundToInt
 
 @Composable
 internal fun AppearanceTopBar(onBack: () -> Unit) {
@@ -154,23 +152,6 @@ internal fun AppearanceColorEditor(
             } else {
                 { Text("Введите 6 или 8 шестнадцатеричных цифр") }
             },
-        )
-    }
-}
-
-@Composable
-internal fun SecondarySurfaceOpacityEditor(opacity: Float, onChange: (Float) -> Unit) {
-    AppearanceSection(
-        title = "Вторичные поверхности",
-        subtitle = "Прозрачность плашек и спокойных фоновых элементов",
-    ) {
-        Text("${(opacity * 100).roundToInt()}%", fontWeight = FontWeight.SemiBold)
-        Slider(
-            value = opacity,
-            onValueChange = onChange,
-            valueRange = 0f..1f,
-            steps = 9,
-            modifier = Modifier.fillMaxWidth().testTag("secondary-surface-opacity"),
         )
     }
 }

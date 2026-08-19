@@ -4,7 +4,6 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import io.github.zapolyarnydev.ptktimetable.data.preferences.AppearancePreferences
@@ -54,8 +53,11 @@ class PreferencesAppearancePreferencesRepository(private val dataStore: DataStor
                 colorKey = AppearancePreferenceKeys.ACCENT_COLOR,
                 argb = safe.accentColorArgb,
             )
-            values[AppearancePreferenceKeys.SECONDARY_SURFACE_OPACITY] = safe.secondarySurfaceOpacity
         }
+    }
+
+    override suspend fun reset() {
+        dataStore.edit { it.clear() }
     }
 
     private fun decode(values: Preferences): AppearancePreferences = AppearancePreferences(
@@ -76,8 +78,6 @@ class PreferencesAppearancePreferencesRepository(private val dataStore: DataStor
             AppearancePreferenceKeys.USE_ACCENT_COLOR,
             AppearancePreferenceKeys.ACCENT_COLOR,
         ),
-        secondarySurfaceOpacity = values[AppearancePreferenceKeys.SECONDARY_SURFACE_OPACITY]
-            ?: AppearancePreferences.DEFAULT_SECONDARY_SURFACE_OPACITY,
     ).sanitized()
 }
 
@@ -103,5 +103,4 @@ internal object AppearancePreferenceKeys {
     val BACKGROUND_COLOR = longPreferencesKey("appearance_background_color_argb")
     val USE_ACCENT_COLOR = booleanPreferencesKey("appearance_use_accent_color")
     val ACCENT_COLOR = longPreferencesKey("appearance_accent_color_argb")
-    val SECONDARY_SURFACE_OPACITY = floatPreferencesKey("appearance_secondary_surface_opacity")
 }

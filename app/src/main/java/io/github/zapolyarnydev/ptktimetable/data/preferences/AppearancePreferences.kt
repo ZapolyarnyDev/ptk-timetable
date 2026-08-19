@@ -8,20 +8,15 @@ data class AppearancePreferences(
     val secondaryTextColorArgb: Long? = null,
     val backgroundColorArgb: Long? = null,
     val accentColorArgb: Long? = null,
-    val secondarySurfaceOpacity: Float = DEFAULT_SECONDARY_SURFACE_OPACITY,
 ) {
     fun sanitized(): AppearancePreferences = copy(
         primaryTextColorArgb = primaryTextColorArgb.validArgbOrNull(),
         secondaryTextColorArgb = secondaryTextColorArgb.validArgbOrNull(),
         backgroundColorArgb = backgroundColorArgb.validArgbOrNull(),
         accentColorArgb = accentColorArgb.validArgbOrNull(),
-        secondarySurfaceOpacity = secondarySurfaceOpacity
-            .takeIf { it.isFinite() && it in 0f..1f }
-            ?: DEFAULT_SECONDARY_SURFACE_OPACITY,
     )
 
     companion object {
-        const val DEFAULT_SECONDARY_SURFACE_OPACITY = 1f
         const val MAX_ARGB = 0xFFFF_FFFFL
 
         val Defaults = AppearancePreferences()

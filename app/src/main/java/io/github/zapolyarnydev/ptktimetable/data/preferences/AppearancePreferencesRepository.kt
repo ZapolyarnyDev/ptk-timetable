@@ -6,4 +6,6 @@ interface AppearancePreferencesRepository {
     val preferences: Flow<AppearancePreferences>
 
     suspend fun save(preferences: AppearancePreferences)
+
+    suspend fun reset()
 }
