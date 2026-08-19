@@ -17,12 +17,16 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.zapolyarnydev.ptktimetable.data.preferences.AppearancePreferences
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppDimensions
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppShapes
 import io.github.zapolyarnydev.ptktimetable.ui.theme.MaterialThemeAppColors
@@ -30,8 +34,19 @@ import io.github.zapolyarnydev.ptktimetable.ui.theme.ThemeManager
 import io.github.zapolyarnydev.ptktimetable.ui.theme.toThemeSettings
 
 @Composable
-fun AppearanceRoute(viewModel: AppearanceViewModel, onBack: () -> Unit) {
+fun AppearanceRoute(
+    viewModel: AppearanceViewModel,
+    onBack: () -> Unit,
+    onAppearancePreview: (AppearancePreferences?) -> Unit,
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val currentPreviewCallback by rememberUpdatedState(onAppearancePreview)
+    DisposableEffect(Unit) {
+        onDispose { currentPreviewCallback(null) }
+    }
+    SideEffect {
+        if (!state.isLoading) currentPreviewCallback(state.draft)
+    }
     AppearanceScreen(state = state, onAction = viewModel::onAction, onBack = onBack)
 }
 

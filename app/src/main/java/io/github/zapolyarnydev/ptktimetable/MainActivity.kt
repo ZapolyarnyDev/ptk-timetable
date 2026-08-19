@@ -4,6 +4,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.zapolyarnydev.ptktimetable.data.preferences.AppearancePreferences
@@ -21,12 +24,14 @@ class MainActivity : ComponentActivity() {
             val appearance by container.appearancePreferencesRepository.preferences.collectAsStateWithLifecycle(
                 initialValue = AppearancePreferences.Defaults,
             )
-            PtkTheme(settings = appearance.toThemeSettings()) {
+            var appearancePreview by remember { mutableStateOf<AppearancePreferences?>(null) }
+            PtkTheme(settings = (appearancePreview ?: appearance).toThemeSettings()) {
                 val navigationViewModel: AppNavigationViewModel =
                     viewModel(factory = container.appNavigationViewModelFactory)
                 AppNavigation(
                     container = container,
                     navigationViewModel = navigationViewModel,
+                    onAppearancePreview = { appearancePreview = it },
                 )
             }
         }

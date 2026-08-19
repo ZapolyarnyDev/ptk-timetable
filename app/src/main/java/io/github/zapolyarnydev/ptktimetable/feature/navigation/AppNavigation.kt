@@ -20,6 +20,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import io.github.zapolyarnydev.ptktimetable.AppContainer
+import io.github.zapolyarnydev.ptktimetable.data.preferences.AppearancePreferences
 import io.github.zapolyarnydev.ptktimetable.feature.catalog.course.CourseRoute
 import io.github.zapolyarnydev.ptktimetable.feature.catalog.course.CourseViewModel
 import io.github.zapolyarnydev.ptktimetable.feature.catalog.group.GroupRoute
@@ -31,7 +32,11 @@ import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleRoute
 import io.github.zapolyarnydev.ptktimetable.ui.schedule.ScheduleViewModel
 
 @Composable
-fun AppNavigation(container: AppContainer, navigationViewModel: AppNavigationViewModel) {
+fun AppNavigation(
+    container: AppContainer,
+    navigationViewModel: AppNavigationViewModel,
+    onAppearancePreview: (AppearancePreferences?) -> Unit,
+) {
     val restoration by navigationViewModel.state.collectAsStateWithLifecycle()
     if (restoration.isRestoring) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -57,7 +62,11 @@ fun AppNavigation(container: AppContainer, navigationViewModel: AppNavigationVie
         }
         composable(AppRoute.SETTINGS) {
             val appearanceViewModel: AppearanceViewModel = viewModel(factory = container.appearanceViewModelFactory)
-            AppearanceRoute(viewModel = appearanceViewModel, onBack = { navController.navigateUp() })
+            AppearanceRoute(
+                viewModel = appearanceViewModel,
+                onBack = { navController.navigateUp() },
+                onAppearancePreview = onAppearancePreview,
+            )
         }
         composable(
             route = AppRoute.GROUPS,
