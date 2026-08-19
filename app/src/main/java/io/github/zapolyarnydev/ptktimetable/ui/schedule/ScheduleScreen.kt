@@ -50,7 +50,12 @@ import io.github.zapolyarnydev.ptktimetable.ui.theme.AppShapes
 import io.github.zapolyarnydev.ptktimetable.ui.theme.MaterialThemeAppColors
 
 @Composable
-fun ScheduleRoute(viewModel: ScheduleViewModel, notesViewModel: NotesViewModel, onBack: () -> Unit) {
+fun ScheduleRoute(
+    viewModel: ScheduleViewModel,
+    notesViewModel: NotesViewModel,
+    onBack: () -> Unit,
+    onOpenSettings: () -> Unit,
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val notesState by notesViewModel.state.collectAsStateWithLifecycle()
     val onNotesAction = rememberPermissionAwareNotesAction(notesViewModel::onAction)
@@ -73,6 +78,7 @@ fun ScheduleRoute(viewModel: ScheduleViewModel, notesViewModel: NotesViewModel, 
         notesState = notesState,
         onAction = viewModel::onAction,
         onNotesAction = onNotesAction,
+        onOpenSettings = onOpenSettings,
     )
 }
 
@@ -82,6 +88,7 @@ fun ScheduleScreen(
     notesState: NotesUiState,
     onAction: (ScheduleUiAction) -> Unit,
     onNotesAction: (NotesUiAction) -> Unit,
+    onOpenSettings: () -> Unit = {},
 ) {
     val colors = MaterialThemeAppColors
     Scaffold(containerColor = colors.background) { padding ->
@@ -101,6 +108,7 @@ fun ScheduleScreen(
                     notesState = notesState,
                     onAction = onAction,
                     onNotesAction = onNotesAction,
+                    onOpenSettings = onOpenSettings,
                 )
             }
         }
@@ -140,6 +148,7 @@ private fun ScheduleState(
     notesState: NotesUiState,
     onAction: (ScheduleUiAction) -> Unit,
     onNotesAction: (NotesUiAction) -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val colors = MaterialThemeAppColors
     val data = state.data
@@ -185,6 +194,7 @@ private fun ScheduleState(
                         groupTitle = data.selectedGroup?.let { "Группа ${it.groupName}" },
                         courseTitle = data.selectedGroup?.courseName,
                         onBack = { onAction(ScheduleUiAction.Back) },
+                        onOpenSettings = onOpenSettings,
                         onRefresh = { onAction(ScheduleUiAction.Refresh) },
                         errorMessage = notesState.errorMessage ?: state.errorMessage,
                     )

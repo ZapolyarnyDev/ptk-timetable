@@ -20,12 +20,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import io.github.zapolyarnydev.ptktimetable.core.ui.AppChoiceChip
+import io.github.zapolyarnydev.ptktimetable.core.ui.HeaderBackButton
+import io.github.zapolyarnydev.ptktimetable.core.ui.HeaderTitleRow
 import io.github.zapolyarnydev.ptktimetable.core.ui.NavArrowButton
 import io.github.zapolyarnydev.ptktimetable.core.ui.formatDateTitle
 import io.github.zapolyarnydev.ptktimetable.domain.schedule.model.ScheduleMode
@@ -65,6 +64,7 @@ internal fun DayNavigatorPanel(
     groupTitle: String? = null,
     courseTitle: String? = null,
     onBack: (() -> Unit)? = null,
+    onOpenSettings: (() -> Unit)? = null,
     onRefresh: (() -> Unit)? = null,
     errorMessage: String? = null,
 ) {
@@ -75,34 +75,25 @@ internal fun DayNavigatorPanel(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        if (onBack != null || onRefresh != null) {
+        if (onBack != null || onOpenSettings != null || onRefresh != null) {
+            if (onBack != null && onOpenSettings != null) {
+                HeaderTitleRow(
+                    title = groupTitle ?: "Группа не выбрана",
+                    icon = AppIcons.schedule,
+                    onOpenSettings = onOpenSettings,
+                )
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (onBack != null) {
-                    IconButton(onClick = onBack) {
-                        Icon(AppIcons.back, contentDescription = "К группам")
-                    }
-                }
-                Column(
+                if (onBack != null) HeaderBackButton("К группам", onBack)
+                Text(
+                    courseTitle.orEmpty(),
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(1.dp),
-                ) {
-                    Text(
-                        text = buildAnnotatedString {
-                            withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = colors.accent)) {
-                                append(groupTitle ?: "Группа не выбрана")
-                            }
-                            courseTitle?.takeIf { it.isNotBlank() }?.let {
-                                append("  •  ")
-                                withStyle(SpanStyle(color = colors.textSecondary)) { append(it) }
-                            }
-                        },
-                        style = MaterialTheme.typography.titleSmall,
-                        color = colors.textPrimary,
-                    )
-                }
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.textSecondary,
+                )
                 if (onRefresh != null) {
                     IconButton(onClick = onRefresh) {
                         Icon(AppIcons.refresh, contentDescription = "Обновить")

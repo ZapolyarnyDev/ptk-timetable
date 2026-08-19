@@ -2,25 +2,30 @@ package io.github.zapolyarnydev.ptktimetable.feature.catalog.course
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.zapolyarnydev.ptktimetable.core.ui.EmptyStateBlock
 import io.github.zapolyarnydev.ptktimetable.core.ui.FullScreenErrorState
 import io.github.zapolyarnydev.ptktimetable.core.ui.FullScreenLoadingState
-import io.github.zapolyarnydev.ptktimetable.core.ui.HeaderPanel
+import io.github.zapolyarnydev.ptktimetable.core.ui.HeaderTitleRow
 import io.github.zapolyarnydev.ptktimetable.core.ui.SelectionListSection
 import io.github.zapolyarnydev.ptktimetable.core.ui.SelectionListSkeleton
-import io.github.zapolyarnydev.ptktimetable.feature.catalog.CatalogStatusCard
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppDimensions
 import io.github.zapolyarnydev.ptktimetable.ui.theme.AppIcons
 import io.github.zapolyarnydev.ptktimetable.ui.theme.MaterialThemeAppColors
@@ -61,29 +66,30 @@ fun CourseScreen(state: CourseUiState, onAction: (CourseUiAction) -> Unit, onOpe
                 ) {
                     item {
                         Box(Modifier.padding(horizontal = AppDimensions.screenHorizontalPadding)) {
-                            HeaderPanel(
-                                title = "Твоё расписание",
-                                subtitle = "Выбери курс — дальше покажем доступные группы",
-                                icon = AppIcons.schedule,
-                                action = {
-                                    IconButton(onClick = onOpenSettings) {
-                                        Icon(AppIcons.settings, contentDescription = "Настройки внешнего вида")
+                            Column(verticalArrangement = Arrangement.spacedBy(AppDimensions.compactSpacing)) {
+                                HeaderTitleRow(
+                                    title = "Выберите курс",
+                                    icon = AppIcons.course,
+                                    onOpenSettings = onOpenSettings,
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        "Чтобы открыть расписание групп",
+                                        modifier = Modifier.weight(1f),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialThemeAppColors.textSecondary,
+                                    )
+                                    IconButton(
+                                        onClick = { onAction(CourseUiAction.Refresh) },
+                                        enabled = !state.isRefreshing,
+                                    ) {
+                                        Icon(AppIcons.refresh, contentDescription = "Обновить")
                                     }
-                                },
-                            )
-                        }
-                    }
-                    item {
-                        Box(Modifier.padding(horizontal = AppDimensions.screenHorizontalPadding)) {
-                            CatalogStatusCard(
-                                title = "Выберите курс",
-                                subtitle = "Шаг 1 из 2",
-                                lastUpdatedAt = state.lastUpdatedAt,
-                                isRefreshing = state.isRefreshing,
-                                syncError = state.syncError,
-                                isOffline = state.isOffline,
-                                onRefresh = { onAction(CourseUiAction.Refresh) },
-                            )
+                                }
+                            }
                         }
                     }
                     item {

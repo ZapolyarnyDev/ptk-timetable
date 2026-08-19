@@ -79,6 +79,7 @@ fun AppNavigation(
                 viewModel = groupViewModel,
                 onGroupSelected = { navController.navigate(AppRoute.schedule(it)) },
                 onBack = { navController.navigateUp() },
+                onOpenSettings = { navController.navigate(AppRoute.SETTINGS) },
             )
         }
         composable(
@@ -95,6 +96,7 @@ fun AppNavigation(
                 viewModel = scheduleViewModel,
                 notesViewModel = notesViewModel,
                 onBack = { navController.navigateUp() },
+                onOpenSettings = { navController.navigate(AppRoute.SETTINGS) },
             )
         }
     }

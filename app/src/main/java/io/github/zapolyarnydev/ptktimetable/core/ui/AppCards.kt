@@ -47,6 +47,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -99,6 +100,32 @@ internal fun HeaderPanel(
                 )
             }
             action?.invoke()
+        }
+    }
+}
+
+@Composable
+fun HeaderBackButton(label: String, onClick: () -> Unit) {
+    TextButton(onClick = onClick) {
+        Icon(AppIcons.back, contentDescription = null, modifier = Modifier.size(18.dp))
+        Text(label)
+    }
+}
+
+@Composable
+fun HeaderTitleRow(title: String, icon: ImageVector, onOpenSettings: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, contentDescription = null, tint = MaterialThemeAppColors.accent, modifier = Modifier.size(22.dp))
+        Text(
+            title,
+            modifier = Modifier.weight(1f).padding(start = 10.dp),
+            style = MaterialTheme.typography.headlineSmall,
+        )
+        IconButton(onClick = onOpenSettings) {
+            Icon(AppIcons.settings, contentDescription = "Настройки внешнего вида")
         }
     }
 }
